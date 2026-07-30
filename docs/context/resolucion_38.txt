@@ -1,0 +1,862 @@
+Resolución 38 EXENTA ESTABLECE REQUISITOS OBLIGATORIOS Y PROCEDIMIENTO DE AUTORIZACIÓN PARA LOS SISTEMAS ELECTRÓNICOS DE REGISTRO Y CONTROL DE LA ASISTENCIA Y DETERMINACIÓN DE LAS HORAS DE TRABAJO
+MINISTERIO DEL TRABAJO Y PREVISIÓN SOCIAL; SUBSECRETARÍA DEL TRABAJO; DIRECCIÓN DEL TRABAJO
+Promulgacion: 26-ABR-2024 Publicación: 09-MAY-2024
+
+Versión: Última Versión - 25-ABR-2025
+
+Última modificación: 25-ABR-2025 - Resolución 9453 EXENTA
+
+Url: https://www.bcn.cl/leychile/navegar?i=1203415&f=2025-04-25
+
+Url Corta: https://bcn.cl/IJdqHg
+
+
+ESTABLECE REQUISITOS OBLIGATORIOS Y PROCEDIMIENTO DE AUTORIZACIÓN PARA LOS SISTEMAS ELECTRÓNICOS DE REGISTRO Y CONTROL DE LA ASISTENCIA Y DETERMINACIÓN DE LAS HORAS DE TRABAJO
+
+    Núm. 38 exenta.- Santiago, 26 de abril de 2024.
+
+    Vistos:
+
+    1) El Código del Trabajo, en su nuevo artículo 33º inciso 2º, que empieza a regir el día 26 de abril de 2024.
+    2) Ley Nº21.561 que modifica el Código del Trabajo con el objeto de reducir la jornada laboral.
+    3) Las facultades conferidas en el DFL Nº2, de 1967, del Ministerio del Trabajo y Previsión Social, Ley Orgánica de la Dirección del Trabajo.
+    4) Reglamento Nº969, de 1933, del Ministerio del Trabajo y Previsión Social, artículo 20.
+    5) Decreto Nº38, de 2022, del Ministerio del Trabajo y Previsión Social, que nombra Director Nacional del Trabajo.
+    6) Resolución Nº7, de 26.03.2019, de la Contraloría General de la República, que fija normas sobre exención del trámite de Toma de Razón.
+
+    Considerando:
+
+    1-. Que, de acuerdo con lo dispuesto en el inciso 2º del artículo 33 del Código del Trabajo, incorporado por la Ley Nº21.561, le corresponde a este Servicio dictar una resolución que establezca y regule las condiciones y requisitos que deben cumplir los sistemas electrónicos de registro y control de asistencia y horas de trabajo.
+    2-. Que, el mandato señalado en el considerando anterior debe ser ejecutado teniendo en consideración el nivel de avance de las herramientas tecnológicas disponibles.
+    3-. Que, además, la normativa debe asegurar la debida la simetría en el acceso a los datos generados por los sistemas de registro y control de asistencia, a fin de que tanto empleadores como trabajadores cuenten con la misma cantidad y calidad de información.
+    4-. Que, asimismo, el creciente proceso de integración de diferentes tipos de software al interior de las empresas requiere actualizar las medidas de seguridad de la información generada y almacenada por las soluciones de control de asistencia y determinación de las horas de trabajo.
+    5-. Que, el uso de sistemas electrónicos de registro y control de asistencia importa, comúnmente, la recopilación y uso de datos personales de los trabajadores, materia de suyo delicada que requiere normas específicas de protección.
+    6-. Que, la intensificación de uso de herramientas tecnológicas en el marco de la relación laboral exige el establecimiento de estándares informáticos y jurídicos generales, claros y conocidos por las partes.
+    7-. Que, el establecimiento de un estatuto normativo específico para los sistemas electrónicos de registro y control de asistencia permite mejorar la fiabilidad y disponibilidad de la información generada por las plataformas simplificando, asimismo, el ejercicio de la labor fiscalizadora de esta Dirección.
+    8-. Que, existen sistemas de registro de control de asistencia autorizados por esta Dirección en forma previa al establecimiento de los requisitos y condiciones regulados en la presente resolución exenta.
+    9-. Que, el artículo cuarto transitorio de la Ley Nº21.561, ha establecido que las autorizaciones otorgadas relativas a sistemas especiales de control de asistencia se mantendrán vigentes mientras cumplan los requisitos fijados en esta resolución exenta.
+    10-. Que, a su vez, dado que la Ley Nº21.561 no ha dispuesto una regla transitoria respecto de la vigencia de las autorizaciones relativas a sistemas generales de control de asistencia ya emitidas, estos necesariamente deberán ajustarse al nuevo estatuto normativo establecido por esta Dirección, conforme a su facultad para fijar los requisitos que deben cumplir las plataformas a fin de cumplir los objetivos descritos en los considerandos precedentes.
+    11-. Que, atendido lo señalado en el considerando 10, con la finalidad de organizar de manera eficiente y eficaz el proceso de implementación del presente estatuto normativo y por razones de buen servicio, se ha estimado pertinente establecer un plazo para que la totalidad de los sistemas electrónicos de registro y control de asistencia den cumplimiento a los requisitos y condiciones regulados en esta resolución exenta, no pudiendo extenderse la vigencia de las autorizaciones de los sistemas generales de control de asistencia ya autorizados más allá de este término.
+
+    Resuelvo:
+
+
+    Primero: Establécense, según dispone el inciso 2º del artículo 33 del Código del Trabajo, las siguientes condiciones y requisitos que deberán cumplir los sistemas electrónicos de registro y control de asistencia y horas de trabajo:
+
+
+    TÍTULO I
+    MARCO NORMATIVO
+
+
+    Artículo 1º. Obligatoriedad. Para ser utilizados en el marco de la relación laboral, los sistemas electrónicos de registro y control de asistencia y determinación de las horas de trabajo deberán cumplir con todas las exigencias señaladas en la presente resolución exenta, a menos que se indique expresamente que alguna de ellas tiene carácter de opcional.
+
+
+    Artículo 2º. Ámbito de aplicación: La normativa contenida en la presente resolución exenta sólo resulta aplicable para las plataformas electrónicas de registro y control de asistencia no siendo vinculante, por ende, para los mecanismos de control basados en soporte de papel, tales como un libro o los dispositivos mecánicos.
+
+
+    TÍTULO II
+    CONSIDERACIONES GENERALES
+
+
+    Artículo 3º. Conceptos. A menos que se indique expresamente lo contrario, para los efectos de la regulación de los sistemas electrónicos de registro y control de asistencia, se entenderá por:
+
+    a) Autorización: Acto mediante el cual la Dirección del Trabajo, a través de un Ordinario del Departamento Jurídico, aprueba la utilización de un sistema electrónico de registro y control de asistencia en el contexto de las relaciones laborales.
+    La autorización se refiere específicamente al sistema consultado y no a la o las empresas que lo desarrollen o comercialicen, de modo que circunstancias tales como el cambio de dominio de la plataforma no alterarán la respectiva aprobación de este Servicio.
+    Por las mismas razones, los empleadores que deseen utilizar un sistema ya autorizado por la Dirección del Trabajo no requerirán de un pronunciamiento específico al respecto.
+    b) Certificación: Resultado final del análisis técnico realizado a un sistema de registro y control de asistencia electrónico por parte de una empresa privada independiente del desarrollador, comercializador y/o empleador usuario, el cual concluye de manera clara y precisa que la plataforma se ajusta a todos los requisitos exigidos por la presente resolución exenta.
+    c) Checksum: Función hash computable mediante un algoritmo, cuyo propósito principal es detectar cambios en una secuencia de datos (archivos) para proteger la integridad de éstos, comprobando así que no haya diferencias entre los valores obtenidos al hacer una comprobación inicial y otra final luego de haber compartido dichos datos. De esta forma, esta función es usada para verificar si un archivo compartido a un usuario es idéntico bit a bit al publicado en su fuente original.
+    d) Diagrama de arquitectura: Documento que permite dar cuenta de las interconexiones entre los distintos componentes del sistema.
+    e) Empresas prestadoras: Compañías que comercializan un sistema de registro y control de asistencia electrónico autorizado por la Dirección del Trabajo.
+    f) Enrolamiento: Proceso mediante el cual se ingresan los datos de un nuevo trabajador al sistema, y si fuera el caso, se capturan sus parámetros biométricos.
+    g) Eliminación: Proceso digital mediante el cual se borran, ya sea física o lógicamente los registros o datos de aquellos trabajadores que dejen de prestar servicios para un empleador.
+    h) Evidencia: Antecedentes gráficos, digitales o electrónicos, destinados a respaldar las aseveraciones contenidas en el informe de certificación, las cuales podrán consistir en imágenes, diagramas, flujos, etc.
+    i) Hash: Algoritmos que consiguen crear, a partir de una entrada (ya sea un texto, una contraseña o un archivo, por ejemplo), una salida alfanumérica de longitud normalmente fija que representa un resumen de toda la información que se le ha proporcionado (es decir, a partir de los datos de la entrada crea una cadena que sólo puede volverse a crear con ellos) garantizando, de este modo, la integridad de los datos.
+    j) Identificación o autenticación: Proceso electrónico mediante el cual un trabajador, previamente enrolado, es reconocido por el sistema, habilitándolo para realizar una marcación.
+    k) Informe de vulnerabilidades: Herramienta destinada a obtener un reporte de auditoría detallado de los aspectos de seguridad de la plataforma.
+    l) Marcación o registro: Acto voluntario y consciente de un trabajador a través del cual deja una constancia en el sistema.
+    m) Rechazo: Respuesta formal emitida por la Dirección del Trabajo en la cual se concluye que un sistema electrónico de registro y control de asistencia no se ajusta a todas las exigencias vigentes, por lo cual no autoriza su utilización en el ámbito laboral.
+    n) Sistemas de registro y control de asistencia electrónicos: Toda plataforma, dispositivo o aplicación que, directa o indirectamente, se utilice o sirva para obtener información sobre la asistencia, horas trabajadas y/o descansos, aunque esa no sea su finalidad primaria.
+    De este modo, por ejemplo, si un empleador utilizare una aplicación de mensajería instantánea para registrar el inicio o término de las actividades laborales ordenando a los trabajadores enviar una comunicación que confirme alguna de dichas circunstancias, tal aplicación, previo a su comercialización o primera implementación, deberá ser sometida a las normas de la presente resolución exenta.
+    Por las mismas razones, no se entenderá cumplido el deber establecido en el inciso 1º del artículo 33 del Código del Trabajo cuando los empleadores utilicen "sistemas de excepción" u otros mecanismos que busquen medir ausentismo y no la asistencia, horas de trabajo y descansos.
+
+
+    Artículo 4º. Sinónimos: Para el tratamiento de los sistemas de registro y control de asistencia, el presente informe considerará como sinónimos los términos siguientes; sistema, mecanismo, plataforma y solución.
+
+
+    Artículo 5º. Idioma oficial: Tanto las plataformas, sus manuales, reportes, tutoriales y todo otro documento relacionado con los sistemas de registro y control de asistencia y determinación de las horas de trabajo, deben encontrarse en idioma castellano y considerar la terminología técnica utilizada en Chile.
+    Excepcionalmente se aceptará, dentro del proceso de autorización de este Servicio, la presentación de certificaciones internacionales emitidas en otros idiomas. Dichas certificaciones deberán ser mencionadas explícitamente en los informes de certificación, señalando de manera clara a qué ítem corresponden y a qué control o exigencia se refieren.
+
+
+    Artículo 6º. Componentes: Los sistemas deberán contemplar, como mínimo, los siguientes componentes:
+
+    a) Hardware destinado al enrolamiento y/o captura de las marcaciones de los trabajadores, por ejemplo; un lector de tarjetas o de huellas digitales, cámara, teclado, teléfonos móviles, etc.
+    b) Medio destinado a la identificación, reconocimiento y/o enrolamiento de los trabajadores; por ejemplo, tarjetas de aproximación, biometría, teclados, etc.
+    Si el sistema empleare tarjetas de aproximación u otro dispositivo físico para el enrolamiento y/o identificación, se deberá informar a los trabajadores en las capacitaciones de uso del sistema, así como en el reglamento interno de la empresa, que se trata de un elemento de uso personal y, por ende, intransferible.
+    c) Portal de fiscalización: Plataforma web accesible desde la red Internet en cualquier lugar del país de manera permanente y que debe contar con la posibilidad de que los funcionarios de la Dirección del Trabajo, empleadores y dependientes consuman, entre otros, los módulos o subsistemas de reportería, auditoría, etc.
+    d) Base de datos: Plataforma de hardware (física o virtual) y software que permite el almacenamiento, organización, procesamiento, disposición y respaldo de la información que se obtenga de la utilización del sistema.
+    e) Geolocalización: Herramienta opcional destinada a determinar la ubicación física del trabajador al momento de registrar una actividad.
+
+    No se permitirán componentes (software o hardware) que estén dentro de las categorías de desarrollo, pruebas, express, trial, light o similares, dado que ellos presentan restricciones de uso o capacidad, además de carecer de soporte técnico de la marca o el fabricante.
+
+
+    TÍTULO III
+    CONSIDERACIONES TÉCNICAS
+
+
+    Artículo 7º. Enrolamiento e identificación o autentificación: El proceso de enrolamiento e identificación de los trabajadores se ajustará a las siguientes reglas:
+
+    a) El enrolamiento e identificación de los trabajadores podrá realizarse a través de cualquier hardware que permita obtener su reconocimiento, pudiendo considerar para ello lectores de parámetros biométricos, teclados, cámaras, tarjetas con banda magnética, cédulas nacionales de identidad, token, etc., en la medida que la alternativa seleccionada permita diferenciar a una persona de otra.
+    b) El hardware destinado al enrolamiento e identificación de los trabajadores y el medio utilizado para realizar las marcaciones podrían coincidir, por ejemplo, si la plataforma utilizara claves ingresadas mediante un teclado para ambas funciones.
+    Por el contrario, se tratará de medios diferentes si, por ejemplo, el sistema emplea la cédula nacional de identidad del trabajador para realizar su enrolamiento e identificación, pero las marcaciones se efectúan utilizando una clave o password.
+    c) La identificación de los trabajadores por parte del sistema podrá realizarse de manera presencial o mediante login remoto, por ejemplo, utilizando computadoras, equipos portátiles tipo POS, teléfonos móviles u otros.
+    d) En caso de que por el tipo de labor desarrollada, se utilicen conexiones remotas a sistemas o plataformas de propiedad del empleador, y estas permitan almacenar fecha, hora y lugar en la cual ellas se realizan, dichos registros podrían ser utilizados como mecanismo de control de asistencia del trabajador que se conecta, siempre y cuando, en forma previa a su utilización, el sistema se ajuste a las normas contenidas en la presente resolución exenta incluyendo por ejemplo; la transmisión automática de las marcaciones a la base de datos; la certificación y autorización de la Dirección del Trabajo.
+    e) Si el sistema utilizare como medio de identificación tarjetas con banda magnética se les deberá asociar, en forma permanente, el número de la cédula nacional de identidad del trabajador. Además, la tarjeta deberá llevar impreso dicho número en su parte anterior, junto al nombre completo del dependiente.
+    f) En el caso de los sistemas que utilizaren claves o password para la identificación de los trabajadores, se deberá contemplar la posibilidad de que el dependiente las modifique a su elección las veces que estime necesario, sin más restricciones que los parámetros mínimos de seguridad, por ejemplo, cantidad de números, letras o uso de mayúsculas.
+    Si bien estas modificaciones no requerirán la firma de un anexo entre las partes, el trabajador sí deberá recibir un correo electrónico automático del sistema, con indicación del resultado de su acción, incluyendo su fecha y hora.
+    g) A fin de evitar que un trabajador se vea impedido de realizar una marcación por problemas con el mecanismo de identificación, los sistemas deberán contemplar siempre, a lo menos, dos alternativas diferentes de reconocimiento, por ejemplo, un parámetro biométrico y tarjetas de identificación.
+
+    Los empleadores deberán definir, en el contrato de trabajo o en el reglamento interno de orden, higiene y seguridad, cuál será la forma primaria y la secundaria de identificación, es decir, cuál de ellas deberá ser la utilizada regularmente por los dependientes, y cuál será un respaldo en caso de no poder registrar acciones con la principal.
+    A lo menos una de las alternativas de reconocimiento no deberá utilizar parámetros biométricos ni datos personales de los trabajadores, por ejemplo; claves, patrones o tarjetas de aproximación.
+
+
+    Artículo 8º. Seguridad de las marcaciones. Luego de cada marcación el sistema deberá generar, automáticamente, un Checksum o Hash de los datos de cada operación.
+    No se aceptará ningún otro método de cálculo diferente a un Hash o Checksum para validar la información de las marcaciones frente a la base de datos del sistema.
+    Se recomienda la utilización de funciones de Hash del tipo SHA-2.
+    Dado que el objetivo del Checksum y del Hash es la validación de la integridad del registro, se deberán usar funciones nativas del motor de datos o del lenguaje de programación que se utilice, de forma tal que se obtenga un código que emplee algoritmos estándares de la industria para su generación.
+    No se ajustarán al estándar exigido los códigos generados de forma manual, o concatenando atributos sin aplicar estas funciones nativas.
+    A fin de poder verificar la validez del comprobante de marcación, el sistema deberá contemplar una funcionalidad web que permita consultar la información en línea, a través de la utilización del mismo código Hash o Checksum.
+
+
+    Artículo 9º. Transmisión automática a la base de datos: Todas las marcaciones realizadas en el sistema -obligatorias u opcionales-, deberán ser transferidas en línea a una base de datos central, sin importar si se trata de equipos fijos o móviles.
+
+
+    Artículo 10º. Excepción: Considerando que en ciertas actividades productivas o áreas geográficas podría no haber conexión permanente de datos para su transmisión, se considerará ajustado a la norma que el sistema permita capturar y almacenar la correspondiente marca, sin perjuicio de que su envío posterior a la plataforma Web se realice automáticamente cuando recupere la señal.
+    Con todo, lo señalado en este número se refiere únicamente a situaciones excepcionales, por lo que sólo se podrá invocar en casos particulares debidamente justificados.
+
+
+    Artículo 11º. Sello de tiempo: Para cumplir el fin señalado en el párrafo anterior, el sistema deberá contar con una marca de tiempo, vale decir, asignación por medios electrónicos de la fecha y hora en que se efectúa una marcación.
+
+
+    Artículo 12º. El envío de los comprobantes de marcación se ajustará a las siguientes reglas:
+
+    a) Los sistemas deberán entregar automáticamente al trabajador un comprobante de cada operación realizada.
+    b) Los comprobantes de marcación deben ser enviados a los trabajadores al correo electrónico personal que el sistema registre de acuerdo a lo señalado en el artículo 34º. Lo anterior no obsta a que opcionalmente, además, las plataformas envíen la misma información mediante aplicaciones de mensajería instantánea u otras formas de comunicación electrónica.
+    c) Los comprobantes de marcación enviados por correo electrónico deben tener un formato imprimible.
+    d) Los correos electrónicos deberán ser remitidos a los trabajadores de forma automática, utilizando para ello cuentas de correo de "sistema", vale decir, no nominativas.
+    e) El sistema deberá velar por que no existan dos trabajadores con correos electrónicos idénticos para los efectos de remitir los comprobantes de marcación. Dicha situación debe ser controlada al realizar el proceso de carga de los datos del trabajador en la plataforma.
+    f) Cuando la marcación la realizare un trabajador puesto a disposición por una empresa de servicios transitorios el sistema, además del comprobante automático del dependiente, generará un segundo correo electrónico, con la misma información, el cual será enviado a la EST.
+    De este modo, las empresas de servicios transitorios siempre tendrán en su poder la información de la asistencia y jornada de sus trabajadores, aunque ellos utilicen los sistemas electrónicos de registro control de asistencia de las compañías usuarias.
+
+
+    Artículo 13º. Contenido de los comprobantes de marcación: Todos los comprobantes de marcación generados por los sistemas deberán indicar, a lo menos, la siguiente información:
+
+    13.1) Respecto del trabajador:
+
+    a) La fecha de la marcación con el formato dd/mm/aa.
+    b) La hora de la marcación con el formato hh:mm:ss.
+    c) El nombre completo del trabajador.
+    d) El número de la cédula nacional de identidad con puntos, guión y dígito verificador.
+    e) Si el trabajador se encuentra afecto a un sistema excepcional de distribución de jornada de trabajo y descansos debiendo, en tal caso, señalar el número y fecha de la respectiva resolución exenta que lo autoriza.
+    f) Geolocalización o geoposición: En caso de utilizar equipos portátiles o móviles dotados de sistemas de geolocalización, u otros mecanismos que permitan identificar la ubicación física del trabajador, tales como teléfonos celulares, opcionalmente el comprobante podrá indicar, además de los datos señalados previamente, el lugar en que se realiza la marcación con la mayor precisión posible.
+    g) Código Hash o Checksum generado.
+
+    13.2) Respecto del empleador:
+
+    a) Razón social de las personas jurídicas o nombre completo si fuera persona natural.
+    b) Si el empleador fuera persona jurídica el Rol único tributario con puntos y guión. Si se tratare de una persona natural se requerirá el número de la cédula nacional de identidad con puntos, guión y digito verificador.
+    c) Ubicación: Establecimiento, obra, faena o lugar en el que se realiza la marcación, indicando calle, número, piso, oficina, comuna, ciudad y región y/o cualquier otro antecedente que permita individualizarlo.
+    d) Si se tratare de trabajadores puestos a disposición por empresas de servicios transitorios o subcontratados, el comprobante indicará tal circunstancia y contendrá, además; nombre o razón social y Rut del empleador en cuyo establecimiento o faena se encuentran desarrollando sus labores.
+
+    13.3) Domicilio: El domicilio que se debe indicar en los comprobantes de marcación debe corresponder al lugar de prestación efectiva de los servicios, vale decir, a la oficina, local, faena, o ubicación georeferenciada, en la que se desempeña el trabajador. Dicho lugar puede o no coincidir con la casa matriz de la compañía, pudiendo ser incluso el domicilio del propio dependiente.
+    En el caso de los trabajadores puestos a disposición por una empresa de servicios transitorios, el domicilio del comprobante corresponderá a aquél fijado por la compañía usuaria.
+
+
+    Artículo 14º. Seguridad general.
+
+    a) Las bases de datos deberán tener sistemas de seguridad que:
+
+    i) impidan el acceso a personal no autorizado, y;
+    ii) prevengan la adulteración de la información post - registro.
+
+    b) Los respaldos de la información deberán contemplar mecanismos de seguridad, por ejemplo, códigos de Hash o firmas electrónicas, que aseguren la integridad de su contenido, es decir, que la información que se consulte no haya sufrido alteraciones. En caso de que sí se hayan producido alteraciones estas deberán ser indicadas de manera destacada en pantalla y en los reportes y/o marcaciones.
+    c) La plataforma tecnológica completa deberá incorporar las medidas necesarias para impedir la alteración de la información o intrusiones no autorizadas, tales como controles de acceso restringido, cifrado de información confidencial, etc.
+    d) El sistema deberá considerar un control de acceso que asegure la autenticación y autorización correcta para cada perfil de usuario que utilice la plataforma.
+
+
+    Artículo 15º. Confidencialidad: La plataforma deberá considerar componentes y desarrollos tecnológicos que aseguren la visualización de información de acuerdo con los perfiles de seguridad pertinentes y apropiados para cada función (empleador, trabajador, funcionario de la Dirección del Trabajo, etc.).
+    La definición de cada perfil, así como la respectiva asignación de personas a los mismos, deberá quedar registrada en un sistema de auditoría de la plataforma. Este registro deberá ser automático y sólo será accesible mediante perfiles de administración.
+
+
+    Artículo 16º. Disponibilidad: Las plataformas deberán considerar componentes y desarrollos tecnológicos que aseguren la permanente disponibilidad de la información que se mantenga almacenada para su consulta vía Web, por ejemplo, a través de metodologías o mecanismos como la redundancia o clusterización, monitorización y auditoría de los componentes o respaldo de recursos críticos.
+
+
+    Artículo 17º. Portal de fiscalización: Para la correcta ejecución de los procesos inspectivos de este Servicio, las empresas prestadoras mantendrán actualizado permanentemente un sitio Web de acceso directo a toda la información que exista en el sistema, el cual deberá cumplir con las siguientes reglas:
+
+    a) Cada empresa prestadora mantendrá sólo un enlace de fiscalización en el cual se incluirán todos sus clientes.
+    b) El acceso al portal de fiscalización deberá ser dispuesto a través de un nombre de sitio web en la forma https://www.nombredelsitio.cl.
+    Dicho acceso, sea este un banner o enlace, deberá figurar en la página inicial del señalado sitio web.
+    El acceso señalado debe considerar una comunicación segura (HTTPS), utilizando puertos estándares del protocolo habilitado y mecanismos de seguridad, al menos, del tipo TLS 1.2 o superior, o el que se encuentre vigente tecnológicamente y no presente vulnerabilidades de seguridad, deshabilitando, en consecuencia, cualquier estándar inferior al señalado.
+    Los sistemas siempre deberán contar con un certificado vigente para sitio seguro SSL, obtenido mediante una entidad certificadora acreditada. No se aceptarán certificados caducados.
+    c) La plataforma se deberá presentar en idioma castellano, a través de un sitio web único que deberá indicar expresamente y de manera destacada el nombre del prestador del servicio y la versión del software que lo despliega.
+    Lo señalado no obsta a que el sistema pueda contar con una versión en otro u otros idiomas a seleccionar opcionalmente por los usuarios, pero la fórmula predeterminada a exhibir en pantalla siempre será en castellano.
+    d) El nivel de servicio operativo requerido para este sitio será de 7 días por 24 horas a la semana.
+    e) En caso de que el proveedor necesite realizar una mantención a la plataforma, ésta deberá ser informada a los empleadores con una anticipación mínima de 2 días hábiles anteriores al proceso.
+    La empresa proveedora deberá procurar todos los procedimientos de contingencia necesarios para no impedir o entorpecer la realización de las marcaciones que deban efectuarse durante el proceso de mantención.
+    f) El portal de fiscalización debe permitir la obtención de todos los informes y datos señalados en la presente resolución exenta.
+    g) El sitio web no debe requerir programas visualizadores especiales o "plugins" para su revisión o uso.
+    h) El sitio web debe ser accesible desde sistemas operativos Windows, Android e IOS; ya sea desde dispositivos de escritorio o móviles (despliegue responsivo) con diferentes navegadores, debiendo al menos uno de ellos, por cada sistema operativo, ser de distribución y uso gratuito.
+
+
+    Artículo 18º. Control de acceso: Se podrá integrar un sistema de registro de asistencia con uno destinado al control de acceso a un recinto incorporando, por ejemplo, torniquetes, siempre que dicho proceso se ajuste a las siguientes reglas copulativas:
+
+    a) Que el sistema de control de asistencia haya sido previamente autorizado por la Dirección del Trabajo, es decir, que se haya verificado el cumplimiento de todas las condiciones exigidas en el cuerpo del presente informe.
+    b) Que la integración de los torniquetes, o cualquier otro hardware a la plataforma, no afecte o altere las condiciones técnicas bajo las cuales el sistema de control de asistencia fue certificado y, posteriormente, autorizado por esta Dirección.
+
+
+    Artículo 19º. Instalación local u On Premise: Los empleadores podrán instalar los sistemas de control de asistencia en servidores propios en la medida que se cumplan las siguientes condiciones copulativas:
+
+    a) Que el sistema haya sido previamente autorizado por la Dirección del Trabajo, es decir, que se haya verificado el cumplimiento de todas las condiciones exigidas en el cuerpo del presente informe.
+    b) Que la instalación de los sistemas sea realizada por personal de la empresa que desarrolle o comercialice la plataforma, de manera tal que garantice que su utilización respetará las medidas de seguridad con que ha sido diseñada, certificada y autorizada por este Servicio.
+
+
+    Artículo 20º. Base de datos: Los sistemas deberán considerar las siguientes reglas:
+
+    a) La información de los comprobantes de marcaje deberá ser consistente con aquella contenida en las respectivas bases de datos.
+    b) Las soluciones deberán encontrarse alojadas en infraestructura con sistemas operativos en versiones vigentes (con soporte), y considerar una plataforma tecnológica que permita dar cuenta de un alto volumen de transacciones (marcajes) tanto para su procesamiento como para su almacenamiento.
+    c) Las versiones de los productos que conforman la aplicación (software de base de datos, sistemas operativos, dispositivos de marcaje, etc.), no deberán tener una antigüedad superior a 3 años, con una vigencia no inferior a 5 años.
+    d) Tanto el servicio de base de datos, como el servicio de aplicaciones (sistema o sitio web, por ejemplo) que mantiene funcionando la solución, tendrá que estar distribuido en más de un servidor (equipo) y/o datacenter, de manera que el trabajador no pierda la posibilidad de registrar los eventos asociados con su jornada.
+    e) El servicio de base de datos que mantenga almacenada la información que se genere con la utilización de la plataforma, deberá encontrarse replicado y respaldado en dispositivos de almacenamiento externos, de tal forma que, en caso de algún incidente, se pueda recuperar la información histórica. Además, las bases de datos deberán tener sistemas de seguridad que impidan el acceso a personal no autorizado y que prevengan la adulteración de información post - registro.
+
+
+    TÍTULO IV
+    CONSIDERACIONES JURÍDICAS
+
+
+    Artículo 21º. A fin de proteger los datos personales de los trabajadores; mantener la simetría en el acceso a la información; facilitar el ejercicio de la función fiscalizadora de este Servicio y, en general, dar cumplimiento al marco normativo vigente; los sistemas de registro y control de asistencia electrónicos deberán considerar, en su desarrollo y utilización, el cumplimiento de las reglas señaladas en el presente Título.
+
+
+    Artículo 22º. Acceso al sitio web del sistema: El acceso a la información del sistema deberá ajustarse a las siguientes reglas:
+
+    22.1) Acceso de los trabajadores: Los sistemas mantendrán un perfil de usuario para que los trabajadores tengan acceso permanente e irrestricto a todos los antecedentes que respecto de ellos tenga la plataforma, pudiendo consultar sus registros desde cualquier lugar, a cualquier hora y por un periodo histórico mínimo de 5 años, en caso de que su antigüedad iguale o exceda dicho término.
+    Para cumplir con la obligación señalada en el inciso anterior, los sistemas ofrecerán al trabajador una interfase simplificada para realizar sus búsquedas individuales.
+    22.2) Acceso de los empleadores a la plataforma: Los empleadores tendrán acceso a toda la información de los sistemas con un perfil de administrador que les permita revisar los datos del sistema y si corresponde, utilizar las herramientas tales como las modificaciones de marcaciones.
+    22.3) Acceso de terceros a la plataforma: Los sistemas podrán permitir el acceso de terceros a la información contenida en la base de datos del registro de asistencia en los siguientes casos:
+
+    a) Subcontratación. Los sistemas deberán contemplar la posibilidad de que las empresas principales o mandantes puedan acceder a la información de los registros de asistencia de los trabajadores de sus contratistas o subcontratistas.
+    El acceso señalado deberá ser otorgado voluntariamente por los respectivos empleadores, es decir, las empresas contratistas o subcontratistas y se sujetará a las siguientes reglas:
+
+    i) Las empresas principales deberán velar por el respeto al tratamiento de los datos personales de los trabajadores.
+    ii) El perfil de su acceso sólo les permitirá visualizar información y descargar reportes y no, por ejemplo, modificar la forma u oportunidad de la prestación de los servicios.
+
+    b) Empresas de servicios transitorios. Sin perjuicio de la recepción del correo electrónico señalado en el artículo 12º, las empresas de servicios transitorios podrán acceder a la información de los sistemas de registro de asistencia de sus trabajadores que hayan puesto a disposición de compañías usuarias.
+    Para materializar el acceso indicado, las empresas de servicios transitorios deberán solicitar las credenciales respectivas a las empresas usuarias.
+    El acceso señalado sólo podrá referirse a información de trabajadores de la empresa de servicios transitorios y considerará un perfil de usuario, vale decir, sin posibilidad de realizar modificaciones o correcciones a la información contenida en el sistema.
+
+    22.4) Acceso al portal de fiscalización: Los funcionarios de la Dirección del Trabajo tendrán acceso permanente e irrestricto a la información de los sistemas electrónicos de registro de asistencia.
+    De este modo, cualquier situación que entorpezca, dilate o impida el proceso de ingreso, revisión o descarga de datos se considerará una infracción de acuerdo con lo prescrito en el artículo 25º del D.F.L. Nº2 de 29.09.1967, del Ministerio del Trabajo y Previsión Social que establece la Ley Orgánica de este Servicio.
+    El acceso de los funcionarios de la Dirección del Trabajo se podrá realizar de dos maneras:
+
+    a) Acceso presencial: Los funcionarios de esta Dirección podrán acceder a la información desde las mismas dependencias del empleador fiscalizado. En este caso, el empleador o quien lo represente para estos efectos, deberá poner a disposición del inspector los equipos y espacios que sean necesarios para desarrollar su labor.
+    b) Acceso remoto: Los funcionarios de la Dirección del Trabajo también podrán acceder a la información de manera remota o no presencial.
+
+    22.5) Auditoría de acceso: La Dirección del Trabajo podrá solicitar al proveedor del sistema el envío de un listado que contenga las conexiones realizadas por funcionarios/as de la Institución. Dicho informe deberá, al menos, contener la fecha y hora de la conexión, correo electrónico del funcionario/a, RUT de la empresa consultada y la IP de origen de la conexión.
+
+
+    Artículo 23º. Proceso de ingreso al portal de fiscalización: Las plataformas deberán ajustarse a las siguientes reglas:
+
+    a) Una vez situado en la pantalla de inicio, la plataforma requerirá del funcionario solamente el ingreso de su correo electrónico institucional, el cual siempre corresponderá al dominio @dt.gob.cl.
+    b) Una vez ingresado el correo electrónico institucional, el funcionario presionará un botón denominado "solicitar clave".
+    c) Los sistemas reconocerán el dominio @dt.gob.cl y enviarán automáticamente una clave de acceso a dicha cuenta.
+    Por razones de seguridad, la contraseña tendrá una duración de 5 días corridos, transcurridos los cuales caducará.
+    Los funcionarios de la Dirección del Trabajo podrán solicitar claves de acceso a un sistema todas las veces que sea necesario.
+    d) Con la clave referida el funcionario podrá dar inicio al proceso de revisión de los antecedentes.
+
+
+    Artículo 24º. Identificación del empleador fiscalizado:
+
+    a) Una vez que el funcionario se haya identificado, el portal de fiscalización desplegará en pantalla únicamente dos ventanas;
+
+    a.1) Una ventana destinada a la búsqueda del nombre o Rut de un empleador y;
+    a.2) Una ventana que desplegará una lista con los nombres o razones sociales de todos los empleadores usuarios del sistema, ordenados alfabéticamente.
+
+    b) Seleccionado el empleador cuya información se revisará, el sistema redirigirá al funcionario a la siguiente pantalla.
+    Al mismo tiempo, el sistema enviará automáticamente un correo electrónico no nominativo al empleador seleccionado, informándole del inicio de un proceso de revisión de información por parte de un funcionario de la Dirección del Trabajo.
+    La comunicación electrónica indicará en su texto lo siguiente:
+
+    "Se informa a usted que, de acuerdo con las facultades y obligaciones legales contenidas en el Código del Trabajo y sus leyes complementarias; en el D.F.L. Nº2 de 1967, del Ministerio del Trabajo y Previsión Social, y en otras disposiciones reglamentarias, se está iniciando un procedimiento de fiscalización laboral."
+
+    c) La siguiente pantalla sólo ofrecerá un menú con todos los reportes exigidos en la presente resolución exenta.
+    d) Cuando el reporte seleccionado corresponda los señalados en las letras a), b), c) o d) del artículo 27º, se desplegará una nueva pantalla en la que se exhibirán todos los filtros u opciones de búsqueda señalados en el artículo siguiente.
+    e) El acceso para los funcionarios de la Dirección del Trabajo considerará un perfil de usuario que permita consultar información y descargar reportes, pero sin atribuciones de modificación, complemento o eliminación de datos contenidos en la plataforma.
+
+
+    Artículo 25º. Modelamiento de los reportes.
+
+    25.1) Parámetros de búsqueda. Con el fin de modelar cada informe con los datos requeridos por el funcionario, los sistemas ofrecerán en pantalla los siguientes filtros o parámetros de búsqueda:
+
+    a) Búsqueda individual: El sistema deberá contemplar en pantalla una ventana destinada a la búsqueda de un trabajador introduciendo su nombre y/o primer apellido o su número de cédula de identidad sin puntos y con guión.
+    b) Búsqueda grupal: El sistema deberá contemplar en pantalla una ventana destinada a la búsqueda simultánea de dos o más trabajadores mediante la selección de sus nombres de un listado ordenado alfabéticamente.
+    Si la empresa tuviera más de 10 trabajadores, el sistema podrá ofrecer desplegar listas para selección múltiple de acuerdo con lo señalado en las letras e), f), g) y h) siguientes.
+    c) Periodo predeterminado: El sistema ofrecerá mostrar reportes predeterminados respecto de la última semana, quincena y mes anterior, contados hacia atrás desde la fecha de la consulta.
+    Además, particularmente, en el caso del reporte domingos y/o días festivos laborados, el sistema ofrecerá en el menú la opción especial de buscar hasta 12 meses contados hacia atrás desde la fecha de la consulta.
+    d) Rango de fechas: El sistema deberá ofrecer en pantalla la posibilidad de buscar en un periodo de tiempo determinado, seleccionando sus fechas de inicio y término. La plataforma deberá permitir retroceder hasta 5 años en el caso de aquellos trabajadores que tengan igual o mayor antigüedad.
+    e) Jornada: El sistema deberá ofrecer en pantalla una ventana que al ser seleccionada despliegue los diferentes tipos de jornada que contemple el empleador (Fija, por turnos, distribuida en ciclos, bisemanal, excepcional o parcial).
+    Al seleccionar una opción el sistema reducirá el universo de búsqueda a los trabajadores adscritos a la jornada elegida, pudiendo emitir el reporte con todos ellos o mantener la selección para pasar al siguiente filtro.
+    Si al seleccionar un tipo de jornada no hubiere trabajadores adscritos a ella, en pantalla aparecerá un mensaje informando tal circunstancia.
+    f) Turnos: El sistema deberá permitir la búsqueda simultánea de uno o más trabajadores mediante la selección de los turnos disponibles en la empresa.
+    Para materializar esta opción el sistema contará con una ventana que al ser seleccionada desplegará una lista con los turnos permitiendo su elección. Los turnos se informarán de acuerdo a su extensión y no por el nombre asignado por el empleador, por ejemplo;
+
+    Lunes a jueves
+    de 10:00 a 18:00
+
+    Si la empresa tuviera sucursales, establecimientos o faenas, el sistema ofrecerá la opción de mostrar en pantalla sólo la información de aquellos trabajadores afectos al turno requerido en el lugar seleccionado. En tal caso, el sistema desplegará un listado en pantalla con los nombres de todos los dependientes afectos al turno respectivo, permitiendo que sean seleccionados individual o grupalmente.
+    g) Local, establecimiento, faena o lugar de prestación de servicios: El sistema deberá permitir la búsqueda simultánea de uno o más trabajadores mediante su ubicación geográfica. Para ello la plataforma exhibirá en pantalla una ventana que al ser seleccionada desplegará un listado de los locales o faenas de la empresa.
+    Si la empresa tuviere más de 5 locales o faenas por región el sistema desplegará un listado con cada una de ellas, de manera que al seleccionar una región se expanda un listado con todos los recintos de esa unidad geográfica.
+    La selección de un local, establecimiento o faena importará la carga en el reporte de todos los trabajadores de ese recinto u oficina.
+    No obstante, si el local, establecimiento o faena contare con más de 10 trabajadores, el sistema desplegará un listado en pantalla con los nombres de todos ellos, permitiendo que sean seleccionados individual o grupalmente.
+    h) Cargo o función: El sistema ofrecerá en pantalla la opción de buscar por el cargo o función de uno o más trabajadores, para lo cual, al seleccionar esta opción, se desplegará el listado de perfiles de la empresa permitiendo elegir uno o más de ellos, por ejemplo, "vendedores", "administrativos", "choferes", etc. Este listado debe coincidir con la información disponible en el reglamento interno de orden, higiene y seguridad de la empleadora.
+    i) EST: A partir de la razón social o RUT de una empresa de servicios transitorios, los sistemas ofrecerán la opción de buscar sus trabajadores puestos a disposición entregando, a su respecto, toda la información de la cual dispongan para el periodo consultado, sin importar si en el intervalo de tiempo hubiere prestado servicios para más de un empleador.
+    De este modo, en caso de ser fiscalizada, la empresa de servicios transitorios deberá tener disponible la información de la asistencia y horas de trabajo de todos sus trabajadores, aun de aquellos que hayan sido puestos a disposición de diferentes compañías usuarias.
+    j) Hash o checksum: El Sistema contemplará en pantalla una opción para buscar marcaciones específicas usando el código Hash o checksum que tengan asociadas.
+
+    25.2) Reglas de búsqueda: Para el correcto modelamiento de los reportes los sistemas deberán cumplir con las siguientes reglas:
+
+    a) Todas las ventanas con opciones de búsqueda o filtros deben ser visibles al mismo tiempo en pantalla.
+    b) Sin perjuicio del orden en que los filtros aparezcan en pantalla, estos deben poder ser utilizados sin un orden o reglas predeterminadas. Así, por ejemplo, se podrá primero determinar un local o faena, luego seleccionar un turno y, finalmente, fijar un rango de fechas, para exportar el informe con la información de todos los trabajadores que laboraron en dicho establecimiento en tal turno durante ese periodo. A su vez, se deberá poder también iniciar el modelamiento eligiendo un cargo o función, luego un local y finalmente un rango de fechas, para obtener un informe de todos los vendedores, cajeros, técnicos, etc., que prestaron servicios en dicho recinto durante el lapso seleccionado.
+    Del mismo modo, si se tratare de empresas pequeñas podría seleccionarse, por ejemplo, sólo un rango de fechas o periodo predeterminado y solicitar el reporte con todos los trabajadores de la compañía.
+    c) Cuando corresponda desplegar información en pantalla, las ventanas se expandirán en cascada hacia abajo mostrando listados que permitan su selección individual o por grupos.
+
+
+    Artículo 26º. Entrega de información periódica. Las empresas que operen o administren sistemas de registro y control de asistencia electrónicos cuya utilización haya sido autorizada por esta Dirección, deberán cargar en la plataforma digital de este Servicio, dentro de los cinco primeros días corridos de cada mes, la información actualizada de sus clientes incorporando en el listado; la razón social; nombre de fantasía; domicilio de la casa matriz; RUT; tipo de servicio (cloud/onpremise); dirección web para fiscalización y fecha de vigencia del contrato.
+    La misma información deberá estar también disponible en el portal de fiscalización del proveedor.
+    Asimismo, deberán señalar en un listado separado los datos de aquellas compañías con las cuales ya no tengan vinculación, con indicación de la fecha final de prestación de los servicios.
+
+
+    Artículo 27º. Reportes: A fin de permitir el adecuado desarrollo de los procesos de fiscalización, las plataformas, luego de la individualización del respectivo empleador, desplegarán en pantalla un menú que únicamente mostrará, en el mismo orden y bajo la misma nomenclatura, los siguientes reportes exhibiendo, en cada caso, sólo las columnas con la información que se indica a continuación:
+
+    a) Reporte de asistencia: El sistema contemplará la generación de un informe relativo a la asistencia diaria de uno o más trabajadores con la siguiente estructura:
+
+    a.1) El reporte señalará en el encabezado; la razón social y el rut del empleador; el nombre completo y cédula nacional de identidad de cada trabajador consultado; y el lugar de prestación de los servicios;
+    a.2) Primera columna denominada "fecha" con la fecha de cada día consultado con el formato dd/mm/aa.
+    a.3) Segunda columna denominada "Asistencia" que indique cada día si el trabajador asistió usando los términos "sí" o "no".
+    a.4) Tercera columna denominada "Ausencia". Esta columna sólo tendrá información si el trabajador no hubiere asistido, indicando en cada caso si la inasistencia fue "justificada" o "injustificada".
+    a.5) Cuarta columna denominada "Observaciones", en la cual se dejará constancia de los motivos de las inasistencias, tales como; licencias por enfermedad o vacaciones. En la misma columna, se indicará, además, cualquier otra circunstancia que el empleador considere relevante, como el hecho de haber sido subsanada la falta con posterioridad a su ocurrencia, por ejemplo, mediante la solicitud de un permiso con o sin goce de remuneraciones, aprobado por la empresa.
+
+    b) Reporte de jornada diaria: El sistema contemplará la generación de un informe relativo a la cantidad de horas diarias y semanales laboradas respecto de uno o más trabajadores, el cual tendrá la siguiente estructura:
+
+    b.1) El reporte señalará en el encabezado; la razón social y el rut del empleador; el nombre completo y cédula nacional de identidad de cada trabajador consultado; el lugar de prestación de los servicios; y la circunstancia de tratarse de dependientes sujetos a una banda horaria.
+    b.2) Primera columna con la fecha de cada día consultado con el formato dd/mm/aa.
+    b.3) Segunda columna denominada "Jornada ordinaria pactada", la cual expondrá la información de cada día en el formato hh/mm/ss, por ejemplo: "08:00:00" - "18:00:00". La información se repetirá en cada casillero de los días de la semana, aunque sea la misma.
+    b.4) Tercera columna denominada "Marcaciones jornada", que indicara el detalle de los registros de inicio y fin de la jornada diaria con el formato hh/mm/ss.
+    b.5) Cuarta columna denominada "Colación", en la cual se indicará la hora pactada para dicho fin con el formato hh/mm/ss, por ejemplo, "13:00:00" - "14:00:00".
+    b.6) Quinta columna denominada "Marcaciones colación" con el formato hh/mm/ss. Si los trabajadores no tuvieren la obligación de registrar el inicio y término de este lapso el informe señalará "No aplica".
+    b.7) Sexta columna denominada "Tiempo faltante", en la cual se sumará el tiempo de los atrasos y salidas anticipadas de cada día, de este modo el número siempre será negativo e irá precedido del signo "-" (menos). La información se expondrá con el formato hh/mm/ss.
+    b.8) Séptima columna denominada "Tiempo extra", en la cual se sumará el tiempo de los ingresos anticipados y el sobre tiempo posterior a la jornada ordinaria de cada día. De este modo, el número siempre será positivo e irá precedido del signo "+" (más). La información se expondrá con el formato hh/mm/ss. La contabilización de este lapso será automática, vale decir, derivará de las marcaciones realizadas en el sistema, sin perjuicio de que las partes hayan pactado o no la realización de horas extraordinarias.
+    b.9) Octava columna denominada "Otras marcaciones", en la cual se registrarán los demás registros adicionales que debiera efectuar el trabajador, tales como; inicio o término de otros descansos dentro de la jornada, inicio o término de jornada pasiva, etc.
+    b.10) Novena columna denominada de "Observaciones", en la cual se dejará constancia de cualquier circunstancia que el empleador considere relevante para cada día consultado.
+    b.11) Décima columna: Si la empresa mantuviera vigente una autorización de distribución excepcional de jornada, el reporte debe ser adaptado a dichas condiciones, agregando una columna con los ciclos de trabajo y descanso que corresponden a cada trabajador consultado como, asimismo, el número de dicho acto administrativo.
+    b.12) Totales semanales: El reporte dispondrá de una línea horizontal ubicada luego del último día laboral de cada semana que indicará, automáticamente, el resultado, positivo o negativo, de cada columna. Para estos efectos, el sistema restará del total de la columna "Jornada ordinaria pactada", el tiempo de las horas de colación pactada, a menos que ella sea imputable a la jornada.
+
+    La última cifra de la derecha de la línea sumatoria indicará el resultado del proceso automático de compensación semanal, es decir, si en la respectiva semana se produjeron horas extraordinarias o, por el contrario, si el trabajador no cumplió con la totalidad de horas pactadas.
+    Las cifras de cada casilla de la línea totalizadora, para su mejor comprensión, serán precedidas por el símbolo matemático "+" (Más) cuando el resultado informado sea positivo y "-" (Menos) cuando sea negativo. Así, por ejemplo, si una semana arrojara la existencia de horas extraordinarias, se debería indicar: "+04:20:00" o "+02:36:24" y si, por el contrario, no se hubiera cumplido con la jornada pactada el resultado podría ser, por ejemplo: "-01:53:22" o "-03:42:55".
+    El reporte de que se trata siempre deberá contar con todas las columnas señaladas. Sin embargo, se aceptará que, en el caso de aquellas empresas en que no se exija la marcación de inicio o término de colación, dichas columnas exhiban el texto "No aplica".
+    c) Reporte de días domingo y/o días festivos: Debe ser posible consultar la información relativa a todos los domingos y/o festivos laborados, por uno o más trabajadores, durante un periodo de hasta 24 meses anteriores a la fecha de emisión del informe, cuya estructura será la siguiente:
+
+    c.1) En el encabezado se indicará; la razón social y el rut del empleador; el nombre completo y cédula nacional de identidad de cada trabajador consultado; el lugar de prestación de los servicios y el cargo o función que lo habilita a laborar en tales días;
+    c.2) Primera columna que indique si se trata de trabajadores del comercio beneficiarios de descansos dominicales adicionales.
+    c.3) Segunda columna con la fecha de cada domingo y/o festivo consultado con el formato dd/mm/aa.
+    c.4) Tercera columna denominada "Asistencia" que indique si el trabajador asistió a prestar servicios, usando los términos "sí" o "no".
+    c.5) Cuarta columna denominada "Ausencia". Esta columna sólo tendrá información si el trabajador no hubiere asistido, indicando en cada caso si la inasistencia fue "justificada" o "injustificada".
+    c.6) Quinta columna denominada "Observaciones", en la cual se dejará constancia de los motivos de las inasistencias, tales como; licencias por enfermedad o vacaciones. En la misma columna, se indicará, además, cualquier otra circunstancia que el empleador considere relevante, como el hecho de haber sido subsanada la falta con posterioridad a su ocurrencia, por ejemplo, mediante la solicitud de un permiso con o sin goce de remuneraciones aprobado por la empresa.
+    c.7) Línea horizontal que contenga una sumatoria mensual de los domingos y/o festivos laborados en el periodo consultado, es decir, por cada mes consultado.
+    c.8) Línea horizontal final que contenga una sumatoria total de domingos y/o festivos laborados en el periodo consultado, es decir, una cifra final para, por ejemplo, el periodo de 6 meses o un año.
+
+    En este informe sólo se deben indicar aquellos domingos o festivos en que efectivamente el trabajador haya laborado o debido hacerlo. En tanto, si se trata de dependientes que no presten servicios en tales días por tener su jornada ordinaria distribuida de lunes a viernes, el reporte mostrará en pantalla una leyenda señalando "La jornada de este trabajador no incluye domingos o festivos".
+
+    d) Reporte de modificaciones y/o alteraciones de turnos: El sistema permitirá acceder a un informe de modificaciones y/o alteraciones de los turnos de uno o más trabajadores. En el caso de aquellos dependientes que no presten servicios por turnos, sino que mantengan una jornada fija permanente, el informe señalará tal circunstancia en su cuerpo para justificar la falta de información.
+    La estructura del reporte será la siguiente:
+
+    d.1) El reporte señalará en el encabezado; la razón social y el rut del empleador; el nombre completo y cédula nacional de identidad de cada trabajador consultado; y el lugar de prestación de los servicios;
+    d.2) Primera columna denominada "Fecha asignación turno", en la cual se especificará la data a partir de la cual se inició un turno específico. Se informará con el formato dd/mm/aa.
+    d.3) Segunda columna con indicación en detalle del turno asignado, por ejemplo, de "08:00 a 17:00".
+    d.4) Tercera columna que señalará la extensión del turno; diario, semanal, bisemanal, mensual, etc.
+    d.5) Cuarta columna denominada "Fecha asignación nuevo turno", la cual detallará, con el formato dd/mm/aa, la data de notificación de un nuevo turno.
+    d.6) Quinta columna denominada "Inicio de turno", en la cual se informará, con el formato dd/mm/aa, la fecha en la cual el trabajador debe comenzar a ejecutar el nuevo turno.
+    d.7) Sexta columna con indicación en detalle del nuevo turno asignado, por ejemplo, de "14:00 a 22:00".
+    d.8) Séptima columna que señalará la extensión del nuevo turno; diario, semanal, bisemanal, mensual, etc.
+    d.9) Octava columna que señale quién solicitó el cambio utilizando solamente los términos "Trabajador" o "Empleador".
+    d.10) Novena columna denominada "Observaciones", en la cual se dejará constancia de cualquier circunstancia que se estime relevante.
+
+    En este reporte sólo se deberán informar aquellos casos en que efectivamente haya habido una alteración o cambio de un turno. En tanto, si no ha ocurrido dicha hipótesis, el reporte mostrará en pantalla una leyenda señalando, para cada trabajador, "Sin cambios o modificaciones en el periodo consultado".
+    e) Reporte diario. Con el objeto de prever cualquier situación que al momento de fiscalizar pudiere entorpecer o impedir el ejercicio de las facultades inspectivas de esta Dirección los sistemas deberán enviar a cada cliente (empleador), automáticamente, un reporte con las marcaciones del día de cada trabajador.
+    Si, atendida la cantidad de trabajadores de la empresa, el reporte resultare demasiado extenso, se podrá fraccionar por oficinas, locales o faenas, pero manteniendo su carácter diario.
+    Este reporte resumido sólo podrá ser presentado ante un inspector cuando, por ejemplo, al momento de efectuarse la fiscalización el sistema presentare fallas técnicas que impidieren acceder a la información.
+    f) Reporte de incidentes técnicos: Las plataformas deberán contar dentro de sus funcionalidades, en el mismo menú principal de fiscalización, con un registro electrónico de incidentes que provoquen su cese operacional total o parcial, lo que permitirá lograr una trazabilidad entre el uso del mecanismo de contingencia y los incidentes registrados.
+    El mencionado registro deberá permitir la exportación de reportes que contendrán, al menos, los siguientes datos: Fecha/hora Inicio; Fecha/hora término y descripción del incidente.
+
+
+    Artículo 28º. Reglas generales de los reportes: Todos los informes emitidos por los sistemas deberán ajustarse a las siguientes reglas:
+
+    a) Todos los reportes deben ser previsualizados en pantalla ofreciendo la opción de descarga o impresión.
+    Los informes para descargar deben ser exactamente iguales a los visualizados en pantalla.
+    b) Los reportes deben permitir ser exportados a planillas Excel, PDF y a formato Word, para su posterior análisis.
+    c) Los reportes deben ser visualizados en una sola pantalla sin necesidad de correr la barra espaciadora.
+    d) Los reportes deben ser imprimibles y, en tal caso, deben caber automáticamente en una sola hoja, lo cual no obsta a que, por su extensión, puedan abarcar varias páginas, vale decir, las columnas deben siempre adaptarse a la página sin necesidad de configuración.
+    e) A fin de ajustar el tamaño de los informes a las exigencias anteriores, tanto para la información ofrecida en pantalla como para su impresión, se deberá utilizar, cómo máximo, la fuente Arial Nº8.
+    f) Si luego de terminado un proceso de modelamiento de un reporte, al solicitar su exhibición en pantalla o su exportación, no hay trabajadores que coincidan con los parámetros de búsqueda seleccionados, el sistema informará en pantalla:
+
+    "No hay trabajadores que coincidan con la selección"
+
+    g) Las plataformas que requieran utilizar abreviaturas o siglas deberán utilizar las que se indican a continuación para referirse a los ítems que se señalan:
+
+    A.I.: Ausencia injustificada.
+    A.J: Ausencia justificada.
+    AT: Atraso.
+    C.T.: Cambio de turno.
+    D.E.J.: Distribución excepcional de Jornada.
+    H.E.: Horas extraordinarias.
+    J.O.: Jornada ordinaria.
+    L.M.: Licencia médica.
+    P.G.R: Permiso con goce de remuneraciones.
+    PREN.: Prenatal.
+    P.S.G.R.: Permiso sin goce de remuneraciones.
+    POSTN: Postnatal.
+    S.A: Salida anticipada.
+    VAC: Vacaciones.
+
+    Las plataformas podrán contemplar otros conceptos, para lo cual deberán indicar la abreviatura o sigla respectiva en una glosa claramente visible en pantalla y, si corresponde, en los reportes.
+    h) Cuando se solicite un reporte que incluya información de varios trabajadores, el informe entregará la información ordenada por cada dependiente.
+    De este modo, el reporte informará el día o periodo de tiempo consultado para ese trabajador y al finalizar, pasará a la siguiente.
+    i) Todos los reportes exigidos por la presente resolución exenta se ubicarán en un solo menú.
+    Lo señalado en los párrafos anteriores no obsta a que el sistema ofrezca otros reportes diferentes para sus usuarios.
+
+
+    Artículo 29º. Reportes semanales firmados: Los empleadores que opten por una plataforma digital no se encontrarán obligados a generar y mantener firmados los reportes señalados en el artículo 20 del Reglamento Nº 969 de 1933, del Ministerio del Trabajo y Previsión Social.
+
+
+    Artículo 30º. Autodesarrollo por el empleador: Los empleadores podrán desarrollar por sus propios medios o encargar a terceros un sistema electrónico de registro y control de asistencia a los cuales, en todo caso, les resultarán aplicables todas las normas de la presente resolución exenta.
+
+
+    Artículo 31º. Capacitación. En forma previa a su utilización, todos los trabajadores afectos a un nuevo sistema electrónico de registro y control de asistencia deberán ser debidamente capacitados en su uso.
+
+
+    Artículo 32º. Publicidad de las normas de uso de los sistemas. Todas las reglas, procedimientos, y normas relativas a la utilización y cuidado de los sistemas y sus componentes a que se encuentren afectos los trabajadores, deberán ser incorporadas en los respectivos reglamentos internos de orden, higiene y seguridad de las empresas. En el caso de aquellas empleadoras que no están afectas a dicha obligación, las normas señaladas deberán constar en los contratos individuales de trabajo o sus anexos.
+    Esta obligación rige, en iguales términos, para los procedimientos, protocolos, flujos o plazos asociados a cambios de clave, modificaciones de correos electrónicos, etc.
+    Ningún trabajador podrá ser sancionado por el uso incorrecto del sistema o sus componentes si tal conducta no ha sido recogida previamente en la normativa interna de la empresa y debidamente comunicada a los dependientes.
+
+
+    Artículo 33º. Inclusión. La utilización de los sistemas y sus componentes no deberán significar actos de discriminación respecto de aquellos trabajadores adscritos a normas sobre inclusión laboral. Así, se deberá tener especial consideración, por ejemplo, con la ubicación física del hardware de enrolamiento y/o identificación de las plataformas y los medios de enrolamiento e identificación.
+
+
+    Artículo 34º. Correos electrónicos. Para garantizar todos los derechos asociados a la publicidad de la información, acceder a los comprobantes de marcación y, en general, recibir todas las notificaciones del sistema, resultará esencial que cada trabajador mantenga registrado en la plataforma un correo electrónico.
+    La obligación señalada en el inciso anterior no se dará por cumplida con el uso de mensajes de texto (SMS) u otras formas similares de comunicación.
+
+    34.1) Origen de los correos electrónicos: El correo electrónico que usará el sistema para comunicarse con el trabajador, podrá ser:
+
+    a) Provisto voluntariamente por el trabajador en su contrato individual, o anexo de éste. Esta siempre será la primera opción.
+    b) Si un trabajador no quisiera entregar una cuenta de correo electrónico privado, el sistema podrá crearle una para estos efectos, pero siempre deberá corresponder a plataformas gratuitas y abiertas, tales como; Gmail, Yahoo!, etc.
+
+    En este caso, el trabajador siempre podrá requerir posteriormente que se reemplace esta cuenta por una entregada por él.
+    La entrega de esta cuenta de correo, así como la recepción de las credenciales de acceso por parte del trabajador deben constar por escrito en el contrato de trabajo o un anexo de este.
+    Será obligación del empleador instruir claramente al trabajador para que modifique la clave de acceso una vez que haya ingresado a la cuenta con el objeto de que asuma su control.
+
+    34.2) Reglas de uso de los correos electrónicos de los trabajadores:
+
+    a) Los correos electrónicos asociados a los sistemas siempre deberán encontrarse bajo el control de los trabajadores lo cual no obsta a que, además, las mismas notificaciones o informaciones puedan ser remitidas por el empleador a cuentas corporativas, respecto de las cuales este último posee las facultades de eliminación o suspensión.
+    b) Los trabajadores deberán tener siempre la posibilidad de modificar las cuentas de correo electrónico asociadas al sistema. El procedimiento que describa los pasos necesarios para realizar el cambio de una cuenta deberá constar en el reglamento interno de la empresa o, en los contratos individuales de trabajo, o en un anexo de ellos.
+    c) Los trabajadores podrán entregar para los efectos señalados en el presente artículo cuentas de correos electrónicos de terceros -familiares, por ejemplo-.
+    El empleador dará por cumplida su obligación con la incorporación de dichas cuentas al sistema, no siendo responsable por los inconvenientes que los trabajadores pudieran tener posteriormente para acceder a la información.
+    d) Los trabajadores tendrán el derecho de modificar su cuenta de correo electrónico privado en el sistema todas las veces que lo estimen pertinente, no ajustándose a la presente resolución exenta la imposición de trabas o procedimientos que inhiban tal facultad.
+    e) Será responsabilidad del trabajador informar a su empleador de cualquier situación que le impida recibir los correos electrónicos del sistema, debiendo, si fuera necesario, modificar su cuenta. Lo anterior, dice relación, por ejemplo, con la no recepción de correspondencia electrónica por haber superado la capacidad de almacenaje de la cuenta o haber olvidado la clave de acceso.
+    f) Será responsabilidad de los empleadores y prestadores tomar todas las medidas necesarias para que las comunicaciones electrónicas no sean bloqueadas o calificadas como correos basura.
+    g) Por tratarse de datos personales, los correos electrónicos privados de los trabajadores deberán ser eliminados del sistema de acuerdo a lo señalado en el artículo 57º. La misma medida deberá adoptarse con los correos corporativos cuando el dependiente deje de prestar servicios en la empresa y la cuenta fuere nominativa.
+
+
+    Artículo 35º. Marcaciones. Para los efectos de la presente resolución exenta se entenderá por marcación cualquier acto voluntario y consciente de un trabajador a través del cual deja una constancia en el sistema.
+    De este modo, constituirán marcación, por ejemplo: los inicio y término de jornada activa o pasiva, inicio y término de descansos u otras actividades que deban ser registradas por el tipo de labor desarrollada.
+    Lo señalado en el inciso precedente no obsta, según se verá, a la posibilidad excepcional de que existan marcaciones automáticas, dado que ellas siempre derivarán de un acto previo del trabajador.
+    Tampoco alterará la regla antedicha la posibilidad de que los empleadores puedan, por ejemplo, agregar o modificar registros, pues la decisión final de mantener o no tales cambios también dependerá de la voluntad del trabajador.
+
+
+    Artículo 36º. Reglas generales respecto de las marcaciones:
+
+    a) La obligación de registrar asistencia siempre debe ser cumplida a través de un acto voluntario y consciente del trabajador sin importar el mecanismo de control que utilice el empleador. De este modo, el dependiente deberá saber con antelación cuándo una acción suya genere una marcación en el sistema.
+    b) Cuando los sistemas de registro de asistencia contemplen el uso de dispositivos móviles, como podría ser el caso de los smartphones, por ejemplo, siempre deberán ser portados por el trabajador o, si ello no es posible por el tipo de mecanismo, el equipo siempre deberá encontrarse disponible para realizar marcaciones, no pudiendo quedar nunca la determinación de la hora del registro al mero arbitrio del empleador.
+    c) Cuando un trabajador marque en reiteradas oportunidades seguidas un inicio o término de actividad el sistema, automáticamente, mantendrá la primera de ellas y eliminará las siguientes.
+
+
+    Artículo 37º. Marcas automáticas: Cuando, además de la jornada ordinaria, el trabajador deba registrar sus descansos o, por ejemplo, se contemplen periodos de jornada pasiva o cualquier otra circunstancia que lo obligue a realizar dobles marcas (término de una actividad e inicio inmediato de la siguiente) se permitirá la automatización del proceso.
+    De este modo, al realizar la marcación de término o inicio de una etapa, por ejemplo, la finalización de un descanso, el sistema automáticamente dará por comenzada la siguiente actividad lógica (Inicio de jornada).
+
+
+    Artículo 38º. Bloqueo del sistema: No se ajusta a la normativa contemplada en la presente resolución exenta:
+
+    a) El bloqueo o cierre de los equipos en los cuales se realicen las marcas, dado que ello impide que los registros reflejen la realidad de la acción.
+    b) El bloqueo de las aplicaciones para PC o smartphones utilizadas para realizar marcaciones remotas como ocurre, por ejemplo, en el caso del teletrabajo.
+    c) El bloqueo temporal para realizar marcaciones de los trabajadores que se encuentren haciendo uso de su feriado; en reposo por licencia médica; con permisos, etc.
+
+
+    Artículo 39º. Modificar, reemplazar, corregir o agregar marcaciones: Con el objeto de asegurar que la información contenida en los sistemas sea fidedigna, los empleadores sólo podrán modificar, reemplazar, corregir o agregar marcaciones en los siguientes casos:
+
+    a) Modificación o reemplazo: El empleador podrá modificar o reemplazar una marcación existente en la plataforma, por ejemplo, para eliminar un atraso o reemplazar una inasistencia por una licencia médica o un permiso otorgado con posterioridad a la ausencia.
+    Podrá automatizarse la eliminación de atrasos o salidas anticipadas de acuerdo a rangos de tolerancia fijados voluntariamente por los empleadores, por ejemplo, con una hora de margen semanal.
+    b) Agregar marcaciones: El empleador podrá también agregar marcaciones faltantes de entrada o salida, tanto individuales como colectivas derivadas, por ejemplo, de olvido de marcar por parte de los trabajadores, cortes de energía eléctrica, fallas del sistema, salidas anticipadas autorizadas, etc. De este modo, la empresa podrá convalidar la omisión de uno o más marcajes incorporando una nueva marcación manual lo cual evitará, por ejemplo, eventuales descuentos en las remuneraciones o la imposición de amonestaciones.
+    Asimismo, se podrán completar las marcaciones de entrada o salida de todos los trabajadores de la empresa o grupos de ellos, cuando el empleador haya convenido otorgar la mañana o la tarde libre.
+    c) Corrección de errores: Los sistemas deberán permitir la corrección de errores derivados de problemas técnicos o equivocaciones de los trabajadores. Así, por ejemplo, el sistema permitirá subsanar problemas masivos derivados de cambios de hora local u otras fallas generales que afecten la hora real de las marcaciones.
+
+
+    Artículo 40º. Procedimiento de modificación, reemplazo o agregado de marcaciones. La ejecución de las acciones señaladas en el artículo anterior se ajustará al siguiente procedimiento:
+
+    a) El empleador modifica, reemplaza, agrega o corrige la marca original.
+    b) Luego el sistema automáticamente envía un correo electrónico a la cuenta personal del trabajador o trabajadores, el cual contemplará, como mínimo, el detalle de la operación, incluyendo la fecha y hora exactas de la marcación original y del nuevo registro, además de una breve explicación del cambio, por ejemplo, "elimina atraso".
+    c) El trabajador tendrá 48 horas contadas desde el envío del correo para oponerse a la medida, respondiendo también por correo electrónico a la cuenta que a tal efecto se le haya informado.
+    d) Si transcurridas las 48 horas señaladas el trabajador no se hubiera opuesto a la modificación, corrección, reemplazo o nueva marcación agregada, ésta se consolidará para los efectos del cálculo de su jornada.
+    e) Si dentro del lapso de 48 horas siguientes al envío del correo electrónico el dependiente se opusiera a la acción, se entenderá que rechaza la fórmula propuesta y la marca permanecerá en su estado original.
+    f) El mismo procedimiento se utilizará cuando no haya marcación de inicio o término de jornada. En tal caso el sistema podrá, al día siguiente, rellenar automáticamente la o las marcaciones faltantes con la hora de entrada o salida pactada.
+    g) El mismo procedimiento bilateral y escrito se utilizará para subsanar cualquier otra situación anómala asociada a las marcaciones o su ausencia.
+
+
+    Artículo 41º. Reglas generales de la alteración de los registros:
+
+    a) Todas las acciones que se traduzcan en una intervención o alteración de la información del sistema deberán quedar visibles en pantalla mediante un signo, símbolo o color que permita visualmente identificar dicha acción y averiguar qué ocurrió.
+    b) Las acciones señaladas en los artículos 39º y 40º sólo podrán realizarse cuando su resultado final no cause perjuicio a los trabajadores.
+    c) Las acciones señaladas en los artículos 39º y 40º no podrán realizarse sino hasta el día hábil siguiente al de la situación que se corrige.
+    d) No podrán automatizarse las marcaciones de inicio y fin de jornada.
+    e) No se aceptarán comprobantes en soporte de papel para complementar o explicar acciones ejecutadas en los sistemas.
+
+
+    Artículo 42º. Descuentos. Los sistemas no deberán ser programados para efectuar automáticamente descuentos diarios de remuneración sin esperar el término de la semana laboral a menos que, excepcionalmente, se trate de jornadas que se deban liquidar y pagar en dicho lapso.
+
+
+    Artículo 43º. Compensación. Los sistemas deberán ofrecer las siguientes opciones:
+
+    a) Horas extraordinarias sujetas a pago en la liquidación de remuneración mensual con el recargo señalado en el artículo 32 inciso 3º del Código del Trabajo.
+    b) Horas extraordinarias conducentes a compensación por días de descanso adicionales de acuerdo con lo establecido en el artículo 32 inciso 4º del Código del Trabajo.
+
+    Si no hubiere pacto escrito que indique lo contrario, las horas extraordinarias se entenderán efectuadas de acuerdo con lo indicado en la letra a) precedente.
+
+
+    Artículo 44º. Cálculo de atrasos y sobretiempo. Para la determinación de los descuentos por tiempo no laborado o pago de horas extraordinarias, los sistemas deberán calcular con precisión de hora, minuto y segundo de cada marcaje, restando las cantidades exactas sin aproximación.
+
+
+    Artículo 45º. Alertas. Los sistemas contemplarán obligatoriamente los siguientes avisos:
+
+    45.1) Alertas por falta de marcación: Sin perjuicio de lo señalado respecto del llenado de marcaciones faltantes, los sistemas deberán contemplar dos alertas automáticas relativas a la omisión de un registro de inicio o término de actividad:
+
+    a) Los sistemas deberán emitir automáticamente un correo electrónico de alerta al trabajador, con copia al empleador, luego de transcurrido un lapso de 30 minutos desde que debió realizarse la marcación de inicio de una actividad -jornada, colación, etc.-, contados desde la hora de registro pactada, lo que permitirá que ambas partes tomen conocimiento de la situación a fin de ser regularizada en la plataforma.
+    b) Los sistemas deberán emitir automáticamente un correo electrónico de alerta al trabajador, con copia al empleador, luego de transcurrido un lapso de 30 minutos desde que debió realizarse la marcación de término de una actividad, por ejemplo, jornada, colación, etc., contados desde la hora de registro pactada, lo que permitirá que ambas partes tomen conocimiento de la situación a fin de ser regularizada en la plataforma.
+    Si bien los sistemas deberán contemplar obligatoriamente las alertas señaladas en este número, y su configuración de fábrica las traerá habilitadas por defecto, su utilización por parte de los empleadores será opcional, debiendo existir la opción de deshabilitarlas.
+
+    45.2) Alerta por jornada excesiva. El sistema presentará una alerta en pantalla cuando un empleador registre o cargue una jornada ordinaria que exceda los límites diarios o semanales establecidos en la ley.
+    La alerta señalada no impedirá la carga de la jornada, sino que sólo constituirá un aviso para el empleador.
+    45.3) Alerta por compensación de días de descanso. Si las partes hubieren acordado que las horas extraordinarias se compensarían con días de descanso adicionales, de acuerdo con lo prescrito en el artículo 32 inciso 4º del Código del Trabajo, el sistema enviará automáticamente cada 30 días un correo electrónico a las partes señalando al empleador la cantidad de horas compensables de cada dependiente y, a este último, el número de días de descanso adicional que ha acumulado y su fecha de prescripción.
+    45.4) Alerta de desconexión. En el caso de los teletrabajadores sujetos a la obligación de uso de un sistema electrónico de registro y control de asistencia, las plataformas deberán emitir automáticamente un correo electrónico de aviso al dependiente cuando falten 30 minutos para el inicio de su periodo de desconexión.
+
+
+    Artículo 46º. Flexibilidad horaria: Los empleadores podrán establecer un sistema de flexibilidad horaria, mediante el cual el trabajador pueda elegir el momento de inicio de la jornada dentro de una franja de tiempo, ajustándose automáticamente el momento de salida según la hora efectiva de ingreso.
+    La fórmula señalada podrá ser aplicada a todos los trabajadores o a grupos de ellos dependiendo de la naturaleza de sus funciones.
+    Lo señalado debe entenderse sin perjuicio de la situación de los trabajadores madres y padres de menores de hasta doce años, y las personas que tengan el cuidado personal de éstos, en cuyo caso la implementación de una banda horaria corresponde a un derecho establecido y regulado en el artículo 27 del Código del Trabajo.
+
+
+    Artículo 47º. Documentos y firmas: Para la correcta operación del sistema, éste deberá permitir crear y, si corresponde, firmar, documentos electrónicos.
+
+    47.1) Tipos de documentos: Los sistemas permitirán crear los siguientes tipos de documentos:
+
+    a) Anexos: Se considerarán anexos del contrato de trabajo aquellos documentos que modifiquen de manera permanente una o más de las condiciones originales pactadas en la convención, por ejemplo, el cambio de la duración de una jornada fija o su distribución o la implementación de la modalidad de teletrabajo. En este caso el documento debe constar por escrito y ser firmado por ambas partes de la relación laboral.
+    b) Pactos: Se entenderá por pactos aquellos acuerdos mediante los cuales las partes regulen situaciones transitorias, por ejemplo, la realización de horas extraordinarias. Estos documentos deben constar por escrito y ser firmados por ambas partes.
+    c) Notificaciones: Documentos emanados de una de las partes de la relación laboral, mediante los cuales se pone alguna circunstancia en conocimiento de la otra, por ejemplo, un cambio de turno, una amonestación o un nuevo ciclo de aquellos señalados en el artículo 22 bis del Código del Trabajo. En estos casos la firma del trabajador puede ser sustituida por el proceso de Login o identificación en el sistema.
+    d) Solicitudes: Documentos unilaterales mediante los cuales el trabajador realiza un requerimiento al empleador, por ejemplo, uso de feriado legal, permisos, etc. En estos casos la firma del dependiente puede ser sustituida por el proceso de Login o identificación en el sistema.
+
+    47.2) Flujo de los documentos:
+
+    a) Para la suscripción de los documentos individualizados en las letras a) y b) precedentes, se seguirán los siguientes pasos:
+
+    i) Una vez completado el documento por el empleador, el sistema lo enviará automáticamente al trabajador a su correo personal registrado en la plataforma.
+    ii) El trabajador podrá aceptar o rechazar la propuesta, respondiendo directamente al correo electrónico recibido o a un enlace contenido en él.
+    iii) Si el trabajador aceptare la propuesta, el sistema automáticamente enviará una copia firmada a cada parte a los correos que tengan registrados.
+    iv) Si el trabajador rechazare lo propuesto por el empleador, este último podrá modificar el documento y enviarlo nuevamente. De ser necesario se podrá repetir el mismo procedimiento.
+
+    b) Para la realización de las solicitudes señaladas en la letra d) del Nº47.1) precedente, se seguirán los siguientes pasos:
+
+    i) Los sistemas ofrecerán un menú con diversas opciones de solicitudes que pueda requerir el trabajador considerando, como mínimo, las siguientes: uso de feriado, permisos con y sin goce de remuneraciones, compensación de horas extraordinarias por días de descanso adicional y cambio de turnos.
+    ii) Una vez seleccionada la opción el sistema permitirá al trabajador llenar los datos necesarios para la solicitud.
+    iii) Al enviar el documento a través del sistema, el trabajador recibirá automáticamente una copia de ella en su correo privado para su archivo personal.
+    iv) Si el empleador rechazare la solicitud, la respuesta deberá señalar de manera clara la posibilidad de apelar de la decisión, el plazo para hacerlo y ante quién presentar la reclamación.
+
+    47.3) Firmas electrónicas. Cuando los trabajadores deban firmar electrónicamente algún documento o solicitud creado por el mismo sistema de registro y control de asistencia, por ejemplo, un anexo de contrato, una solicitud de feriado o permiso, podrán hacerlo a través de firma electrónica simple, es decir, claves o password, biometría, etc.
+    Excepcionalmente, en el caso de los documentos unilaterales (notificaciones o solicitudes), se considerará firmado el documento por el hecho de haberse identificado ya el requirente al ingresar al sistema.
+    Cuando se trate de sistemas autodesarrollados por una empresa, la generación y administración de las firmas electrónicas simples, deberán ser entregadas a una persona natural o jurídica que no tenga relación de ningún tipo con el empleador, función que puede ser asumida por el mismo prestador del servicio de control de asistencia.
+
+
+    Artículo 48º. Compatibilidad con otros sistemas de control de asistencia: Para dar cumplimiento a lo dispuesto en el inciso 1º del artículo 33 del Código del Trabajo, se estará a las siguientes reglas:
+
+    a) Soporte: Cada empleador debe mantener un solo tipo de sistema de registro y control de asistencia, es decir, sólo papel o sólo electrónico.
+    b) Cantidad: Cuando el empleador utilizare una plataforma electrónica de aquellas regidas por la presente resolución exenta, deberá usar el mismo producto comercial para todas sus instalaciones y para aquellos dependientes que se encontraren bajo la modalidad de teletrabajo, vale decir, mantener un solo proveedor del servicio.
+    Excepcionalmente, un empleador podrá llevar más de un mecanismo de registro y control de asistencia cuando emplee a trabajadores que se encuentren afectos obligatoriamente a un sistema especial, por ejemplo, los choferes y auxiliares de vehículos de transporte interurbano de pasajeros o transporte interurbano de carga.
+    c) Origen de la información: Los datos utilizados para la contabilización de la asistencia, horas de trabajo y descansos sólo pueden provenir de un sistema electrónico autorizado por la Dirección del Trabajo.
+
+
+    Artículo 49º. Mecanismo no cumple con la regulación: A fin de evitar indefensión de los trabajadores, si durante un proceso de fiscalización se detectare que la plataforma utilizada por un empleador no cuenta con la autorización de esta Dirección, de todas formas se tomará en consideración la información entregada por el sistema. Lo que debe entenderse sin perjuicio de la imposición de las sanciones que correspondan.
+
+
+    Artículo 50º. Derecho de elección del sistema. Dado que llevar correctamente un sistema de registro y control de asistencia constituye una obligación legal establecida en el inciso 1º del artículo 33 del Código del Trabajo, los empleadores tienen el derecho de elegir el tipo de mecanismo que emplearán para tal fin. Cuando optaren por emplear sistemas electrónicos de registro y control de asistencia, deberán escoger entre alguna de las plataformas autorizadas por la Dirección del Trabajo.
+
+
+    Artículo 51º. Obligación de uso. Para dar cumplimiento a la obligación señalada en el inciso 1º del artículo 33 del Código del Trabajo, los dependientes deberán usar los sistemas de registro y control de asistencia que utilice su empleadora, siempre que ellos se ajusten a las condiciones establecidas en la presente resolución exenta.
+    La utilización deberá realizarse de acuerdo con las normas que al efecto imparta el empleador.
+
+
+    Artículo 52º. Teléfonos móviles. La utilización de equipos de telefonía celular como parte de un sistema de registro y control de asistencia se regirá por las siguientes reglas:
+
+    52.1) Teléfonos móviles entregados por el empleador. Las empresas podrán entregar equipos telefónicos como medios de identificación para realizar las marcaciones pertinentes. En tal caso, cabe tener presente las siguientes consideraciones:
+
+    a) La empleadora deberá asumir todos los costos derivados de la utilización de los equipos, incluyendo, por ejemplo, el plan de datos, recambio de accesorios, servicio técnico, reposición del teléfono, etc.
+    En consecuencia, si el plan de datos provisto por la empleadora no alcanzare a cubrir el periodo semanal, quincenal o mensual acordado, el trabajador no se encontrará obligado a realizar marcaciones hasta que el señalado plan sea recargado.
+    b) Los trabajadores deberán utilizar los equipos de acuerdo con las reglas técnicas informadas en las capacitaciones recibidas y, asimismo, cuidar los teléfonos según las indicaciones contempladas en el reglamento interno de la empresa.
+    c) Los trabajadores deberán devolver los equipos al empleador cuando así se les solicite.
+
+    52.2) Teléfonos móviles personales de los trabajadores. La utilización de equipos personales de los dependientes se ajustará a lo siguiente:
+
+    a) Los trabajadores deben consentir por escrito en utilizar equipos propios para el desarrollo de sus funciones. El acuerdo deberá ser incorporado al contrato individual o un anexo de éste.
+    b) Las partes de la relación laboral son libres de concordar las condiciones que estimen pertinentes para el uso de equipos personales.
+    c) Sin perjuicio de lo señalado, la empleadora siempre deberá asumir todos los costos derivados de la utilización de los equipos incluyendo, por ejemplo, el plan de datos, servicio técnico, seguros, accesorios y los demás que las partes pudieren acordar.
+    El pago de las sumas acordadas por las partes para la utilización del sistema de registro y control de asistencia podrá realizarse de dos formas:
+
+    i) Pagando el empleador directamente los servicios a cada proveedor.
+    ii) Pagando el empleador directamente a los trabajadores la suma total convenida, junto a su remuneración mensual. En este caso, los dependientes se encontrarán obligados a destinar las sumas recibidas exclusivamente para los fines acordados.
+
+    Ahora bien, si la suma pagada por la empleadora para cubrir el plan de datos requerido no alcanzare a cubrir el periodo semanal, quincenal o mensual acordado, el trabajador no se encontrará obligado a realizar marcaciones hasta que el señalado plan sea nuevamente pagado.
+    Los trabajadores tampoco serán responsables de los inconvenientes que se produzcan por la falta de pago o pagos insuficientes del empleador respecto de las sumas asociadas, por ejemplo, a seguros, compra o reposición de accesorios, servicios técnicos o pago de licencias de software.
+    d) Las aplicaciones que se deban instalar en los teléfonos no deberán requerir más permisos que los estrictamente necesarios para la utilización del sistema de control de asistencia y horas de trabajo. De este modo, no se considerará ajustado a Derecho, por ejemplo, requerir acceso al material fotográfico, correo electrónico o redes sociales del dependiente, encontrándose, en general, vedado al empleador el acceso a toda la información privada de aquél.
+    e) Las partes podrán pactar la forma en que el trabajador registrará inicio o término de una actividad, por ejemplo, mediante una clave, uso de huella digital, el envío de una fotografía del lugar de prestación de servicios, escaneo de un código bidimensional (QR), etc.
+    f) Si los trabajadores así lo acordaren expresamente, podrán obligarse a mantener sus teléfonos celulares con batería suficiente para realizar las marcaciones exigidas.
+    g) Si las exigencias técnicas del sistema requirieran de un equipo de características diferentes al del trabajador, el empleador deberá asumir los gastos que pudiera generar un cambio del teléfono.
+
+    52.3) Todo lo señalado en este artículo debe entenderse aplicable, en lo que corresponda, a los demás equipos electrónicos que pudieran formar parte del sistema, tales como computadores o tablets.
+
+
+    Artículo 53º. Geolocalización: La utilización de herramientas destinadas a determinar la ubicación geográfica del lugar en que se realiza cada marcación, por ejemplo, GPS o GMS, deberá ajustarse a las siguientes reglas:
+
+    a) La herramienta podrá ser utilizada por el empleador para otros fines operativos o productivos, siempre que no afecte la normal operación del sistema, y que se asegure que el software o componentes adicionales no generarán vulnerabilidades a su funcionalidad, tiempos de respuesta o seguridad.
+    b) Si se utilizaren aplicaciones especiales, ellas podrán solicitar dentro de sus permisos el acceso a la ubicación geográfica del trabajador.
+    c) Los sistemas no podrán bloquear la realización de las marcaciones cuando la plataforma detecte, por el uso de geolocalización, que el trabajador se encuentra apartado del lugar convenido para efectuar el registro.
+    d) Las aplicaciones instaladas en equipos móviles podrán, sólo mientras se realiza la marcación, bloquear otras aplicaciones telefónicas que interfieran o afecten la fidelidad de la geolocalización.
+    e) Dada la finalidad de los sistemas, es decir, controlar asistencia y horas de trabajo, no se ajusta a Derecho exigir que se encuentre encendida durante toda la jornada.
+    No obstante, excepcionalmente, se podrá mantener una geolocalización permanente en los casos siguientes:
+
+    i) Cuando la geolocalización forme parte de una maquinaria o medio de transporte y se justifique por la seguridad de las personas, por ejemplo, en las naves o aeronaves, o por razones de seguridad de los trabajadores, como ocurriría con los vehículos de transporte de valores.
+    ii) Cuando una norma legal así lo establezca.
+
+    f) Los registros de posicionamiento deberán ser almacenados por 5 años, al igual que las marcaciones.
+
+
+    Artículo 54º. Aplicaciones de mensajería instantánea. Los sistemas sólo podrán utilizar aplicaciones de mensajería instantánea, de acuerdo con los siguientes criterios:
+
+    a) Las aplicaciones deben formar parte integral del sistema, por lo que deben ser objeto del proceso de certificación y posterior autorización de este Servicio.
+    b) Las respectivas aplicaciones no se encontrarán destinadas a realizar marcaciones de inicio o término de una actividad, sino, por ejemplo, a informar de un problema del sistema o recibir instrucciones relacionadas con la jornada o turno.
+    c) La utilización de aplicaciones de mensajería instantánea no reemplazará al correo electrónico personal de los trabajadores.
+
+    Lo señalado en este numeral no obsta al derecho de las partes para acordar la utilización de aplicaciones de mensajería instantánea, tales como: WhatsApp, Telegram u otras, para fines distintos al del control de la asistencia y horas de trabajo.
+
+
+    Artículo 55º. Trabajo a distancia. Los dependientes que presten servicios a distancia y los teletrabajadores podrán encontrarse sujetos a un sistema de registro y control de asistencia, el cual, además de los requisitos contenidos en la presente resolución exenta, deberá cumplir las condiciones que a continuación se indican:
+
+    a) Los medios utilizados para el control de la jornada no podrán considerar herramientas que vulneren los derechos fundamentales de los trabajadores o los sometan a un estrés innecesario. Por lo tanto, no se considerará ajustado a Derecho que se imponga, por ejemplo, la obligación de mantener encendida la cámara web de un computador o el sistema de audio de este.
+    Lo señalado no obsta a que las marcaciones se realicen, por ejemplo, mediante una clave, mensaje de voz, biometría o reconocimiento de una imagen.
+    b) Las plataformas podrán utilizar también sistemas de geolocalización, pero sólo para la realización de la respectiva marcación.
+    c) Si el trabajador tuviera una jornada mixta, es decir, si ha pactado una combinación de tiempos de trabajo de forma presencial en establecimientos, instalaciones o faenas de la empresa con tiempos de trabajo fuera de ella, el sistema deberá contemplar ambas formas de registro y entregar, según los reportes que corresponda, las cifras totales de la semana.
+
+
+    Artículo 56º. Derechos fundamentales: Los mecanismos de enrolamiento y/o identificación que utilicen los sistemas no deberán vulnerar los derechos fundamentales de los trabajadores.
+    Asimismo, la intensidad del control debe guardar relación con la naturaleza y finalidad de los sistemas descartándose, por lo tanto, cualquier fórmula de vigilancia que exceda el registro de la jornada, horas de trabajo, descansos u otras actividades similares.
+
+
+    Artículo 57º. Datos personales. Sin perjuicio de lo señalado por las normas de la Ley Nº19.628 sobre protección de la vida privada, cuando los sistemas requirieran contar con datos personales o sensibles de los trabajadores para su enrolamiento o realizar marcaciones, se seguirán las siguientes reglas:
+
+    57.1) Consentimiento: Cuando las plataformas requirieran para el enrolamiento o realización de las marcaciones de un dato personal no contemplado en el artículo 10 del Código del Trabajo u otra norma legal o reglamentaria, como la huella digital o número de teléfono personal, el dependiente deberá previamente manifestar su conformidad por escrito en el contrato individual o anexo de este.
+    57.2) Tratamiento: A fin de dar cumplimiento al principio de finalidad en el tratamiento de los datos personales, el documento en que se plasme el consentimiento del trabajador deberá dejar expresa constancia del objetivo de la solicitud, así como la modalidad de uso de aquellos.
+    El documento que recoja la autorización del trabajador deberá señalar expresamente la prohibición para el empleador de transferir la información a terceros ajenos a la relación laboral, con la excepción del prestador del servicio.
+    El prestador del servicio tendrá vedado transferir a terceros los datos de los usuarios o utilizarlos para cualquier finalidad ajena al contexto del control de la asistencia y horas de trabajo.
+    57.3) Derecho de eliminación de los datos personales: Durante la vigencia de la relación laboral los trabajadores podrán, en cualquier momento, requerir la eliminación de su información de la base de datos del sistema, siempre que no se trate de antecedentes requeridos por normas legales o reglamentarias.
+    57.4) Destrucción de los datos personales: Una vez finalizada la relación laboral por cualquier causa, tanto el empleador como el prestador tendrán la obligación de destruir los datos personales de los trabajadores recolectados por el sistema, tales como; huellas digitales, números telefónicos, correos electrónicos personales, etc.
+    La destrucción de los datos personales deberá ajustarse a las siguientes reglas:
+
+    a) La destrucción se deberá materializar en un plazo no inferior a 90 días ni posterior a 120, contados desde la renuncia o despido del trabajador.
+    b) La misma obligación pesará sobre el prestador cada vez que se desvincule de un cliente.
+    c) Los plazos señalados permitirán la mantención temporal de los datos que pudieren ser requeridos judicialmente si el trabajador ejerciere acciones legales contra su empleador.
+    d) En el caso del empleador, la obligación de destrucción de los datos personales sólo se refiere a aquellos antecedentes no contemplados en el artículo 10 del Código del Trabajo u otras normas legales o reglamentarias.
+
+    Los empleadores serán responsables del cumplimiento de las reglas señaladas en el presente artículo, y, en especial, respecto del tratamiento de los datos personales de los trabajadores.
+    Lo señalado en la presente resolución exenta debe entenderse sin perjuicio de los demás derechos que reconozca a los trabajadores la Ley Nº19.628 sobre protección de la vida privada, en su calidad de titulares de datos personales.
+
+
+    Artículo 58º. Responsabilidad de los empleadores. Se considerará que, entre otras, las siguientes acciones u omisiones constituyen infracciones a lo dispuesto en el artículo 33 del Código del Trabajo, las cuales se sancionarán de acuerdo con lo señalado en el artículo 508:
+
+    a) No usar un sistema de registro y control de asistencia;
+    b) Utilizar un sistema electrónico no autorizado por la Dirección del Trabajo;
+    c) Las fallas o desperfectos que entorpezcan o impidan la realización de los procesos inspectivos, por ejemplo, presentar problemas en el acceso al portal de fiscalización o en la obtención de los reportes del sistema;
+    d) No otorgar a los funcionarios de la Dirección del Trabajo todas las facilidades necesarias para la revisión de la información cuando el proceso de fiscalización se desarrolle físicamente;
+    e) Alterar la información del sistema electrónico de registro de asistencia;
+    f) No contar con los reportes diarios de marcaciones señalados en el artículo 27º letra e);
+    g) No actualizar la información de sus trabajadores en los sistemas de manera periódica;
+    h) Restringir o entorpecer el cambio de claves o correos electrónicos de los trabajadores;
+    i) No respetar las normas sobre recolección, tratamiento y/o destrucción de los datos personales de los trabajadores.
+    j) No capacitar a los trabajadores en el correcto uso de la plataforma.
+    k) Bloquear la posibilidad de realizar marcaciones.
+    l) No mantener disponible para su revisión la información que entreguen los sistemas, en formato electrónico, de hasta 5 años contados hacia atrás desde la generación del dato. En caso de cambio de proveedor del servicio, será responsabilidad del empleador mantener la información histórica que no haya podido ser migrada al nuevo sistema, por ejemplo, mediante la custodia de los reportes diarios señalados en el artículo 27º letra e).
+
+
+    Artículo 59º. Responsabilidades de los prestadores. Los prestadores serán responsables por los incumplimientos asociados a su calidad de proveedores del servicio, por ejemplo, por:
+
+    a) Las fallas o desperfectos que incidan negativamente en la operación y mantención de los componentes que constituyen la plataforma de control de asistencia.
+    b) Las fallas o desperfectos que entorpezcan o impidan la realización de los procesos inspectivos, por ejemplo, presentar problemas en el acceso al portal de fiscalización o en la obtención de los reportes del sistema y que no sean imputables a terceros.
+    c) Realizar modificaciones a las plataformas una vez que han sido autorizadas por este Servicio.
+    d) Permitir la realización de acciones prohibidas respecto de la información del sistema.
+    e) No respetar las normas sobre recolección, tratamiento y/o destrucción de los datos personales de los trabajadores.
+
+    Los prestadores no serán responsables por los incumplimientos normativos que deriven de conductas de los empleadores o trabajadores.
+
+
+    Artículo 60º. El Oficio ordinario que autorice la operación y/o uso de un sistema electrónico de registro y control de asistencia podrá ser dejado sin efecto de acuerdo a las siguientes reglas:
+
+    a) El primer incumplimiento detectado originará una reconvención escrita.
+    b) El segundo incumplimiento detectado dentro de un periodo de 30 días corridos, dará lugar a la eliminación temporal por 15 días corridos del registro de prestadores autorizados a que se refiere el artículo 73º.
+    c) El tercer incumplimiento detectado dentro de un periodo de 30 días corridos, dará lugar a la eliminación temporal por 30 días corridos del registro de prestadores autorizados a que se refiere el artículo 73º.
+    d) El cuarto incumplimiento detectado dentro de un periodo de 60 días corridos conllevará la cancelación de la autorización de funcionamiento. En este caso la empresa prestadora, para volver a proveer el servicio, deberá realizar nuevamente el proceso de certificación y obtención de autorización de la Dirección del Trabajo.
+
+    Los incumplimientos podrán ser detectados durante procesos de fiscalización o a través de revisiones periódicas efectuadas de oficio.
+
+
+    Artículo 61º. Cuando se haya detectado un incumplimiento respecto de las normas de la presente resolución exenta, se procederá de la siguiente forma:
+
+    a) Se notificará electrónicamente al prestador acerca del incumplimiento detectado.
+    b) El prestador tendrá un plazo de 5 días hábiles para responder; acreditando haber subsanado el incumplimiento y/o; formulando descargos.
+    En ambos casos los prestadores deberán acompañar, en formato electrónico, los antecedentes que sustenten sus afirmaciones.
+    c) Transcurrido el plazo señalado, la jefatura del Departamento Jurídico de la Dirección del Trabajo se pronunciará con los documentos que obren en su poder.
+    No obstante, si se estimare necesario, se podrán requerir más antecedentes al prestador.
+    d) De lo resuelto por la jefatura del Departamento Jurídico se podrá recurrir ante el Director del Trabajo.
+
+    Si se resolviera la cancelación de la autorización de funcionamiento del sistema electrónico de registro y control de asistencia, los respectivos prestadores deberán informar dicha circunstancia a sus clientes dentro de los 5 días hábiles siguientes a la notificación de la sanción.
+    El incumplimiento de esta obligación se tendrá en consideración como un antecedente negativo en caso de presentar una nueva autorización de operación de la plataforma.
+
+
+    Artículo 62º. Entrega de información. Los prestadores deberán informar con claridad a sus clientes que la contratación de los servicios asociados al control de asistencia conlleva aparejada la autorización de entregar a la Dirección del Trabajo toda la información que conste en las plataformas, sin ninguna restricción y por los mecanismos que se indican en la presente resolución exenta.
+    Lo señalado debe entenderse sin perjuicio de las obligaciones legales que pesan sobre los empleadores respecto de la entrega directa de información a la Dirección del Trabajo.
+
+
+    TÍTULO V
+    CERTIFICACIÓN Y AUTORIZACIÓN DE USO
+
+
+    Artículo 63º. Los procesos de certificación y autorización de uso de los sistemas se refieren particularmente a las plataformas y no a las empresas que los desarrollen, importen, comercialicen, distribuyan o utilicen, por lo que los cambios en su dominio no afectarán las validaciones vigentes.
+    Por las mismas razones, los nuevos adquirentes, licenciatarios o empleadores usuarios de las plataformas no requerirán solicitar un pronunciamiento de esta Dirección para continuar con su comercialización o uso, según corresponda.
+    Ahora bien, si por razones comerciales se modificare el nombre de la solución o se introdujeren cambios técnicos, sí se requerirá una nueva autorización pues ellas son nominativas y recaen sobre productos con características particulares que han sido ya analizadas.
+    Lo señalado debe entenderse en armonía con lo señalado en el artículo 65º letra f) acerca de las certificaciones parciales.
+
+
+    Artículo 64º. Certificación: La solicitud de autorización de uso de los sistemas en el contexto de las relaciones laborales, deberá ser precedido por la obtención de un certificado de cumplimiento de las normas contenidas en la presente resolución exenta.
+
+
+    Artículo 65º. Procedimiento de certificación. El proceso de certificación se sujetará a las siguientes reglas:
+
+    a) Deberá ser realizado por una persona jurídica independiente de la empresa u organismo que desea comercializar o utilizar la plataforma, vale decir, no podrá ser matriz, filial, empresa coligada, relacionada, ni tener interés directo o indirecto, participación o vínculo societario de ningún tipo con la compañía que importará, comercializará o utilizará el sistema.
+    b) Deberá incluir la revisión, a nivel de software y hardware, de todos los aspectos jurídicos, técnicos, funcionales, de seguridad, inviolabilidad, etc., señalados en la presente resolución exenta.
+    c) Deberá considerar el análisis de vulnerabilidades de las plataformas.
+    d) Deberá repetirse cada 24 meses contados desde la fecha del Oficio ordinario que autorice su utilización en el contexto de las relaciones laborales.
+    e) Cuando las plataformas contemplen sistemas de geolocalización, la entidad que realice la certificación del sistema deberá considerar que se empleen equipos que dispongan de soporte del fabricante, con wifi o plan de datos y GPS encendido. El análisis deberá considerar que, en un máximo de 3 minutos, la aplicación debe ser capaz de lograr una ubicación con un margen de error inferior a un radio de 30 metros (diámetro de 60 metros) para, al menos, el 95% de las marcaciones.
+    Atendida la finalidad de este mecanismo, las pruebas no deben ser realizadas en recintos cerrados.
+    f) Certificaciones parciales. En el caso de requerir certificaciones parciales durante la vigencia de la autorización del sistema, por introducción de modificaciones a las plataformas referidas a uno o más de sus componentes específicos, sean ellos referidos a software y hardware, la solicitud deberá indicar de manera clara esta situación, es decir, que el requerimiento se refiere, por ejemplo, a un cambio en la versión del motor de la base de datos.
+    En dicho evento, el nuevo informe de certificación sólo deberá referirse a las modificaciones relacionadas con la solicitud, acompañando el informe previo y el ordinario anterior de autorización, y la demás documentación técnica pertinente como, por ejemplo, un nuevo informe de vulnerabilidades o diagrama de arquitectura.
+    No se requerirá nueva certificación ni autorización de esta Dirección cuando las modificaciones se limiten a nuevas versiones de software o hardware, alteraciones a la capa gráfica, etc.
+    g) La entidad certificadora deberá extender un informe final, señalando las pruebas a que ha sido sometido el sistema y las razones técnicas por las que se considera que cumple cada condición.
+
+
+    Artículo 66º. Formalidades de la solicitud de autorización.
+
+    66.1) Carta conductora: La solicitud de autorización deberá ser requerida a través de una carta conductora que deberá indicar, como mínimo, lo siguiente:
+
+    a) Destinatario de la solicitud: Las solicitudes serán dirigidas directamente al Departamento Jurídico de la Dirección del Trabajo.
+    b) Respecto de la persona natural que realiza la solicitud: Nombre completo, cédula nacional de identidad, firma, sea esta última en formato holográfico o electrónico y correo electrónico de contacto.
+    c) Fecha de la solicitud.
+    d) Indicación del domicilio físico o correo electrónico al cual debe ser respondida.
+    e) Respecto de la empresa desarrolladora o comercializadora del sistema: Nombre o razón social, domicilio, RUT.
+    Las empresas que presten el servicio de registro y control de asistencia deberán fijar un domicilio comercial en Chile, el cual podrá coincidir con el de la empresa certificadora.
+    f) Un correo electrónico no nominativo, el cual declaran como medio hábil para recibir notificaciones de este Servicio.
+    g) Respecto de la entidad certificadora: Nombre o razón social, domicilio, RUT, nombre del responsable del proceso y correo electrónico de contacto.
+    h) Nombres técnico y comercial del sistema cuya autorización se solicita.
+    i) Indicación de tratarse de un sistema previamente autorizado por la Dirección del Trabajo individualizando, en tal caso, el número y fecha del último Ordinario de aprobación.
+
+    66.2) Documentos que se deben acompañar a la solicitud: A la carta conductora señalada en el número anterior se deberán acompañar, en documentos separados:
+
+    a) El informe de certificación que deberá cumplir con los siguientes requisitos formales:
+
+    i) Deberán exhibir en su primera página el certificado de cumplimiento, fechado y suscrito por el responsable del proceso.
+    ii) En la segunda página se incluirá la misma información exigida a la carta conductora.
+    iii) En la tercera página se incorporará un índice de las materias tratadas en el informe.
+    iv) A continuación se desarrollará el informe propiamente tal, el cual se estructurará en el mismo orden de la presente resolución exenta, indicando expresamente el cumplimiento de todos los requisitos exigidos para la validación de los sistemas.
+    v) Las evidencias presentadas para respaldar las aseveraciones realizadas en el informe de certificación deberán ser claramente visibles y legibles, tanto en su formato digital original como al traspasarlas a papel mediante su impresión.
+    Las evidencias que no resulten claras para su apreciación se tendrán por no presentadas.
+    vi) No se podrá acompañar a la solicitud de autorización documentación y material fotográfico que haya servido de respaldo y justificación en procesos de solicitudes anteriores, ni aun tratándose del mismo sistema o empresa.
+    vii) Las evidencias deberán ser consignadas en el informe siguiendo el mismo orden del análisis.
+    viii) Las evidencias no podrán superar los seis meses de antigüedad.
+
+    b) El diagrama de arquitectura del software: Documento necesario para el análisis de las interconexiones entre los distintos componentes del sistema, esto es, entre los dispositivos de registro de marca, los servidores de aplicación, la base de datos, los eventuales periféricos de seguridad, entre otros. Su finalidad es dar a conocer gráficamente la forma en la que se encuentran vinculados y conectados dichos componentes, con el objeto de determinar los niveles de vulnerabilidad a los cuales pueda estar sujeta la plataforma.
+    c) El informe de vulnerabilidades: Para la generación del reporte se deberán utilizar herramientas de terceros que permitan obtener un informe detallado de los aspectos de seguridad del sistema, por ejemplo: puertos TCP abiertos y vulnerabilidades a las que se encuentran sujetos, marcas de los productos instalados, resultados de pruebas de penetración, entre otros.
+    El reporte de salida deberá ser incorporado a los antecedentes que se remitan a este Servicio en el contexto del proceso de autorización de los sistemas.
+    La herramienta que se utilice debe contar con todas las funcionalidades que permitan obtener un reporte exhaustivo de las vulnerabilidades y que cumpla con todas las exigencias indicadas en este literal.
+    En la medida que cumpla con lo señalado en los párrafos precedentes, la herramienta podrá ser de pago o una versión de prueba.
+    d) Declaración Jurada en la que se indique expresamente que toda la información y antecedentes presentados son veraces.
+
+
+    Artículo 67º. Envío de los documentos. Con el objeto de facilitar el examen de los antecedentes acompañados a las solicitudes de autorización, los documentos deberán ser ingresados utilizando alguno de los siguientes medios:
+
+    67.1) Acompañando a la carta conductora un hardware -pendrive, por ejemplo-, que deberá contener copias en formato electrónico de todos los documentos, imágenes, diagramas, gráficos, videos, etc., que se presenten a revisión.
+    La responsabilidad por el correcto funcionamiento de los dispositivos electrónicos acompañados será del solicitante. Por lo tanto, si el dispositivo presentare daños o algún documento no pudiera ser abierto, se tendrá por no presentado.
+    67.2) Incorporando en la carta conductora la url de la ubicación de la información en la nube, utilizando fuente Arial Nº11 o 12 para facilitar su lectura. Además, los permisos de revisión deben ser permanentes, vale decir, no sujetos a un plazo de expiración para las credenciales de acceso.
+    67.3) Con excepción de la carta conductora, todo antecedente acompañado en soporte de papel se tendrá por no presentado.
+
+
+    Artículo 68º. Revisión de los antecedentes. El proceso de análisis de los sistemas se dividirá en 3 etapas:
+
+    a) Examen de admisibilidad: Durante esta etapa se analizará el cumplimiento de las exigencias formales de presentación de los antecedentes, así como la omisión de información general, las credenciales o accesos al módulo de fiscalización y la falta de documentos.  De constatarse alguna de las circunstancias anteriores, la solicitud será rechazada de plano.
+    b) Análisis de los aspectos informáticos: En esta etapa se examinará el cumplimiento de las condiciones relativas a la arquitectura del software, seguridad, integridad y respaldo de la información, base de datos, alertas, etc.
+    c) Análisis de los aspectos jurídicos: Aprobadas las etapas anteriores se revisará el cumplimiento de las exigencias jurídicas de los sistemas, especialmente, aquellas que dicen relación con el portal de fiscalización y la reportería de la plataforma.
+
+    Para el correcto desarrollo de esta etapa las empresas deberán proveer acceso a la información real que mantengan sobre los trabajadores de sus clientes.
+    Con todo, si se tratare de la solicitud de autorización de sistemas nuevos y, por lo tanto, carentes de información real se permitirá, excepcionalmente, que incluyan una empresa de prueba, con inclusión de trabajadores y datos en todos los reportes.
+    De este modo, se entenderá que se ajustan a la presente resolución exenta, las plataformas que aprueben las tres etapas del proceso de revisión.
+
+
+    Artículo 69º. Una vez concluido el proceso de análisis de la información, el Departamento Jurídico de esta Dirección emitirá un Oficio ordinario fundado, mediante el cual se le informará al requirente si su solicitud ha sido aprobada o rechazada.
+    La vigencia de la autorización de uso del sistema será de dos años contados desde la fecha del Oficio ordinario de respuesta, caducando al vencimiento del plazo por el sólo ministerio de la ley.
+
+
+    Artículo 70º. Rechazo y reingreso. Si el resultado del proceso de revisión de los sistemas hubiere concluido con el rechazo de la solicitud, esta podrá ser reingresada para un nuevo examen, para lo cual deberá tener en consideración:
+
+    a) Las modificaciones o ajustes realizados para subsanar las observaciones del rechazo deben ser avaladas por una entidad certificadora, que puede o no ser la misma entidad que emitiera el informe original.
+    La nueva carta conductora contendrá una referencia al rechazo anterior, individualizando el Oficio ordinario respectivo.
+    b) Si bien para reingresar una solicitud se deberá acompañar nuevamente toda la documentación señalada en el artículo 66º, el informe de certificación indicará de manera destacada la o las causales de rechazo anterior y las medidas adoptadas para su corrección.
+    Cuando entre la fecha del Oficio ordinario de rechazo y el reingreso mediaren más de seis meses, también se deberán reemplazar las evidencias del informe por antecedentes actualizados.
+
+
+    Artículo 71º. Confidencialidad de la información. Todos los antecedentes presentados durante el proceso de autorización serán tratados de manera reservada.
+
+
+    Artículo 72º. Comercialización e instalación de sistemas autorizados: Una vez obtenida la autorización de uso del sistema por parte de este Servicio, las plataformas podrán ser comercializadas e instaladas sin necesidad de que cada empleador usuario requiera un nuevo pronunciamiento de esta Dirección.
+    El hecho de que un empleador utilice un sistema electrónico de registro y control de asistencia autorizado por la Dirección del Trabajo no excluye la posibilidad de que sea fiscalizado por esta y, eventualmente, sancionado, si se detectaren infracciones mediante un proceso de inspección.
+
+
+    Artículo 73º. Registro de prestadores autorizados. La Dirección del Trabajo mantendrá disponible en su sitio Web institucional la publicación de un registro de sistemas electrónicos de registro y control de asistencia con autorización vigente.
+    El citado registro se actualizará mensualmente, eliminando las autorizaciones caducadas y agregando las nuevas.
+
+    Segundo: La normativa contenida en la presente resolución exenta entrará en vigor en la fecha de su publicación en el Diario Oficial.
+
+    Tercero: De acuerdo a lo señalado por el inciso 2º del artículo 4º transitorio de la Ley Nº21.561, las autorizaciones ya otorgadas relativas a sistemas electrónicos especiales de registro y control de asistencia se mantendrán vigentes mientras cumplan los requisitos fijados en la presente resolución exenta.
+
+    Cuarto: Las autorizaciones relativas a sistemas electrónicos generales de registro y control de asistencia ya emitidas de acuerdo con el inciso 2º del artículo 33 del Código del Trabajo, mantendrán su vigencia hasta el 26 de abril de 2025, de no expirar con anterioridad a esa fecha.
+
+    Quinto: Las solicitudes de autorización presentadas en forma previa a la vigencia de esta resolución exenta seguirán el curso de su tramitación hasta su término conforme a la regulación existente al momento del inicio de su expediente, no obstante, en caso de aprobación, su vigencia será hasta el 26 de abril de 2025.
+
+    Sexto: La obligación de entrega de información por parte de los prestadores, señalada en el artículo 26º de la presente resolución exenta, entrará en vigor el 26 de septiembre de 2025.
+
+    Anótese, publíquese y archívese.- Pablo Zenteno Muñoz, Director Nacional del Trabajo
