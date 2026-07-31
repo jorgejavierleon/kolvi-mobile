@@ -34,8 +34,9 @@ npm install
 mise trust && mise install    # JDK 17 + ANDROID_HOME
 ```
 
-`mise.toml` pins **JDK 17** because the Android Gradle Plugin rejects newer JDKs, and exports
-`ANDROID_HOME` plus the SDK tool directories onto `PATH` when you `cd` into the repo.
+`mise.toml` pins **JDK 17** because the Android Gradle Plugin rejects newer JDKs and
+**Maestro** for the E2E flows, and exports `ANDROID_HOME` plus the SDK tool directories onto
+`PATH` when you `cd` into the repo.
 
 ### Toolchain
 
@@ -92,9 +93,22 @@ criterion can be verified by command rather than by eye:
 `bin/device geo` takes **latitude first**, matching the rest of the codebase; it swaps the
 arguments internally because the emulator console expects longitude first.
 
-Not everything is emulator-testable. Criteria about physical conditions — legibility in
-direct sunlight, operation with gloves, real GPS drift — must be verified on a physical
-mid-range Android and never signed off from an emulator run.
+### Flows
+
+`bin/` verifies a criterion at the moment you run it. A [Maestro](https://maestro.dev) flow
+makes the whole sequence a file that lives beside the task it verifies and re-runs on demand:
+
+```bash
+npm run test:e2e     # every flow in flows/, non-zero if any fails
+bin/e2e kmo-1        # just that task's flow
+```
+
+Flows are YAML, they drive the app by the text a user sees, and they run against the same
+headless emulator. Artifacts — the JUnit report, deliberate screenshots, and the screen plus
+view hierarchy at the point of any failure — land in `.artifacts/e2e/`.
+
+`flows/README.md` covers the naming convention and how to write one. Maestro is pinned in
+`mise.toml`, so it arrives with `mise install`.
 
 ### Watching the emulator from another machine
 
@@ -145,6 +159,28 @@ npm run check         # everything below, in order — what CI runs
 everything resolves without needing a device.
 
 All of these pass on a clean checkout. Keep it that way.
+
+## Validation tiers
+
+A criterion is signed off at the cheapest tier that can honestly carry it, and never at a
+cheaper one than that. Three tiers, in that order:
+
+| Tier                | Command                             | What it can prove                                                                                                      |
+| ------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Jest**            | `npm test`, part of `npm run check` | Logic: formatters, the naive-datetime handling, reducers, queue ordering, what a component renders in isolation        |
+| **Maestro**         | `npm run test:e2e`                  | The app on a device: navigation, exact Spanish copy on screen, permission and offline behaviour driven by `bin/device` |
+| **Physical device** | by hand, written up on the task     | What neither can reproduce                                                                                             |
+
+Jest runs on every commit and needs nothing. Maestro needs a booted emulator, so it is run
+deliberately rather than on every commit — but a device-level criterion is not done until
+there is a flow for it.
+
+The third tier is not a formality. An emulator can be made to pass a criterion it has no
+business passing: KMO-17 #9 — the punch button legible in direct sunlight and operable with
+gloves — would go green on any emulator run and mean nothing. Physical conditions (sunlight,
+gloves, real GPS drift, a genuinely weak mobile network, mid-range hardware) are verified on a
+physical mid-range Android, and a task carrying such a criterion says so and is not closed on
+a Maestro run.
 
 ## Where code goes
 

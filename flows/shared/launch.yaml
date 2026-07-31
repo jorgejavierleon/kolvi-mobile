@@ -1,0 +1,30 @@
+# Cold-start the app and leave it on its first rendered screen.
+#
+# Start every flow with this rather than a bare launchApp. clearState is what
+# makes a run repeatable — without it a flow inherits whatever the last one left
+# in SecureStore and the punch queue — but on a development build clearing state
+# also throws away the dev client's server selection, so the app no longer
+# cold-starts into itself.
+#
+# Everything below the openLink is that detour: the dev client is handed the
+# Metro URL explicitly, then shows its one-time developer-menu onboarding, which
+# has to be dismissed before the app is on screen. bin/e2e supplies DEV_SERVER
+# already percent-encoded and guarantees Metro is reachable first.
+#
+# When a preview or release APK lands (KMO-7) this file collapses to clearState
+# + launchApp, and no flow that uses it has to change.
+appId: cl.kolvi.empleados
+---
+- clearState
+
+- openLink: kolvi://expo-development-client/?url=${DEV_SERVER}
+
+# Generous: a cold Metro start compiles the bundle before it can serve it.
+- extendedWaitUntil:
+    visible: '.*This is the developer menu.*'
+    timeout: 180000
+    label: 'Wait for the dev build to load the bundle from Metro'
+
+- tapOn: 'Continue'
+- back:
+    label: 'Close the developer menu'

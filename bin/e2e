@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# Run the Maestro flows against the local emulator.
+#
+#   bin/e2e              every flow in flows/
+#   bin/e2e kmo-1        just flows/kmo-1-*.yaml
+#   bin/e2e flows/x.yaml just that file
+#
+# Exits non-zero if any flow fails. Each run writes its artifacts — the JUnit
+# report, screenshots and per-command logs — into .artifacts/e2e/, so a failure
+# can be read after the fact instead of re-run to be seen.
+#
+# The emulator is already headless (bin/emu start), so nothing here needs a
+# display; Maestro's own --headless flag is web-only and does not apply.
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+require_device
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+FLOWS="$ROOT/flows"
+OUT="$ARTIFACTS/e2e"
+
+# Pinned in mise.toml. Prefer whatever mise resolves so the pin wins over any
+# globally-installed Maestro that happens to be on PATH.
+maestro_bin() {
+  local resolved
+  if resolved="$(mise which maestro 2>/dev/null)" && [ -x "$resolved" ]; then
+    echo "$resolved"; return 0
+  fi
+  if command -v maestro >/dev/null 2>&1; then
+    command -v maestro; return 0
+  fi
+  die "maestro not found — install the pinned version with: mise install"
+}
+
+# Resolve the argument to something Maestro accepts: a path as given, a task id
+# expanded to its flow, or the whole directory.
+target() {
+  case "${1:-}" in
+    "") echo "$FLOWS" ;;
+    */*|*.yaml|*.yml) [ -e "$1" ] || die "no such flow: $1"; echo "$1" ;;
+    *)
+      local matches=("$FLOWS/$1"-*.yaml)
+      [ -e "${matches[0]}" ] || die "no flow matching '$1' in flows/"
+      [ "${#matches[@]}" -eq 1 ] || die "'$1' matches ${#matches[@]} flows: ${matches[*]}"
+      echo "${matches[0]}"
+      ;;
+  esac
+}
+
+# The flows run against a development build, so they need Metro. Checked here
+# rather than left to the flow, where a missing bundler shows up as an opaque
+# three-minute timeout waiting for a screen that was never going to appear.
+METRO_PORT="${KOLVI_METRO_PORT:-8081}"
+require_metro() {
+  # The emulator reaches the host bundler through this reverse tunnel. expo
+  # run:android sets it up; re-asserting it is idempotent and survives a reboot
+  # of the emulator that happened after the last build.
+  "$ADB" reverse "tcp:$METRO_PORT" "tcp:$METRO_PORT" >/dev/null \
+    || die "could not reverse-forward tcp:$METRO_PORT to the emulator"
+  curl -sf -o /dev/null "http://localhost:$METRO_PORT/status" \
+    || die "no Metro bundler on localhost:$METRO_PORT — start one with: npm run android"
+}
+
+MAESTRO="$(maestro_bin)"
+TARGET="$(target "${1:-}")"
+require_metro
+
+rm -rf "$OUT"
+mkdir -p "$OUT"
+
+# Analytics prompt blocks on stdin the first time Maestro runs; opting out keeps
+# a fresh checkout — and CI — from hanging on it.
+export MAESTRO_CLI_NO_ANALYTICS=true
+export MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
+
+echo "running $TARGET"
+set +e
+"$MAESTRO" test "$TARGET" \
+  --env "DEV_SERVER=http%3A%2F%2Flocalhost%3A$METRO_PORT" \
+  --format JUNIT \
+  --output "$OUT/junit.xml" \
+  --test-output-dir "$OUT" \
+  --flatten-debug-output \
+  --debug-output "$OUT"
+status=$?
+set -e
+
+echo "artifacts: $OUT"
+exit "$status"

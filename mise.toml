@@ -3,6 +3,10 @@
 # React Native 0.86 build against JDK 17.
 java = "temurin-17.0.20+8"
 
+# The E2E runner (bin/e2e). Pinned here rather than installed globally so a
+# checkout reproduces the version the flows were written against.
+maestro = "cli-2.7.0"
+
 [env]
 ANDROID_HOME = "{{ env.HOME }}/Android"
 ANDROID_SDK_ROOT = "{{ env.HOME }}/Android"

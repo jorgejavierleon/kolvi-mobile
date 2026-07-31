@@ -1,0 +1,7 @@
+# Maestro workspace config.
+#
+# Only the top level is a flow. shared/ holds subflows that other flows pull in
+# with runFlow; they are not runnable on their own and must not be collected as
+# test cases.
+flows:
+  - '*.yaml'

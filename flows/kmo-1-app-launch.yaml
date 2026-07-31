@@ -1,0 +1,20 @@
+# KMO-1 — the app launches on a device and renders its first screen.
+#
+# The worked example for the harness: launch, assert the copy, capture. Every
+# other flow is this shape with more steps in the middle.
+#
+# The assertions are on the KMO-1 placeholder screen. KMO-4 replaces it with the
+# real navigation shell; this flow follows it there and keeps verifying the same
+# thing — that a cold launch reaches a rendered screen — against whatever copy
+# is on it then.
+appId: cl.kolvi.empleados
+name: KMO-1 app launch
+tags:
+  - smoke
+---
+- runFlow: shared/launch.yaml
+
+- assertVisible: 'Kolvi'
+- assertVisible: 'App de empleados'
+
+- takeScreenshot: kmo-1-launched
