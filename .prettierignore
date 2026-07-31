@@ -1,0 +1,14 @@
+node_modules/
+.expo/
+dist/
+coverage/
+android/
+ios/
+package-lock.json
+
+# Managed by the Backlog.md CLI, not by hand — see CLAUDE.md
+backlog/
+
+# Specification prose. Reformatting these churns the diff and helps nobody.
+docs/
+CLAUDE.md
