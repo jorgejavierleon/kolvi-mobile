@@ -2,6 +2,9 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // `app.config.ts` imports `./src/theme/colors.ts` with its extension: Expo's
+    // config loader resolves TypeScript only when the specifier spells it out.
+    "allowImportingTsExtensions": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,

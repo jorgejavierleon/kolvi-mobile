@@ -1,0 +1,29 @@
+# KMO-2 — the bundled typefaces load and the splash screen lifts.
+#
+# Covers #3. The root layout holds expo-splash-screen up until useKolviFonts
+# resolves, which introduces a way for a cold start to hang forever: a font file
+# that does not decode leaves the app behind the splash with no way out. This
+# flow is the guard on that — clearState + cold launch, and the first screen has
+# to appear within a bound rather than "eventually".
+#
+# What it cannot prove is which typeface actually rendered; no assertion sees
+# glyphs. The screenshot is the record for that, checked by eye against the
+# design: Sora 700 for the title, Plus Jakarta Sans 500 for the subtitle.
+#
+# The assertions ride on the KMO-1 placeholder copy. KMO-4 replaces that screen;
+# this flow follows it to whatever the shell renders then.
+appId: cl.kolvi.empleados
+name: KMO-2 fonts load
+tags:
+  - smoke
+---
+- runFlow: shared/launch.yaml
+
+- extendedWaitUntil:
+    visible: 'Kolvi'
+    timeout: 10000
+    label: 'The splash lifts once the bundled fonts have loaded'
+
+- assertVisible: 'App de empleados'
+
+- takeScreenshot: kmo-2-fonts-loaded

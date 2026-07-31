@@ -136,8 +136,12 @@ works.
 npm run prebuild   # writes ./android — gitignored, regenerate rather than edit
 ```
 
-`android/` and `ios/` are generated output. Native configuration belongs in `app.json`, never
-in the generated files: `expo prebuild --clean` throws away hand edits.
+`android/` and `ios/` are generated output. Native configuration belongs in `app.config.ts`,
+never in the generated files: `expo prebuild --clean` throws away hand edits.
+
+The config is TypeScript rather than `app.json` so the splash background and the adaptive
+icon read `colors.primary` out of `src/theme` — the native chrome an employee sees before any
+JavaScript runs is then the same brand teal as the app, and cannot drift from it.
 
 ## Checks
 
@@ -217,7 +221,11 @@ Tests sit next to what they test: `button.tsx` and `button.test.tsx` in the same
 
 ## Conventions
 
-- **No raw hex colours or font sizes in feature code.** Everything comes from `src/theme`.
+- **No raw hex colours or font sizes in feature code.** Everything comes from `src/theme`,
+  and ESLint fails the build on a hex, an `rgba()` or a bare `fontSize` anywhere outside it.
+- **Status colour comes from a tone, never from the palette.** `tones.success` / `warning` /
+  `danger` / `neutral` are background/foreground pairs that map 1:1 onto the server's
+  `badge()` tones, so a state cannot look like one thing on web and another on the phone.
 - **No user-facing string literals in components.** Everything comes from `src/i18n`, or from
   the server — domain vocabulary (leave types, workday statuses) arrives as `{value, label}`
   pairs and is shown verbatim, never re-translated.
@@ -229,7 +237,7 @@ Tests sit next to what they test: `button.tsx` and `button.test.tsx` in the same
 
 ## Project status
 
-Scaffold only. The theme, UI primitives, tab navigation, API client and string catalogue are
-tracked as tasks KMO-2 through KMO-6 — run `backlog task list --plain` to see the backlog.
-`src/ui/placeholder-screen.tsx` is temporary and gets deleted when the navigation shell
-lands.
+Scaffold plus the design tokens. The UI primitives, tab navigation, API client and string
+catalogue are tracked as tasks KMO-3 through KMO-6 — run `backlog task list --plain` to see
+the backlog. `src/ui/placeholder-screen.tsx` is temporary and gets deleted when the
+navigation shell lands.
