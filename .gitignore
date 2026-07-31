@@ -44,3 +44,6 @@ coverage/
 # generated native folders
 /ios
 /android
+
+# emulator screenshots, ui dumps and logs
+/.artifacts

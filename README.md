@@ -19,35 +19,104 @@ throughout — that is a compliance requirement, not a preference.
 ## Requirements
 
 - Node.js 20 or newer (developed on 24)
-- The [Expo Go](https://expo.dev/go) app on an Android device, _or_ Android Studio with an
-  emulator running Android 9+
-- For local native builds only: JDK 17 and the Android SDK
+- [mise](https://mise.jdx.dev), which pins the toolchain from `mise.toml`
+- The Android SDK under `~/Android` (see [Toolchain](#toolchain))
+
+**Expo Go is not supported.** The app needs a development build: push notifications were
+removed from Expo Go on Android in SDK 53, and the `expo-build-properties` `minSdkVersion 28`
+that pins us to Android 9 is ignored there. Testing on Expo Go means testing a different
+runtime than the one employees get.
 
 ## Install
 
 ```bash
 npm install
+mise trust && mise install    # JDK 17 + ANDROID_HOME
 ```
+
+`mise.toml` pins **JDK 17** because the Android Gradle Plugin rejects newer JDKs, and exports
+`ANDROID_HOME` plus the SDK tool directories onto `PATH` when you `cd` into the repo.
+
+### Toolchain
+
+The SDK installs without Android Studio:
+
+```bash
+sdkmanager --install "platform-tools" "emulator" "platforms;android-36" \
+  "build-tools;36.0.0" "system-images;android-36;google_apis;x86_64"
+```
+
+Use the **`google_apis`** image, not `google_apis_playstore` — the Play Store images block
+`adb root` and permission manipulation, which the location acceptance criteria depend on.
 
 ## Run
 
-The everyday loop is the Metro dev server plus Expo Go — no Android SDK needed:
-
 ```bash
-npm start          # starts Metro, prints a QR code
+bin/emu start      # boot the headless emulator (creates the AVD on first run)
+npm run android    # build, install and start Metro
 ```
 
-Scan the QR with Expo Go on your device, or press `a` in the terminal to launch a connected
-emulator. `npm run android` does the same in one step.
+The first build takes several minutes. After that, JS changes hot-reload over Metro — only
+rebuild when a native dependency changes.
 
-`npm run web` opens the app in a browser via `react-native-web`. That target exists for fast
-layout iteration and for rendering components in a desktop browser during development — it
-is **not** a shipping surface. Employees get the native app; the web console is a separate
-product. Anything that depends on a native module (geolocation, SecureStore, biometrics) will
-not work there, so never treat a passing web render as evidence the feature works.
+The emulator runs headless by default because this repo is usually driven over SSH.
+`bin/emu start --window` opens a window if you are sitting at the machine.
 
-To produce the native Android project (needed for a local Gradle build or to inspect the
-generated manifest):
+| Command          | What it does                 |
+| ---------------- | ---------------------------- |
+| `bin/emu start`  | boot the AVD and wait for it |
+| `bin/emu stop`   | shut it down                 |
+| `bin/emu status` | is a device up and booted    |
+
+### Driving the emulator
+
+Most acceptance criteria in this backlog describe a _device condition_ — permission denied,
+GPS lost, network gone — or exact Spanish copy on screen. `bin/` makes both scriptable, so a
+criterion can be verified by command rather than by eye:
+
+| Command                                | What it does                                 |
+| -------------------------------------- | -------------------------------------------- |
+| `bin/shot [name.png]`                  | screenshot to `.artifacts/`, prints the path |
+| `bin/ui`                               | every visible string, one per line           |
+| `bin/ui "En jornada"`                  | exits 0 if that text is on screen, 1 if not  |
+| `bin/ui --xml`                         | the raw hierarchy, with bounds and ids       |
+| `bin/device geo <lat> <lon>`           | move the device                              |
+| `bin/device gps on\|off`               | location services master switch              |
+| `bin/device net on\|off`               | connectivity, for the offline queue          |
+| `bin/device slow\|fast`                | degrade the network to GSM/GPRS              |
+| `bin/device perm grant\|revoke\|reset` | location permission                          |
+| `bin/device finger`                    | present an enrolled fingerprint              |
+| `bin/device link <url>`                | open a `kolvi://` deep link                  |
+| `bin/device state`                     | report all of the above at once              |
+
+`bin/device geo` takes **latitude first**, matching the rest of the codebase; it swaps the
+arguments internally because the emulator console expects longitude first.
+
+Not everything is emulator-testable. Criteria about physical conditions — legibility in
+direct sunlight, operation with gloves, real GPS drift — must be verified on a physical
+mid-range Android and never signed off from an emulator run.
+
+### Watching the emulator from another machine
+
+The emulator lives on whichever machine runs the build. To see it from a laptop over SSH,
+forward adb and mirror it with [scrcpy](https://github.com/Genymobile/scrcpy) — scrcpy is
+installed on the **viewing** machine, not the build host:
+
+```bash
+ssh -L 5555:localhost:5555 <build-host>    # in one terminal, left open
+adb connect localhost:5555 && scrcpy       # in another, on the viewing machine
+```
+
+That gives a live, clickable mirror. For a still, `bin/shot` writes a PNG you can `scp`.
+
+### Web
+
+`npm run web` renders via `react-native-web`. It exists for fast layout iteration only — it
+is **not** a shipping surface. Anything touching a native module (geolocation, SecureStore,
+biometrics) does not work there, so never treat a passing web render as evidence a feature
+works.
+
+### Native project
 
 ```bash
 npm run prebuild   # writes ./android — gitignored, regenerate rather than edit

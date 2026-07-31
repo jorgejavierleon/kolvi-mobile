@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# Put the emulator into the device states the acceptance criteria describe.
+#
+#   bin/device geo <lat> <lon>     move the device (natural lat/lon order)
+#   bin/device gps on|off          location services master switch
+#   bin/device net on|off          connectivity, via airplane mode
+#   bin/device slow|fast           degrade/restore the mobile network
+#   bin/device perm grant|revoke|reset   location permission for the app
+#   bin/device finger              present an enrolled fingerprint
+#   bin/device link <url>          open a kolvi:// deep link
+#   bin/device launch|kill         start or force-stop the app
+#   bin/device state               report the above as a summary
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+require_device
+
+LOCATION_PERMS=(android.permission.ACCESS_FINE_LOCATION android.permission.ACCESS_COARSE_LOCATION)
+
+case "${1:-}" in
+  geo)
+    [ $# -eq 3 ] || die "usage: bin/device geo <lat> <lon>"
+    # NB: the emulator console takes longitude first. Swapping here so callers
+    # can use the lat/lon order everything else in the codebase uses.
+    "$ADB" emu geo fix "$3" "$2" >/dev/null
+    echo "moved to lat=$2 lon=$3"
+    ;;
+  gps)
+    case "${2:-}" in
+      on)  "$ADB" shell cmd location set-location-enabled true;  echo "location services on" ;;
+      off) "$ADB" shell cmd location set-location-enabled false; echo "location services off" ;;
+      *) die "usage: bin/device gps on|off" ;;
+    esac
+    ;;
+  net)
+    case "${2:-}" in
+      on)  "$ADB" shell cmd connectivity airplane-mode disable; echo "network on" ;;
+      off) "$ADB" shell cmd connectivity airplane-mode enable;  echo "network off (airplane mode)" ;;
+      *) die "usage: bin/device net on|off" ;;
+    esac
+    ;;
+  slow) "$ADB" emu network speed gsm >/dev/null; "$ADB" emu network delay gprs >/dev/null; echo "network degraded to GSM/GPRS" ;;
+  fast) "$ADB" emu network speed full >/dev/null; "$ADB" emu network delay none >/dev/null; echo "network restored" ;;
+  perm)
+    # pm grant/revoke fail silently for permissions the manifest does not
+    # declare, so report per-permission rather than claiming blanket success.
+    case "${2:-}" in
+      grant|revoke)
+        for p in "${LOCATION_PERMS[@]}"; do
+          if "$ADB" shell pm "$2" "$PACKAGE" "$p" 2>&1 | grep -q .; then
+            echo "  ${p##*.}: not declared in the manifest — no-op"
+          else
+            echo "  ${p##*.}: ${2}ed"
+          fi
+        done
+        ;;
+      reset)  "$ADB" shell pm reset-permissions "$PACKAGE" >/dev/null; echo "permissions reset to first-launch state" ;;
+      *) die "usage: bin/device perm grant|revoke|reset" ;;
+    esac
+    ;;
+  finger) "$ADB" emu finger touch 1 >/dev/null; echo "fingerprint presented" ;;
+  link)
+    [ $# -eq 2 ] || die "usage: bin/device link <url>"
+    "$ADB" shell am start -W -a android.intent.action.VIEW -d "$2" "$PACKAGE"
+    ;;
+  launch) "$ADB" shell monkey -p "$PACKAGE" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1; echo "launched $PACKAGE" ;;
+  kill)   "$ADB" shell am force-stop "$PACKAGE"; echo "stopped $PACKAGE" ;;
+  state)
+    # Matched in-shell rather than through a pipe: grep -q exits on first match,
+    # which SIGPIPEs the upstream stage and trips pipefail into a false negative.
+    pkgs="$("$ADB" shell pm list packages 2>/dev/null | tr -d '\r')"
+    case $'\n'"$pkgs"$'\n' in
+      *$'\n'"package:$PACKAGE"$'\n'*) installed=yes ;;
+      *) installed=no ;;
+    esac
+    echo "package installed: $installed"
+    echo "location enabled:  $("$ADB" shell cmd location is-location-enabled 2>/dev/null | tr -d '\r')"
+    echo "airplane mode:     $("$ADB" shell settings get global airplane_mode_on | tr -d '\r')"
+    echo "location perms:"
+    if [ "$installed" = no ]; then
+      echo "  (app not installed)"
+    else
+      # grep exits 1 when the manifest declares no location permissions, which
+      # under set -e would abort the whole report.
+      perms="$("$ADB" shell dumpsys package "$PACKAGE" 2>/dev/null \
+        | grep -E 'ACCESS_(FINE|COARSE)_LOCATION.*granted=' | tr -d '\r' | sed 's/^[[:space:]]*/  /' || true)"
+      # Absent until expo-location lands in KMO-16 and the manifest declares them.
+      echo "${perms:-  (none declared in the manifest yet)}"
+    fi
+    ;;
+  *) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+esac

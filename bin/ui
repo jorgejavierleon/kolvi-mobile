@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Dump what is actually on screen, as text.
+#
+#   bin/ui              every visible string, one per line
+#   bin/ui --xml        the raw uiautomator hierarchy (bounds, ids, classes)
+#   bin/ui "En jornada" exit 0 if that string is on screen, 1 if not
+#
+# The text form is what makes the Spanish copy in the acceptance criteria
+# assertable instead of eyeballed.
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+require_device
+
+raw="$("$ADB" shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 && "$ADB" exec-out cat /sdcard/ui.xml)"
+[ -n "$raw" ] || die "uiautomator returned nothing — is the app in the foreground?"
+
+case "${1:-}" in
+  --xml)
+    echo "$raw"
+    ;;
+  "")
+    echo "$raw" | grep -oP 'text="\K[^"]+' | sed '/^$/d'
+    ;;
+  *)
+    # Collected first, then matched — grep -q at the end of a pipe exits early,
+    # SIGPIPEs the stage feeding it, and pipefail turns that into a false miss.
+    texts="$(echo "$raw" | grep -oP 'text="\K[^"]+' || true)"
+    if grep -qF -- "$1" <<<"$texts"; then
+      echo "found: $1"
+    else
+      echo "NOT on screen: $1" >&2
+      exit 1
+    fi
+    ;;
+esac

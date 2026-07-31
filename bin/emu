@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# Control the local Android emulator.
+#
+#   bin/emu start [--window]   boot the AVD (headless by default) and wait for it
+#   bin/emu stop               kill the running emulator
+#   bin/emu status             report whether a device is up and booted
+#   bin/emu wait               block until the running emulator finishes booting
+#   bin/emu create             (re)create the AVD
+#
+# Runs headless because this machine is normally driven over SSH. To watch it
+# from another machine, see the scrcpy tunnel in the README.
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+boot_completed() {
+  [ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]
+}
+
+wait_for_boot() {
+  echo "waiting for boot..."
+  "$ADB" wait-for-device
+  for _ in $(seq 1 180); do
+    if boot_completed; then
+      "$ADB" shell input keyevent 82 >/dev/null 2>&1 || true   # dismiss keyguard
+      echo "emulator ready: $("$ADB" shell getprop ro.build.version.release | tr -d '\r')"
+      return 0
+    fi
+    sleep 2
+  done
+  die "emulator did not finish booting within 6 minutes"
+}
+
+cmd_create() {
+  local image="system-images;android-36;google_apis;x86_64"
+  echo "creating AVD $AVD_NAME"
+  # avdmanager prints a harmless "Could not load devices from ...devices.xml"
+  # warning here; the pixel_6 profile is still applied.
+  echo "no" | "$AVDMANAGER" create avd --force --name "$AVD_NAME" \
+    --package "$image" --device "pixel_6" >/dev/null 2>&1 || true
+
+  # Overwrite in place rather than appending — duplicate keys in config.ini
+  # resolve unpredictably.
+  local cfg="$HOME/.android/avd/$AVD_NAME.avd/config.ini"
+  set_cfg() {
+    if grep -q "^$1=" "$cfg"; then
+      sed -i "s|^$1=.*|$1=$2|" "$cfg"
+    else
+      echo "$1=$2" >> "$cfg"
+    fi
+  }
+  set_cfg hw.ramSize 3072      # headroom over the 2G default, without starving the host
+  set_cfg hw.keyboard yes      # so adb shell input text works
+  echo "created $AVD_NAME"
+}
+
+cmd_start() {
+  require_adb
+  if "$ADB" get-state >/dev/null 2>&1; then
+    echo "emulator already running"; wait_for_boot; return 0
+  fi
+  [ -d "$HOME/.android/avd/$AVD_NAME.avd" ] || cmd_create
+
+  local args=(-avd "$AVD_NAME" -no-audio -no-boot-anim -no-snapshot -camera-back none -camera-front none)
+  if [ "${1:-}" = "--window" ]; then
+    args+=(-gpu host)
+  else
+    args+=(-no-window -gpu swiftshader_indirect)
+  fi
+
+  mkdir -p "$ARTIFACTS"
+  echo "starting $AVD_NAME (${1:---headless})"
+  nohup "$EMULATOR" "${args[@]}" > "$ARTIFACTS/emulator.log" 2>&1 &
+  disown
+  wait_for_boot
+}
+
+cmd_stop() {
+  require_adb
+  "$ADB" emu kill >/dev/null 2>&1 || true
+  pkill -f "qemu-system-x86_64.*$AVD_NAME" 2>/dev/null || true
+  echo "stopped"
+}
+
+cmd_status() {
+  require_adb
+  if ! "$ADB" get-state >/dev/null 2>&1; then echo "no device"; exit 1; fi
+  if boot_completed; then echo "booted"; else echo "booting"; fi
+  "$ADB" devices | tail -n +2
+}
+
+case "${1:-}" in
+  start)  shift; cmd_start "$@" ;;
+  stop)   cmd_stop ;;
+  status) cmd_status ;;
+  wait)   require_adb; wait_for_boot ;;
+  create) cmd_create ;;
+  *) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+esac

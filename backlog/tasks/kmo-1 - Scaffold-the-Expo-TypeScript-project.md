@@ -1,11 +1,11 @@
 ---
 id: KMO-1
 title: Scaffold the Expo TypeScript project
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-07-31 00:44'
+updated_date: '2026-07-31 01:43'
 labels:
   - mobile
   - foundation
@@ -28,7 +28,7 @@ The repo currently holds only docs and this Backlog.
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A new Expo app with TypeScript in strict mode runs on an Android emulator and shows a placeholder screen
+- [x] #1 A new Expo app with TypeScript in strict mode runs on an Android emulator and shows a placeholder screen
 - [x] #2 Directory structure separates app screens, shared UI primitives, domain features, API layer and i18n; the convention is written down in the README
 - [x] #3 ESLint and Prettier are configured and pass on a clean checkout
 - [x] #4 A test runner is configured and one example test passes
@@ -39,15 +39,13 @@ The repo currently holds only docs and this Backlog.
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. Scaffold Expo SDK 57 + expo-router in a scratchpad dir via create-expo-app, then merge into the repo, preserving docs/, backlog/, CLAUDE.md; strip the template demo content.
-2. Directory convention: app/ = Expo Router routes only; src/theme (KMO-2), src/ui (KMO-3), src/features/{marcaje,jornada,permisos,documentos}, src/api (KMO-5), src/i18n (KMO-6). Path alias @/* -> src/*.
-3. TypeScript strict via expo/tsconfig.base plus noUncheckedIndexedAccess, noImplicitOverride, exactOptionalPropertyTypes. Script: typecheck.
-4. ESLint (eslint-config-expo flat) + eslint-config-prettier + Prettier; must pass clean on a fresh checkout. Scripts: lint, lint:fix, format, format:check.
-5. jest-expo + @testing-library/react-native; one example test that renders the placeholder screen and asserts its text (exercises the RN transform, the alias and the preset).
-6. app.json: name Kolvi, slug kolvi-mobile, orientation portrait, android.package cl.kolvi.empleados, plugins expo-router and expo-build-properties with android.minSdkVersion 28 (Android 9; Expo default is 24 and app.json has no direct field).
-7. Rewrite README: purpose and doc pointers, install, run via Expo Go and emulator, the check commands, and the directory convention with the rule that app/ composes, src/features decides, src/ui renders.
-
-Verification: npm install, npm run typecheck, npm run lint, npm run format:check, npm test, npx expo export --platform android (headless Metro bundle). AC #1 needs a device — no Android SDK or emulator on this machine — so Jorge runs npx expo start with Expo Go and confirms the placeholder renders.
+1. Pin JDK 17 (temurin) via a project-scoped mise.toml; system JDK 26 is rejected by AGP.
+2. Install Android cmdline-tools + platform-tools + emulator + platforms/android-36 + system-images/android-36/google_apis/x86_64 under ~/Android. Use google_apis (not playstore) so adb root and pm grant/revoke work for permission-state testing.
+3. Create a headless AVD (kolvi-pixel) sized to a mid-range Android 9+ target; KVM is available so it runs accelerated.
+4. Add expo-dev-client and build the dev client with expo run:android; Expo Go is not viable (push removed on Android in SDK 53+, expo-build-properties minSdkVersion 28 ignored).
+5. Wrap the loop in bin/ helper scripts: emulator start/stop, screenshot, ui dump, and the device-state toggles (geo fix, airplane mode, permission grant/revoke).
+6. Document the workflow in the README, including the scrcpy-over-SSH tunnel for viewing the emulator from the work laptop.
+7. Verify AC #1 with a screenshot of the placeholder screen rendered on the emulator.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -91,4 +89,26 @@ Blocked on the runtime, not the code. Expo Go on the test device is 54.0.8 while
 Also settled along the way: ufw default-deny was blocking port 8081, so Expo Go could not reach Metro and reported java.io.IOException: Failed to download remote update. The host has four interfaces (wlan0 192.168.1.97, docker0, a bridge, tailscale0), so REACT_NATIVE_PACKAGER_HOSTNAME may need pinning to the wlan0 address for the QR to advertise a reachable URL. Both are environment issues, not project issues, but the next person to clone this will hit the same wall.
 
 Jorge is investigating the right Android test setup (Expo Go vs development build vs emulator) before this is closed.
+
+Local dev workflow is now a headless Android emulator driven entirely over adb, replacing the Expo Go loop the README originally described.
+
+Toolchain: mise.toml pins temurin JDK 17 (the system JDK is 26, which AGP rejects) and exports ANDROID_HOME plus the SDK tool dirs. Android SDK installed under ~/Android via cmdline-tools 22.0 — no Android Studio. AVD 'kolvi-pixel' is a pixel_6 profile on system-images;android-36;google_apis;x86_64.
+
+Chose google_apis over google_apis_playstore deliberately: the Play images block adb root and permission manipulation, which KMO-16's permission-state criteria depend on.
+
+Dropped Expo Go rather than fixing the install: expo-notifications lost Android push support there in SDK 53 (blocks KMO-36/37) and Expo Go ignores the expo-build-properties minSdkVersion 28 that pins us to Android 9, so it runs a different runtime than we ship. Added expo-dev-client and build with expo run:android instead.
+
+bin/ helpers turn device conditions into commands: bin/emu (start/stop/status), bin/shot (screenshot to .artifacts), bin/ui (visible text, or assert a string is on screen), bin/device (geo, gps, net, slow/fast, perm, finger, link, state). bin/device geo takes lat/lon in that order and swaps internally, because the emulator console expects longitude first.
+
+Two bugs found and fixed while verifying the helpers: 'set -o pipefail' combined with a trailing 'grep -q' made pipelines return SIGPIPE and invert their result, and an unguarded grep under 'set -e' aborted bin/device state when the manifest declares no location permissions.
+
+Validation: npm run check passes (typecheck, eslint, prettier, jest). Emulator boots headless in ~40s; first Gradle build 8m13s. Placeholder screen confirmed rendering on the emulator via screenshot and via bin/ui asserting 'App de empleados'.
+
+Follow-up KMO-47 covers the Maestro flow harness. Physical-device criteria such as KMO-17 #9 stay manual and must not be signed off from an emulator run.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Scaffolded the Expo SDK 57 / TypeScript app and stood up the local Android workflow it is validated against. Pinned JDK 17 via mise, installed the Android SDK and a headless google_apis AVD without Android Studio, added expo-dev-client and replaced the Expo Go loop with a development build. Added bin/ helpers that make device conditions and on-screen text scriptable, so acceptance criteria are verified by command rather than by eye. Verified by npm run check passing and by the placeholder screen rendering on the emulator, confirmed with a screenshot and with bin/ui asserting 'App de empleados'.
+<!-- SECTION:FINAL_SUMMARY:END -->

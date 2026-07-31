@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Screenshot the emulator.
+#
+#   bin/shot                    -> .artifacts/shot-<timestamp>.png
+#   bin/shot kmo-17-before.png  -> .artifacts/kmo-17-before.png
+#   bin/shot /abs/path.png      -> that exact path
+#
+# Prints the path it wrote, so it can be piped straight into a read.
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+require_device
+
+out="${1:-shot-$(date +%Y%m%d-%H%M%S).png}"
+case "$out" in
+  /*) ;;
+  *) mkdir -p "$ARTIFACTS"; out="$ARTIFACTS/$out" ;;
+esac
+
+"$ADB" exec-out screencap -p > "$out"
+[ -s "$out" ] || die "screencap produced an empty file"
+echo "$out"
