@@ -52,7 +52,7 @@ backlog task edit KMO-N -s "In Progress" -a @claude
 
 Now read the current code — the routes, features and primitives the ticket touches, the
 tests beside them, and how the two or three most recent similar tickets solved the same
-problem. Do this *now*, not from memory of the backlog: a plan written when the ticket was
+problem. Do this _now_, not from memory of the backlog: a plan written when the ticket was
 created describes a codebase that has since moved.
 
 Orient with `README.md` — "Where code goes", "Conventions" and "Validation tiers" are the
