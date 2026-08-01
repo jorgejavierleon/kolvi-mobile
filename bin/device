@@ -6,6 +6,7 @@
 #   bin/device net on|off          connectivity, via airplane mode
 #   bin/device slow|fast           degrade/restore the mobile network
 #   bin/device perm grant|revoke|reset   location permission for the app
+#   bin/device font <scale>|max|reset    OS font scale (Settings > Display)
 #   bin/device finger              present an enrolled fingerprint
 #   bin/device link <url>          open a kolvi:// deep link
 #   bin/device launch|kill         start or force-stop the app
@@ -56,6 +57,19 @@ case "${1:-}" in
       *) die "usage: bin/device perm grant|revoke|reset" ;;
     esac
     ;;
+  font)
+    # Settings > Display > Font size. Android's largest stop is 1.3; anything
+    # above that comes from "Display size", which scales density instead.
+    # Applied live — a running app receives a configuration change.
+    case "${2:-}" in
+      "")    die "usage: bin/device font <scale>|max|reset" ;;
+      max)   scale=1.3 ;;
+      reset) scale=1.0 ;;
+      *)     scale="$2" ;;
+    esac
+    "$ADB" shell settings put system font_scale "$scale"
+    echo "font scale $("$ADB" shell settings get system font_scale | tr -d '\r')"
+    ;;
   finger) "$ADB" emu finger touch 1 >/dev/null; echo "fingerprint presented" ;;
   link)
     [ $# -eq 2 ] || die "usage: bin/device link <url>"
@@ -74,6 +88,7 @@ case "${1:-}" in
     echo "package installed: $installed"
     echo "location enabled:  $("$ADB" shell cmd location is-location-enabled 2>/dev/null | tr -d '\r')"
     echo "airplane mode:     $("$ADB" shell settings get global airplane_mode_on | tr -d '\r')"
+    echo "font scale:        $("$ADB" shell settings get system font_scale | tr -d '\r')"
     echo "location perms:"
     if [ "$installed" = no ]; then
       echo "  (app not installed)"
@@ -86,5 +101,5 @@ case "${1:-}" in
       echo "${perms:-  (none declared in the manifest yet)}"
     fi
     ;;
-  *) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  *) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

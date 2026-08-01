@@ -86,6 +86,7 @@ criterion can be verified by command rather than by eye:
 | `bin/device net on\|off`               | connectivity, for the offline queue          |
 | `bin/device slow\|fast`                | degrade the network to GSM/GPRS              |
 | `bin/device perm grant\|revoke\|reset` | location permission                          |
+| `bin/device font max\|reset\|<scale>`  | OS font scale, for the type-scaling criteria |
 | `bin/device finger`                    | present an enrolled fingerprint              |
 | `bin/device link <url>`                | open a `kolvi://` deep link                  |
 | `bin/device state`                     | report all of the above at once              |
@@ -237,7 +238,11 @@ Tests sit next to what they test: `button.tsx` and `button.test.tsx` in the same
 
 ## Project status
 
-Scaffold plus the design tokens. The UI primitives, tab navigation, API client and string
-catalogue are tracked as tasks KMO-3 through KMO-6 — run `backlog task list --plain` to see
-the backlog. `src/ui/placeholder-screen.tsx` is temporary and gets deleted when the
-navigation shell lands.
+Scaffold, the design tokens, and the shared UI primitives — `Button`, `Card`, `StatusBadge`,
+`SegmentedControl`, `BottomSheet` and `TileRow` in `src/ui/`. Tab navigation, the API client
+and the string catalogue are tracked as tasks KMO-4 through KMO-6 — run
+`backlog task list --plain` to see the backlog.
+
+Two files are temporary: `src/ui/placeholder-screen.tsx`, which the navigation shell replaces,
+and `src/ui/gallery.tsx` (reachable at `kolvi://gallery`), which puts every primitive on a
+device so `flows/kmo-3-ui-primitives.yaml` has something to drive. KMO-30 deletes both.
