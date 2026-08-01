@@ -35,4 +35,35 @@ module.exports = defineConfig([
       ],
     },
   },
+  {
+    // Datetimes on the wire are naive Santiago wall-clock strings (KMO-5). A
+    // conversion here does not fail loudly — it silently shifts a legally binding
+    // attendance timestamp by an hour, which is exactly the adulteration Res. 38
+    // Art. 8 is about. So the client is not allowed to hold a timezone-aware value
+    // at all: `src/api` works in strings and integers, and `src/i18n` (KMO-6) is
+    // where display formatting lives.
+    files: ['src/api/**/*.ts'],
+    ignores: ['src/api/**/*.test.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "NewExpression[callee.name='Date'], MemberExpression[object.name='Date']",
+          message:
+            'src/api handles datetimes as naive wall-clock strings — a `Date` would apply the device timezone. Use the helpers in @/api/datetime.',
+        },
+        {
+          selector: "MemberExpression[object.name='Intl']",
+          message:
+            'src/api must not localise or convert datetimes. Formatting for display belongs in src/i18n.',
+        },
+        {
+          selector:
+            'MemberExpression[property.name=/^(?:toISOString|toUTCString|getTimezoneOffset|toLocaleString|toLocaleDateString|toLocaleTimeString)$/]',
+          message:
+            'This stamps or strips a timezone offset on a naive Santiago wall-clock value. See the header of src/api/datetime.ts.',
+        },
+      ],
+    },
+  },
 ]);

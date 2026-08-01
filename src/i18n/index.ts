@@ -4,8 +4,9 @@
  * convenience: there is exactly one place to audit the wording an employee sees.
  *
  * This is the **start** of it — KMO-4 needs the navigation shell's copy and adds
- * only that. KMO-6 grows it to cover error, empty, permission-denied and loading
- * states across the app, and adds the date/RUT/hours formatters.
+ * only that, KMO-5 adds the transport-level error copy the API client falls back
+ * to. KMO-6 grows it to cover the remaining error, empty, permission-denied and
+ * loading states across the app, and adds the date/RUT/hours formatters.
  *
  * Domain vocabulary — leave types, workday statuses, document statuses — arrives
  * from the server as `{value, label}` pairs and is shown verbatim. It never
@@ -46,6 +47,27 @@ export const es = {
     open: 'Abrir mi perfil',
     /** The back chevron on the profile surface. */
     back: 'Volver',
+  },
+
+  /**
+   * What a failed request says when the server did not say anything itself.
+   *
+   * The server's own `message` is always preferred — it knows why the request was
+   * refused and it is already in Spanish — so these are the fallbacks for the
+   * cases where there is no server to ask (no connection, a timeout) or where the
+   * body carried no usable message. One entry per `ApiError` kind in
+   * `@/api/errors`.
+   */
+  errors: {
+    network: 'Sin conexión. Revisa tu red e inténtalo de nuevo.',
+    timeout: 'El servidor está tardando demasiado en responder. Inténtalo de nuevo.',
+    unauthorized: 'Tu sesión expiró. Vuelve a iniciar sesión.',
+    forbidden: 'No tienes permiso para realizar esta acción.',
+    notFound: 'No encontramos lo que buscabas.',
+    validation: 'Revisa los datos ingresados.',
+    server: 'Ocurrió un error en el servidor. Inténtalo más tarde.',
+    client: 'No pudimos completar la solicitud.',
+    malformed: 'No pudimos leer la respuesta del servidor.',
   },
 
   /** Copy that belongs to scaffolding; it goes when the section is built. */
