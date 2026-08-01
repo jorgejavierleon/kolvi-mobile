@@ -1,0 +1,107 @@
+# KMO-4 — the four-tab shell, the profile overlay, and what survives a tab switch.
+#
+# Covers #2 (the bar sits above the system navigation bar rather than under it —
+# only a device has a safe area to respect, and the screenshot is the record),
+# #4 (the avatar opens the profile over *every* tab, and the back affordance
+# returns to the tab it was opened from) and #5 (tab state and per-tab scroll
+# position survive switching away and back).
+#
+# #1, #3 and #6 are not here. What a component renders in isolation is the
+# cheapest tier that can honestly carry them, and `src/ui/tab-bar.test.tsx`
+# carries them: the tints, the badge at zero and above zero, and the spoken
+# name with its count. The badge in particular cannot be shown on a device at
+# all yet — the counts arrive with KMO-35 and KMO-42, and seeding them here
+# would be the sample data KMO-30 exists to keep out of a build.
+#
+# The scroll assertions ride on `src/ui/section-scaffold.tsx`. As each tab gets
+# its real content — KMO-15, 32, 39, 42 — the marker it scrolls to goes away and
+# this flow follows the tab to whatever is at the bottom of it then.
+appId: cl.kolvi.empleados
+name: KMO-4 navigation shell
+tags:
+  - navigation
+---
+- runFlow: shared/launch.yaml
+
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 60000
+    label: 'The shell is mounted on its first tab'
+
+# #1 on a device: all four items are reachable by the name a user reads.
+- assertVisible: 'Jornada'
+- assertVisible: 'Permisos'
+- assertVisible: 'Documentos'
+
+# #2 — the bar against the bottom edge of a real screen. Checked by eye against
+# the design: white surface, the border-top hairline, and the labels clear of
+# the gesture bar rather than tucked behind it.
+- takeScreenshot: kmo-4-tab-bar
+
+# Every tab renders, and each one titles itself as the design does — the tab
+# item says `Jornada`, the screen says `Mi jornada`.
+- tapOn:
+    id: 'tab-jornada'
+    label: 'The Jornada tab'
+- assertVisible: 'Mi jornada'
+
+- tapOn:
+    id: 'tab-permisos'
+    label: 'The Permisos tab'
+- assertVisible: 'Permisos'
+
+- tapOn:
+    id: 'tab-documentos'
+    label: 'The Documentos tab'
+- assertVisible: 'Documentos'
+
+# #4 — the profile opens over the tab the employee was on, not over Inicio.
+- tapOn: 'Abrir mi perfil'
+- extendedWaitUntil:
+    visible: 'Mi perfil'
+    timeout: 5000
+    label: 'The profile surface has finished sliding in'
+
+# It is a full-screen overlay: the tab bar it covers is gone while it is up.
+- assertNotVisible: 'Jornada'
+
+- takeScreenshot: kmo-4-perfil
+
+# The back affordance returns to Documentos, the tab it was opened from.
+- tapOn: 'Volver'
+- assertVisible: 'Documentos'
+
+# #4 again, from a different tab — the avatar is in every tab header, not only
+# the last one built.
+- tapOn:
+    id: 'tab-inicio'
+    label: 'The Inicio tab'
+- tapOn: 'Abrir mi perfil'
+- assertVisible: 'Mi perfil'
+- back:
+    label: 'The hardware back button dismisses the overlay too'
+- assertVisible: 'Inicio'
+
+# #5 — scroll Jornada to its end, leave, come back. The marker is still on
+# screen only if the tab kept both its own state and its scroll offset; a shell
+# that remounts the screen would return it to the top and drop the marker.
+- tapOn:
+    id: 'tab-jornada'
+    label: 'The Jornada tab'
+- scrollUntilVisible:
+    element: 'Fin de Jornada'
+    direction: DOWN
+    timeout: 20000
+- assertVisible: 'Fin de Jornada'
+
+- tapOn:
+    id: 'tab-permisos'
+    label: 'The Permisos tab'
+- assertNotVisible: 'Fin de Jornada'
+
+- tapOn:
+    id: 'tab-jornada'
+    label: 'The Jornada tab'
+- assertVisible: 'Fin de Jornada'
+
+- takeScreenshot: kmo-4-scroll-retained

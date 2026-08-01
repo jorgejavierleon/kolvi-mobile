@@ -31,7 +31,7 @@ tags:
 # answers it by showing its own launcher — the flow then fails somewhere far
 # from the cause.
 - extendedWaitUntil:
-    visible: 'App de empleados'
+    visible: 'Inicio'
     timeout: 60000
     label: 'The app is mounted and can receive a deep link'
 

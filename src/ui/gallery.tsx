@@ -14,7 +14,7 @@ import { TileRow } from './tile-row';
 /**
  * Every primitive on one screen, reachable at `kolvi://gallery`.
  *
- * Temporary scaffolding, on the same footing as `placeholder-screen`: it exists
+ * Temporary scaffolding, on the same footing as `section-scaffold`: it exists
  * because two of KMO-3's criteria — the 44px hit targets and rendering at the
  * largest OS font scale — cannot be honestly signed off from Jest, and a flow
  * needs something real to drive. `flows/kmo-3-ui-primitives.yaml` is that flow.

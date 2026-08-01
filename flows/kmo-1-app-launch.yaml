@@ -3,10 +3,9 @@
 # The worked example for the harness: launch, assert the copy, capture. Every
 # other flow is this shape with more steps in the middle.
 #
-# The assertions are on the KMO-1 placeholder screen. KMO-4 replaces it with the
-# real navigation shell; this flow follows it there and keeps verifying the same
-# thing — that a cold launch reaches a rendered screen — against whatever copy
-# is on it then.
+# The assertions were on the KMO-1 placeholder screen; KMO-4 replaced it with
+# the navigation shell and this flow followed it there, still verifying the one
+# thing it has ever verified — that a cold launch reaches a rendered screen.
 appId: cl.kolvi.empleados
 name: KMO-1 app launch
 tags:
@@ -14,7 +13,7 @@ tags:
 ---
 - runFlow: shared/launch.yaml
 
-- assertVisible: 'Kolvi'
-- assertVisible: 'App de empleados'
+- assertVisible: 'Inicio'
+- assertVisible: 'Jornada'
 
 - takeScreenshot: kmo-1-launched

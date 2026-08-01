@@ -238,11 +238,13 @@ Tests sit next to what they test: `button.tsx` and `button.test.tsx` in the same
 
 ## Project status
 
-Scaffold, the design tokens, and the shared UI primitives — `Button`, `Card`, `StatusBadge`,
-`SegmentedControl`, `BottomSheet` and `TileRow` in `src/ui/`. Tab navigation, the API client
-and the string catalogue are tracked as tasks KMO-4 through KMO-6 — run
-`backlog task list --plain` to see the backlog.
+Scaffold, the design tokens, the shared UI primitives — `Button`, `Card`, `StatusBadge`,
+`SegmentedControl`, `BottomSheet`, `TileRow` — and the navigation shell: the four-tab bar
+(Inicio, Jornada, Permisos, Documentos) with the profile surface over it, in `src/app/(tabs)/`.
+The tabs themselves are empty. The API client is tracked as KMO-5 and the rest of the string
+catalogue as KMO-6 — run `backlog task list --plain` to see the backlog.
 
-Two files are temporary: `src/ui/placeholder-screen.tsx`, which the navigation shell replaces,
-and `src/ui/gallery.tsx` (reachable at `kolvi://gallery`), which puts every primitive on a
-device so `flows/kmo-3-ui-primitives.yaml` has something to drive. KMO-30 deletes both.
+Two files are temporary: `src/ui/section-scaffold.tsx`, the stand-in body each tab renders
+until KMO-15, 32, 39 and 42 build it, and `src/ui/gallery.tsx` (reachable at `kolvi://gallery`),
+which puts every primitive on a device so `flows/kmo-3-ui-primitives.yaml` has something to
+drive. KMO-30 deletes both.

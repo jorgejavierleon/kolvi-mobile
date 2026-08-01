@@ -39,6 +39,17 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     [
+      // Debug builds only. The dev client's floating tools button parks itself in
+      // the top-right corner — exactly where the design puts the avatar that opens
+      // the profile — and swallows every tap on it, so no flow can reach the
+      // profile while it is on. It is turned off rather than worked around: the
+      // dev menu is still one shake or `adb shell input keyevent 82` away.
+      'expo-dev-client',
+      {
+        toolsButton: false,
+      },
+    ],
+    [
       'expo-splash-screen',
       {
         backgroundColor: colors.primary,
