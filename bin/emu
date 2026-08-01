@@ -15,6 +15,19 @@ boot_completed() {
   [ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]
 }
 
+# Whether adb still lists an emulator at all. `get-state` is no good for this:
+# a device on its way down reports `offline` rather than disappearing, which
+# reads as present. Matched in-shell rather than through `grep -q`, which exits
+# on first match and SIGPIPEs the upstream stage into a pipefail failure.
+emulator_present() {
+  local devices
+  devices="$("$ADB" devices 2>/dev/null || true)"
+  case $'\n'"$devices" in
+    *$'\n'emulator-*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 wait_for_boot() {
   echo "waiting for boot..."
   "$ADB" wait-for-device
@@ -77,7 +90,20 @@ cmd_stop() {
   require_adb
   "$ADB" emu kill >/dev/null 2>&1 || true
   pkill -f "qemu-system-x86_64.*$AVD_NAME" 2>/dev/null || true
-  echo "stopped"
+
+  # Block until it is really gone. `adb emu kill` returns as soon as the console
+  # accepts the command, so `bin/emu stop && bin/emu start --window` used to
+  # find the dying emulator still listed, conclude one was already running, and
+  # skip the launch — leaving start waiting on a device that was on its way out,
+  # and never opening the window that was the whole point.
+  for _ in $(seq 1 30); do
+    if ! emulator_present; then
+      echo "stopped"
+      return 0
+    fi
+    sleep 1
+  done
+  die "emulator still listed after 30s — kill it by hand"
 }
 
 cmd_status() {
