@@ -1,0 +1,56 @@
+# KMO-8 — signing in with no way to reach the server.
+#
+# Covers #5: a login that never got an answer says so in different words from a
+# login the server refused, and offers a retry — which a refusal must not, because
+# there is nothing about the same credentials to retry.
+#
+# Its own flow rather than a section of kmo-8-login.yaml: the radio has to be off
+# for the whole run, and per flows/README.md device conditions are set outside the
+# flow.
+#
+#   bin/device net off && bin/e2e kmo-8-login-offline && bin/device net on
+#
+# Airplane mode does not disturb Metro — the dev client reaches it over the adb
+# port forward on localhost — but it does take away the route to the host's `ams`
+# on 10.0.2.2, which is the condition this flow is about.
+appId: cl.kolvi.empleados
+name: KMO-8 login offline
+tags:
+  - auth
+  # Kept out of a full-suite run by flows/config.yaml: with the radio on, this
+  # flow's whole premise is gone and it fails.
+  - requires-offline
+---
+- runFlow: shared/launch.yaml
+
+- extendedWaitUntil:
+    visible: 'Ingresar'
+    timeout: 60000
+    label: 'The login screen is up'
+
+- tapOn:
+    id: 'login-email'
+    label: 'The email field'
+- inputText: 'employee@example.com'
+- tapOn:
+    id: 'login-password'
+    label: 'The password field'
+- inputText: 'admin'
+- hideKeyboard
+- tapOn: 'Ingresar'
+
+# The catalogue's connectivity copy, not a server sentence — there was no server.
+- extendedWaitUntil:
+    visible: 'Sin conexión. Revisa tu red e inténtalo de nuevo.'
+    timeout: 30000
+    label: 'The failure is reported as a connection problem'
+
+# The two failures are distinguishable on screen: this one offers a way to try
+# again, and does not claim the credentials were wrong.
+- assertVisible: 'Reintentar'
+- assertNotVisible: 'Estas credenciales no coinciden con nuestros registros.'
+
+# Still on the login screen with the values intact, so the retry is one tap.
+- assertVisible: 'Ingresar'
+
+- takeScreenshot: kmo-8-offline

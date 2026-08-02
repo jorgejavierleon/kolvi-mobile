@@ -70,7 +70,21 @@ Three conventions:
    ```
 
 `shared/` holds subflows pulled in with `runFlow`. They are excluded from collection by
-`config.yaml`, so a file there never runs as a test case of its own.
+`config.yaml`, so a file there never runs as a test case of its own. There are two:
+
+- `shared/launch.yaml` — cold start, nothing more. Since KMO-8 that leaves the app on the
+  login screen, which is where a flow that does not need a session should stay: it keeps the
+  flow independent of whether a backend is running.
+- `shared/sign-in.yaml` — the same launch, then a real login as the seeded
+  `employee@example.com`. Anything behind the session starts here, and needs a reachable
+  `ams` with `EXPO_PUBLIC_API_URL` pointing at it.
+
+A flow that only means something under a device condition the suite cannot set for one flow
+carries a tag `config.yaml` excludes, and is run on its own. `requires-offline` is the first:
+
+```bash
+bin/device net off && bin/e2e flows/kmo-8-login-offline.yaml && bin/device net on
+```
 
 ## What does not belong here
 

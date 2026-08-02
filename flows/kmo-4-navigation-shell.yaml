@@ -16,17 +16,17 @@
 # The scroll assertions ride on `src/ui/section-scaffold.tsx`. As each tab gets
 # its real content — KMO-15, 32, 39, 42 — the marker it scrolls to goes away and
 # this flow follows the tab to whatever is at the bottom of it then.
+#
+# Since KMO-8 the shell is behind the session, so this starts from
+# shared/sign-in.yaml rather than shared/launch.yaml and needs a reachable `ams`.
 appId: cl.kolvi.empleados
 name: KMO-4 navigation shell
 tags:
   - navigation
 ---
-- runFlow: shared/launch.yaml
+- runFlow: shared/sign-in.yaml
 
-- extendedWaitUntil:
-    visible: 'Inicio'
-    timeout: 60000
-    label: 'The shell is mounted on its first tab'
+- assertVisible: 'Inicio'
 
 # #1 on a device: all four items are reachable by the name a user reads.
 - assertVisible: 'Jornada'

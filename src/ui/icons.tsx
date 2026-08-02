@@ -122,3 +122,29 @@ export function UserIcon(props: IconProps) {
     </Glyph>
   );
 }
+
+/** `eye` — the password field with its characters showing. */
+export function EyeIcon(props: IconProps) {
+  return (
+    <Glyph {...props}>
+      <Path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
+      <Circle cx={12} cy={12} r={3} />
+    </Glyph>
+  );
+}
+
+/**
+ * `eye-off` — the same field masked. The two glyphs are the toggle's only visual
+ * difference, so the control also renames itself: an icon swap alone says nothing
+ * to a screen reader.
+ */
+export function EyeOffIcon(props: IconProps) {
+  return (
+    <Glyph {...props}>
+      <Path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" />
+      <Path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" />
+      <Path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" />
+      <Path d="m2 2 20 20" />
+    </Glyph>
+  );
+}

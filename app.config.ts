@@ -66,6 +66,10 @@ const config: ExpoConfig = {
       },
     ],
     'expo-font',
+    // The device id that names this installation's Sanctum token lives in the
+    // Android keystore / iOS keychain, not in app storage, so a backup restored
+    // onto a second handset cannot resurrect it and silently steal the token.
+    'expo-secure-store',
   ],
   experiments: {
     typedRoutes: true,

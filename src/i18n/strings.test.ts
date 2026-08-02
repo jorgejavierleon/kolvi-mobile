@@ -84,6 +84,36 @@ describe('the states beyond the happy path', () => {
   });
 });
 
+describe('the login copy', () => {
+  it('labels both fields and the submit action', () => {
+    expect(es.auth.email).toBe('Correo electrónico');
+    expect(es.auth.password).toBe('Contraseña');
+    expect(es.auth.submit).toBe('Ingresar');
+  });
+
+  // #7 — the toggle says what pressing it will do, and the two states differ.
+  it('names the reveal toggle in both of its states', () => {
+    expect(es.auth.showPassword).toBe('Mostrar contraseña');
+    expect(es.auth.hidePassword).toBe('Ocultar contraseña');
+    expect(es.auth.showPassword).not.toBe(es.auth.hidePassword);
+  });
+
+  it('has a message for each field left empty', () => {
+    expect(es.auth.emailRequired).toContain('correo');
+    expect(es.auth.passwordRequired).toContain('contraseña');
+  });
+
+  // #4 — the reason a login was refused is the server's to word. A copy of either
+  // sentence here is a second wording of the same refusal, and the one the screen
+  // shows would then depend on which code path ran.
+  it.each([
+    'Estas credenciales no coinciden con nuestros registros.',
+    'Esta cuenta está inactiva.',
+  ])('does not restate the server rejection %s', (sentence) => {
+    expect(catalogue.filter(([, value]) => value === sentence)).toEqual([]);
+  });
+});
+
 describe('phrases assembled around a server value', () => {
   it('agrees the count and the noun in a tab badge', () => {
     expect(tabWithPendingCount(es.tabs.jornada, 1)).toBe('Jornada, 1 pendiente');

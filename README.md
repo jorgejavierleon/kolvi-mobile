@@ -255,10 +255,19 @@ Tests sit next to what they test: `button.tsx` and `button.test.tsx` in the same
 ## Project status
 
 Scaffold, the design tokens, the shared UI primitives — `Button`, `Card`, `StatusBadge`,
-`SegmentedControl`, `BottomSheet`, `TileRow` — and the navigation shell: the four-tab bar
-(Inicio, Jornada, Permisos, Documentos) with the profile surface over it, in `src/app/(tabs)/`.
-The tabs themselves are empty. The API client is tracked as KMO-5 and the rest of the string
-catalogue as KMO-6 — run `backlog task list --plain` to see the backlog.
+`SegmentedControl`, `BottomSheet`, `TileRow`, `TextField` — the typed `/api/v1` client, the
+es-CL catalogue with its formatters, and the navigation shell: the four-tab bar (Inicio,
+Jornada, Permisos, Documentos) with the profile surface over it, in `src/app/(tabs)/`.
+
+A cold start now lands on `/login`. `src/features/auth/` exchanges the employee's credentials
+for a Sanctum token, reads the user behind it and holds the session; `Stack.Protected` in
+`src/app/_layout.tsx` decides which half of the app exists. The token is in memory only until
+KMO-9 moves it to SecureStore, so a restart signs the employee out. The tabs themselves are
+still empty — run `backlog task list --plain` to see the backlog.
+
+Two things the session cannot do yet, both waiting on the backend: `GET /api/user` reports no
+permissions (`ams` KOL-5), so `can()` is wired up and answers `false` to everything; and there
+is no sign-out (KMO-12).
 
 Two files are temporary: `src/ui/section-scaffold.tsx`, the stand-in body each tab renders
 until KMO-15, 32, 39 and 42 build it, and `src/ui/gallery.tsx` (reachable at `kolvi://gallery`),

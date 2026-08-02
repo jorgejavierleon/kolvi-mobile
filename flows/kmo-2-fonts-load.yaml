@@ -8,11 +8,11 @@
 #
 # What it cannot prove is which typeface actually rendered; no assertion sees
 # glyphs. The screenshot is the record for that, checked by eye against the
-# design: Sora 700 for the screen title, Plus Jakarta Sans for the tab labels
-# under it.
+# design: Sora 700 for the heading, Plus Jakarta Sans for the copy under it.
 #
-# The assertions rode on the KMO-1 placeholder copy until KMO-4 replaced that
-# screen with the navigation shell; they now ride on the shell's own.
+# The assertions rode on the KMO-1 placeholder copy, then on the navigation shell
+# KMO-4 replaced it with, and now on the login screen KMO-8 put in front of that.
+# Signing in would only add a backend to a test about fonts.
 appId: cl.kolvi.empleados
 name: KMO-2 fonts load
 tags:
@@ -21,10 +21,10 @@ tags:
 - runFlow: shared/launch.yaml
 
 - extendedWaitUntil:
-    visible: 'Inicio'
+    visible: 'Kolvi'
     timeout: 10000
     label: 'The splash lifts once the bundled fonts have loaded'
 
-- assertVisible: 'Documentos'
+- assertVisible: 'Ingresa con las credenciales que usas en Kolvi.'
 
 - takeScreenshot: kmo-2-fonts-loaded

@@ -3,9 +3,14 @@
 # The worked example for the harness: launch, assert the copy, capture. Every
 # other flow is this shape with more steps in the middle.
 #
-# The assertions were on the KMO-1 placeholder screen; KMO-4 replaced it with
-# the navigation shell and this flow followed it there, still verifying the one
+# The assertions were on the KMO-1 placeholder screen, then on the navigation
+# shell KMO-4 replaced it with, and now on the login screen KMO-8 put in front of
+# it. The flow has followed the first screen each time and still verifies the one
 # thing it has ever verified — that a cold launch reaches a rendered screen.
+#
+# Deliberately stops at the login screen rather than signing in: this is the
+# smoke test, and it has to keep failing for the right reason on a machine with
+# no backend running.
 appId: cl.kolvi.empleados
 name: KMO-1 app launch
 tags:
@@ -13,7 +18,7 @@ tags:
 ---
 - runFlow: shared/launch.yaml
 
-- assertVisible: 'Inicio'
-- assertVisible: 'Jornada'
+- assertVisible: 'Kolvi'
+- assertVisible: 'Ingresar'
 
 - takeScreenshot: kmo-1-launched

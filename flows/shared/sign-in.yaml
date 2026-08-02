@@ -1,0 +1,37 @@
+# Cold-start the app and sign in, leaving it on the tab shell.
+#
+# For flows that are about something behind the session rather than about the
+# login itself. Since KMO-8 a cold start lands on `/login` and the tabs do not
+# exist until there is a token, so a flow that needs the shell has to get one.
+#
+# It needs a reachable `ams` with the demo seeders — EXPO_PUBLIC_API_URL pointing
+# at it and `employee@example.com` still holding the seeded password. A flow that
+# does not need the shell should keep using shared/launch.yaml and stay
+# independent of the backend.
+#
+# The token lives in memory until KMO-9, so every run signs in again; that is
+# also why clearState inside launch.yaml is enough to guarantee a login screen.
+appId: cl.kolvi.empleados
+---
+- runFlow: launch.yaml
+
+- extendedWaitUntil:
+    visible: 'Ingresar'
+    timeout: 60000
+    label: 'The login screen is up'
+
+- tapOn:
+    id: 'login-email'
+    label: 'The email field'
+- inputText: 'employee@example.com'
+- tapOn:
+    id: 'login-password'
+    label: 'The password field'
+- inputText: 'admin'
+- hideKeyboard
+- tapOn: 'Ingresar'
+
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 30000
+    label: 'Signed in and on the tab shell'

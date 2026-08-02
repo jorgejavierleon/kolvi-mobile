@@ -5,3 +5,11 @@
 # test cases.
 flows:
   - '*.yaml'
+
+# A flow tagged `requires-offline` only means anything with the radio off, which
+# `bin/e2e` cannot arrange for one flow in the middle of a suite — and left in, it
+# would fail every full run. Excluded from collection and run on its own:
+#
+#   bin/device net off && bin/e2e flows/kmo-8-login-offline.yaml && bin/device net on
+excludeTags:
+  - requires-offline

@@ -44,6 +44,31 @@ export const es = {
     documentos: 'Documentos',
   },
 
+  /**
+   * The login screen (KMO-8). The design has no login surface, so the wording is
+   * authored here rather than transcribed.
+   *
+   * What is *not* here: why a login was refused. Wrong credentials and a deactivated
+   * account are both 422s from `ams` carrying its own Spanish sentence, and the
+   * screen shows that sentence verbatim — restating it here would give an employee
+   * one wording on the phone and another on the web console for the same refusal.
+   */
+  auth: {
+    /** The app's name is the heading; the screen is the first thing after the splash. */
+    heading: 'Kolvi',
+    intro: 'Ingresa con las credenciales que usas en Kolvi.',
+    email: 'Correo electrónico',
+    emailPlaceholder: 'nombre@empresa.cl',
+    password: 'Contraseña',
+    submit: 'Ingresar',
+    /** The reveal toggle names what it will do, in each of its two states. */
+    showPassword: 'Mostrar contraseña',
+    hidePassword: 'Ocultar contraseña',
+    /** Caught before the request, so an empty field is not a round trip. */
+    emailRequired: 'Ingresa tu correo electrónico.',
+    passwordRequired: 'Ingresa tu contraseña.',
+  },
+
   navigation: {
     /** Names the tab bar itself for a screen reader. */
     tabBar: 'Secciones de la app',

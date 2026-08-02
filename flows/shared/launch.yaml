@@ -26,5 +26,16 @@ appId: cl.kolvi.empleados
     label: 'Wait for the dev build to load the bundle from Metro'
 
 - tapOn: 'Continue'
-- back:
-    label: 'Close the developer menu'
+
+# `Continue` dismisses the onboarding card and leaves the dev menu itself up, so
+# a back press is what actually gets to the app. But the menu sometimes closes on
+# its own, and then the same back press closes the *app* — the flow goes on to
+# fail several steps later against the launcher, which looks nothing like the
+# cause. So the press is conditional on the menu still being there, matched on a
+# row only it has.
+- runFlow:
+    when:
+      visible: 'Toggle performance monitor'
+    commands:
+      - back:
+          label: 'Close the developer menu'

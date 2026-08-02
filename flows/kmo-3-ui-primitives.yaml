@@ -29,9 +29,10 @@ tags:
 # Wait for the app's own first screen before deep-linking. A kolvi:// link that
 # arrives while the bundle is still loading is taken by the dev client, which
 # answers it by showing its own launcher — the flow then fails somewhere far
-# from the cause.
+# from the cause. Since KMO-8 that first screen is the login screen; the gallery
+# route sits outside the session guard, so no sign-in is needed to reach it.
 - extendedWaitUntil:
-    visible: 'Inicio'
+    visible: 'Ingresar'
     timeout: 60000
     label: 'The app is mounted and can receive a deep link'
 

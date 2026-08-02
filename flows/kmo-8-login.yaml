@@ -1,0 +1,109 @@
+# KMO-8 — signing in against a locally running `ams`.
+#
+# Covers #1 (the screen collects an email and a password, in the catalogue's
+# Spanish), #3 (a successful login lands on the tab shell), #4's wrong-credential
+# half (the sentence on screen is the server's own, character for character) and
+# #7 (masked, with a reveal toggle that renames itself).
+#
+# #5 is in kmo-8-login-offline.yaml: the radio has to be off for the whole run,
+# and this flow needs it on.
+#
+# #2 and #8 are not here and cannot be. A second login needs a way to sign out,
+# which KMO-12 adds; `src/features/auth/device-name.test.ts` carries the reuse of
+# the stored id instead. And `GET /api/user` reports no permissions until ams
+# KOL-5 ships, so there is nothing on a device to gate on yet.
+#
+# #6 is half here: the screenshot below is taken while the request is in flight,
+# and the assertion that a second tap does not submit again is in
+# `src/features/auth/login-screen.test.tsx` — Maestro cannot tap twice inside one
+# frame, which is the case the guard exists for.
+#
+# Needs a reachable `ams` with the demo seeders: EXPO_PUBLIC_API_URL must point at
+# it (`http://10.0.2.2` for a host serving on port 80) and `employee@example.com`
+# must still have the seeded password.
+appId: cl.kolvi.empleados
+name: KMO-8 login
+tags:
+  - auth
+---
+- runFlow: shared/launch.yaml
+
+- extendedWaitUntil:
+    visible: 'Ingresar'
+    timeout: 60000
+    label: 'A cold start lands on the login screen, not on the tab shell'
+
+# #1 — both fields, named as the catalogue names them.
+- assertVisible: 'Correo electrónico'
+- assertVisible: 'Contraseña'
+- assertVisible: 'Ingresar'
+
+- takeScreenshot: kmo-8-login
+
+# #7 — the toggle says what it will do, and says something different afterwards.
+- assertVisible: 'Mostrar contraseña'
+- tapOn: 'Mostrar contraseña'
+- assertVisible: 'Ocultar contraseña'
+- takeScreenshot: kmo-8-password-revealed
+- tapOn: 'Ocultar contraseña'
+- assertVisible: 'Mostrar contraseña'
+
+# #4 — the wrong-password half. The assertion is the server's sentence from
+# ams's lang/es/auth.php, not a message this app authored.
+- tapOn:
+    id: 'login-email'
+    label: 'The email field'
+- inputText: 'employee@example.com'
+- tapOn:
+    id: 'login-password'
+    label: 'The password field'
+- inputText: 'contraseña-incorrecta'
+- hideKeyboard
+- tapOn: 'Ingresar'
+
+- extendedWaitUntil:
+    visible: 'Estas credenciales no coinciden con nuestros registros.'
+    timeout: 20000
+    label: 'The server refused the credentials and said why'
+
+# A rejection is not a connectivity failure: there is nothing to retry, so no
+# retry is offered.
+- assertNotVisible: 'Reintentar'
+- takeScreenshot: kmo-8-wrong-credentials
+
+# #3 — the real login, from a fresh start rather than by editing the fields.
+# Tapping into a filled field puts the caret where the finger landed and
+# `eraseText` only deletes behind it, so retyping the password leaves the tail of
+# the old one in place — which is a login this flow would then be asserting about
+# by accident. Relaunching is the honest way to get an empty form.
+- runFlow: shared/launch.yaml
+
+- extendedWaitUntil:
+    visible: 'Ingresar'
+    timeout: 60000
+    label: 'Back on the login screen with empty fields'
+
+- tapOn:
+    id: 'login-email'
+    label: 'The email field'
+- inputText: 'employee@example.com'
+- tapOn:
+    id: 'login-password'
+    label: 'The password field'
+- inputText: 'admin'
+- hideKeyboard
+- tapOn: 'Ingresar'
+
+# #6, by eye: the submit button mid-flight, spinner in place and label still
+# readable. Taken immediately, before the shell can replace the screen.
+- takeScreenshot: kmo-8-submitting
+
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 30000
+    label: 'The session landed on the tab shell'
+
+- assertVisible: 'Jornada'
+- assertNotVisible: 'Ingresar'
+
+- takeScreenshot: kmo-8-signed-in
