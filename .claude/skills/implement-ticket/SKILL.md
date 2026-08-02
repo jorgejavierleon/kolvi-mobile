@@ -174,13 +174,48 @@ Imperative, sentence case, no trailing period, no attribution or co-author trail
 Report briefly: what you built, what you verified and how, anything you deliberately left
 open. A few lines, no walkthrough of the diff.
 
-If the result is visible in the UI, leave the emulator booted with the app installed and give
-the user the shortest path to look at it themselves:
+### If the change is visible, stand the emulator up before you hand back
 
-- Live, from another machine: `ssh -L 5555:localhost:5555 <this-host>` then
-  `adb connect localhost:5555 && scrcpy` on the viewing machine.
-- Or point them at the screenshot you already took in `.artifacts/`.
+Not "leave it booted" — **set it up and check the user can actually reach it.** They review from a
+different machine, and the AVD is headless (`bin/emu start` passes `-no-window` because this repo
+is normally driven over SSH). So a booted emulator on the build host shows them nothing, and a
+description of how they _could_ look at it is not the same as a working path. Do the work:
+
+```bash
+bin/emu status                   # boot it if it is not up
+adb devices                      # the AVD is attached
+bin/device launch                # the app is running, once Metro is up
+bin/ui                           # the screen you want reviewed is the screen that is on
+bin/shot kmo-N-after.png         # the fallback, and read it yourself
+```
+
+Get the app onto **the screen that is under review, in the state it should be reviewed in**. A
+flow you ran during verification leaves the app wherever it finished — scrolled to the bottom of
+a tab, sitting on an overlay — and handing that back wastes the user's first look. Reset it.
+
+Then check the tunnel's prerequisites from here rather than assuming them, and hand over commands
+that are ready to paste:
+
+```bash
+ss -ltn | grep 555               # adb on 127.0.0.1:5555, the port the tunnel forwards
+echo $SSH_CONNECTION             # field 3 is the host they should ssh back into
+```
+
+Give them the real hostname, not a placeholder, and say which machine each line runs on:
+
+- **On their machine**, two terminals: `ssh -L 5555:localhost:5555 <real-host>` left open, then
+  `adb connect localhost:5555 && scrcpy`. `scrcpy` installs on the viewing machine, never here.
+- The screenshot in `.artifacts/` as the no-setup fallback.
 - Then the taps: "open Jornada, pull down — the pending-sync banner should read …".
+
+`bin/emu start --window` is only worth offering if they have a display session on the build host
+itself. Over SSH it opens a window nobody is sitting in front of. Check `DISPLAY` before
+suggesting it.
+
+**If the ticket changed nothing on screen, say so in one line and skip all of it.** A foundation
+ticket — a catalogue, a client, a formatter — has no pixels to review, and sending someone
+through tunnel setup to look at an unchanged screen is worse than saying there is nothing to see.
+Point at the tests and the lint rule as the evidence instead.
 
 Then wait. Do not merge on your own judgement that it looks fine.
 
