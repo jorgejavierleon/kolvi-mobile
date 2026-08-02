@@ -70,21 +70,34 @@ Three conventions:
    ```
 
 `shared/` holds subflows pulled in with `runFlow`. They are excluded from collection by
-`config.yaml`, so a file there never runs as a test case of its own. There are two:
+`config.yaml`, so a file there never runs as a test case of its own. There are three:
 
 - `shared/launch.yaml` — cold start, nothing more. Since KMO-8 that leaves the app on the
   login screen, which is where a flow that does not need a session should stay: it keeps the
   flow independent of whether a backend is running.
 - `shared/sign-in.yaml` — the same launch, then a real login as the seeded
-  `employee@example.com`. Anything behind the session starts here, and needs a reachable
-  `ams` with `EXPO_PUBLIC_API_URL` pointing at it.
+  `employee@example.com`, ending on the tab shell. Anything behind the session starts here,
+  and needs a reachable `ams` with `EXPO_PUBLIC_API_URL` pointing at it. Since KMO-10 it also
+  declines the biometric offer on the way past, because that sheet is a modal: on an AVD with
+  a fingerprint enrolled nothing behind it is in the hierarchy, and every flow using this one
+  would otherwise fail on an assertion unrelated to what it was testing.
+- `shared/enter-credentials.yaml` — launch and submit the credentials, stopping there.
+  What `sign-in.yaml` is built from, and the starting point for a flow that is _about_ what
+  happens right after a login rather than about getting past it.
 
 A flow that only means something under a device condition the suite cannot set for one flow
-carries a tag `config.yaml` excludes, and is run on its own. `requires-offline` is the first:
+carries a tag `config.yaml` excludes, and is run on its own:
 
 ```bash
-bin/device net off && bin/e2e flows/kmo-8-login-offline.yaml && bin/device net on
+bin/device net off       && bin/e2e flows/kmo-8-login-offline.yaml && bin/device net on
+bin/device finger enroll && bin/e2e flows/kmo-10-biometric-unlock.yaml
+bin/device finger clear  && bin/e2e flows/kmo-10-biometric-unavailable.yaml
 ```
+
+`requires-biometric` and `requires-no-biometric` are mutually exclusive by definition — one
+needs a fingerprint enrolled on the AVD and the other needs there to be none — so a single
+run can never contain both. `bin/device finger enroll` walks Settings' enrolment wizard,
+which has no adb equivalent, and is idempotent; `bin/device finger clear` puts the AVD back.
 
 ## What does not belong here
 

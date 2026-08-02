@@ -12,25 +12,33 @@
 # Since KMO-9 the token is in the keystore, so a run only reaches the login screen
 # because clearState inside launch.yaml wipes it first. A flow that relaunches the
 # app without clearing state keeps its session — see kmo-9-secure-token-restore.yaml.
+#
+# Since KMO-10 the first login on a phone with a fingerprint enrolled raises the
+# biometric offer over the shell, and that sheet is a modal — nothing behind it is
+# in the hierarchy, so `Inicio` is not merely covered, it is unfindable. Every flow
+# using this one would fail on such an AVD, on an assertion that has nothing to do
+# with what it was testing. So the offer is declined here. Flows that care about
+# the offer start from enter-credentials.yaml and handle it themselves.
 appId: cl.kolvi.empleados
 ---
-- runFlow: launch.yaml
+- runFlow: enter-credentials.yaml
 
+# Optional in both directions: the sheet is absent on an AVD with nothing
+# enrolled, and on one with a fingerprint it arrives a beat after the session
+# settles. The wait is what makes the check below deterministic rather than a
+# race against the sheet's animation.
 - extendedWaitUntil:
-    visible: 'Ingresar'
-    timeout: 60000
-    label: 'The login screen is up'
+    visible: 'Ahora no'
+    timeout: 10000
+    optional: true
+    label: 'The biometric offer, if this phone can do it'
 
-- tapOn:
-    id: 'login-email'
-    label: 'The email field'
-- inputText: 'employee@example.com'
-- tapOn:
-    id: 'login-password'
-    label: 'The password field'
-- inputText: 'admin'
-- hideKeyboard
-- tapOn: 'Ingresar'
+- runFlow:
+    when:
+      visible: 'Ahora no'
+    commands:
+      - tapOn: 'Ahora no'
+    label: 'Decline it, so the shell is what this subflow hands back'
 
 - extendedWaitUntil:
     visible: 'Inicio'

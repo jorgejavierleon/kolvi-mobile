@@ -1,5 +1,6 @@
 import type { ExpoConfig } from 'expo/config';
 
+import { es } from './src/i18n/strings.ts';
 import { colors } from './src/theme/colors.ts';
 
 /**
@@ -70,6 +71,16 @@ const config: ExpoConfig = {
     // Android keystore / iOS keychain, not in app storage, so a backup restored
     // onto a second handset cannot resurrect it and silently steal the token.
     'expo-secure-store',
+    [
+      // Biometric app unlock (KMO-10). Adds USE_BIOMETRIC and USE_FINGERPRINT on
+      // Android; on iOS it writes NSFaceIDUsageDescription, whose default is an
+      // English sentence Apple shows to the employee — so the Spanish one comes
+      // from the catalogue rather than being retyped here.
+      'expo-local-authentication',
+      {
+        faceIDPermission: es.security.faceIdUsage,
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,

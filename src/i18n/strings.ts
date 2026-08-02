@@ -18,7 +18,12 @@
  * belongs to one screen arrives with that screen's own task. KMO-15, 19, 32, 39 and
  * 42 each add their own section.
  */
-import { formatDecimalHours } from './hours';
+// The extension is spelled out for the same reason `app.config.ts` spells out
+// `./src/theme/colors.ts`: since KMO-10 the config imports this catalogue for the
+// Face ID usage description, and Expo's config loader is a plain ESM loader with
+// no bundler behind it — it resolves a TypeScript file only when asked for one by
+// name. `allowImportingTsExtensions` in tsconfig.json is what permits it.
+import { formatDecimalHours } from './hours.ts';
 
 export const es = {
   /** The four tab-bar items, in the order the design draws them. */
@@ -67,6 +72,64 @@ export const es = {
     /** Caught before the request, so an empty field is not a round trip. */
     emailRequired: 'Ingresa tu correo electrónico.',
     passwordRequired: 'Ingresa tu contraseña.',
+  },
+
+  /**
+   * Biometric app unlock (KMO-10).
+   *
+   * Every sentence here is written against one constraint: this is a lock on the
+   * phone, not an identification of the employee. Res. 38 Art. 7g asks for two
+   * identification alternatives and the password is the one that identifies —
+   * copy that let an employee believe their fingerprint is what proves who punched
+   * would misdescribe the register their attendance is recorded in. So the wording
+   * says *abrir la app* and *este teléfono*, and never *identificar* or *verificar
+   * tu identidad*.
+   *
+   * `huella o rostro` throughout, rather than naming the sensor the phone happens
+   * to have: the same build runs on a fingerprint reader and on face unlock, and
+   * asking for the wrong one is how copy stops matching the prompt beside it.
+   */
+  security: {
+    /** The one-time offer after a first login. */
+    offer: {
+      title: 'Desbloqueo con huella o rostro',
+      body: 'Puedes abrir Kolvi con la huella o el rostro que ya usas en este teléfono. Es un bloqueo de la app: no reemplaza tu contraseña y no cambia cómo se registran tus marcas.',
+      enable: 'Activar',
+      /** Declining is a real answer, not a postponement — the offer is made once. */
+      dismiss: 'Ahora no',
+      close: 'Cerrar el aviso de desbloqueo',
+    },
+
+    /** The gate the app shows on returning from the background. */
+    lock: {
+      title: 'Kolvi está bloqueado',
+      body: 'Usa tu huella o rostro para volver a entrar.',
+      unlock: 'Desbloquear',
+      /** Clears the session and returns to login — the non-biometric alternative. */
+      usePassword: 'Ingresar con contraseña',
+      /** The sensor ran and did not recognise them. Another attempt is worth making. */
+      failed: 'No pudimos reconocerte. Inténtalo de nuevo o ingresa con tu contraseña.',
+      /** They dismissed the prompt. Not a failure, so the wording does not read as one. */
+      cancelled: 'Inténtalo de nuevo o ingresa con tu contraseña.',
+      /** Inside the OS prompt, which draws its own dialog over the app. */
+      prompt: 'Desbloquea Kolvi',
+    },
+
+    /**
+     * `NSFaceIDUsageDescription`, which iOS shows in its own dialog the first time
+     * the app reaches for Face ID. It is copy an employee reads, so it is a
+     * catalogue entry rather than a string typed into `app.config.ts` — the plugin's
+     * default is English, and Res. 38 Art. 5 does not have an exception for text the
+     * OS happens to draw.
+     */
+    faceIdUsage: 'Kolvi usa Face ID para desbloquear la app en este teléfono.',
+
+    /** The Seguridad row on Mi perfil. KMO-25 folds this into the real menu card. */
+    unlock: {
+      section: 'Seguridad',
+      label: 'Desbloqueo con huella o rostro',
+      description: 'Pide tu huella o rostro al volver a la app.',
+    },
   },
 
   navigation: {

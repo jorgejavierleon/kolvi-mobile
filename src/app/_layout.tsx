@@ -4,6 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { BiometricOffer } from '@/features/auth/biometric-offer';
+import { LockProvider, useLock } from '@/features/auth/lock';
 import { SessionProvider, useSession } from '@/features/auth/session';
 import { colors, useKolviFonts } from '@/theme';
 
@@ -22,7 +24,15 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <SessionProvider>
-        <RootNavigator />
+        {/* Inside the session, because the lock is a gate in front of one rather
+            than a part of one: it reads `status` to know whether there is anything
+            to protect, and clears itself when there stops being. */}
+        <LockProvider>
+          <RootNavigator />
+          {/* A sibling of the navigator rather than a child of it: the sheet is a
+              Modal, and the only thing it needs is to be inside the lock. */}
+          <BiometricOffer />
+        </LockProvider>
       </SessionProvider>
     </SafeAreaProvider>
   );
@@ -38,11 +48,15 @@ export default function RootLayout() {
  */
 function RootNavigator() {
   const { status } = useSession();
+  const { locked } = useLock();
+
   const signedIn = status === 'signedIn';
 
   // The splash stays up for the token lookup as well as the fonts: hiding it
   // earlier would show the login screen for a frame to an employee who turns out
-  // to be signed in already.
+  // to be signed in already. `LockProvider` renders nothing until the unlock
+  // preference has been read too, so reaching this component at all means both
+  // questions are already answered.
   useEffect(() => {
     if (status !== 'restoring') {
       void SplashScreen.hideAsync();
@@ -60,9 +74,16 @@ function RootNavigator() {
         contentStyle: { backgroundColor: colors.surfacePage },
       }}
     >
-      <Stack.Protected guard={signedIn}>
+      <Stack.Protected guard={signedIn && !locked}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="perfil" />
+      </Stack.Protected>
+
+      {/* Not `!signedIn`: an employee behind the lock is signed in, and the way
+          past it is a biometric or the login screen the button there sends them
+          to — never a back gesture onto a tab. */}
+      <Stack.Protected guard={signedIn && locked}>
+        <Stack.Screen name="bloqueo" options={{ gestureEnabled: false }} />
       </Stack.Protected>
 
       <Stack.Protected guard={!signedIn}>

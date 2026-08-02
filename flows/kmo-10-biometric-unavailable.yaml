@@ -1,0 +1,68 @@
+# KMO-10 #4 — a phone with no enrolled biometric.
+#
+# The whole criterion: the option is not offered, and the app is fully usable
+# anyway. Both halves are asserted here, because the first without the second
+# would also be satisfied by an app that simply refused to start.
+#
+# PRECONDITION. This is the *absence* of a device condition, which a suite run
+# cannot arrange for one flow — and an AVD that has been through
+# `bin/device finger enroll` for the sibling flow would fail it. So it is tagged
+# out of the default collection and run deliberately:
+#
+#   bin/device finger clear && bin/e2e kmo-10-biometric-unavailable
+#
+# Needs a reachable `ams` with the demo seeders, as shared/sign-in.yaml does.
+appId: cl.kolvi.empleados
+name: KMO-10 biometric unavailable
+tags:
+  - auth
+  - requires-no-biometric
+---
+- runFlow: shared/sign-in.yaml
+
+# The offer is the thing that must not happen. Waited out rather than asserted
+# immediately: the preference read and the capability check are both async, so a
+# bare assertNotVisible one frame after login would pass before the sheet had had
+# a chance to appear.
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 30000
+    label: 'Signed in and on the tab shell'
+- waitForAnimationToEnd:
+    timeout: 5000
+
+- assertNotVisible: 'Desbloqueo con huella o rostro'
+- assertNotVisible: 'Activar'
+- assertNotVisible: 'Ahora no'
+
+# The second half — fully usable. All four tabs are reachable, and nothing is
+# sitting in front of them.
+- assertVisible: 'Inicio'
+- assertVisible: 'Jornada'
+- assertVisible: 'Permisos'
+- assertVisible: 'Documentos'
+
+- tapOn: 'Jornada'
+- extendedWaitUntil:
+    visible: 'Mi jornada'
+    timeout: 15000
+    label: 'Navigation works with no biometric on the phone'
+
+- takeScreenshot: kmo-10-no-biometric
+
+# On the profile the section is present and says why there is nothing to switch,
+# rather than vanishing — an employee who heard about the feature from a colleague
+# should learn what is missing instead of assuming the app is broken.
+- tapOn:
+    id: 'profile-button'
+    label: 'The avatar that opens Mi perfil'
+
+- extendedWaitUntil:
+    visible: 'Seguridad'
+    timeout: 15000
+    label: 'The Seguridad card on Mi perfil'
+
+- assertVisible: 'Este teléfono no tiene huella o rostro configurado.'
+- assertNotVisible: 'Pide tu huella o rostro al volver a la app.'
+
+- takeScreenshot: kmo-10-no-biometric-perfil

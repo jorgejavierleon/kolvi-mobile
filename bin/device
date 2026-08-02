@@ -8,6 +8,7 @@
 #   bin/device perm grant|revoke|reset   location permission for the app
 #   bin/device font <scale>|max|reset    OS font scale (Settings > Display)
 #   bin/device finger              present an enrolled fingerprint
+#   bin/device finger enroll|clear|status   the enrolment behind it
 #   bin/device link <url>          open a kolvi:// deep link
 #   bin/device launch|kill         start or force-stop the app
 #   bin/device state               report the above as a summary
@@ -15,6 +16,114 @@ source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
 require_device
 
 LOCATION_PERMS=(android.permission.ACCESS_FINE_LOCATION android.permission.ACCESS_COARSE_LOCATION)
+
+# The device credential the emulator's biometric enrolment sits on top of.
+# Android will not enrol a fingerprint without one, and `disableDeviceFallback:
+# false` in src/features/auth/biometrics.ts means the app's prompt falls back to
+# exactly this PIN — so a flow that exercises the fallback types 1111.
+DEVICE_PIN=1111
+
+ui_xml() {
+  "$ADB" shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
+  "$ADB" exec-out cat /sdcard/ui.xml
+}
+
+# Tap a control by its label, resolving the coordinates from the hierarchy rather
+# than hardcoding them — the enrolment screens differ between system images and
+# between screen sizes, and a fixed point silently taps the wrong thing.
+tap_text() {
+  local label="$1" bounds x1 y1 x2 y2
+  bounds="$(ui_xml | grep -oP "text=\"$label\"[^>]*bounds=\"\K[^\"]+" | head -1)"
+  [ -n "$bounds" ] || return 1
+
+  # `bounds` is `[x1,y1][x2,y2]`. Pulling the four integers out is steadier than
+  # unpicking the brackets and commas.
+  read -r x1 y1 x2 y2 <<<"$(echo "$bounds" | grep -oP '\d+' | tr '\n' ' ')"
+
+  "$ADB" shell input tap $(( (x1 + x2) / 2 )) $(( (y1 + y2) / 2 ))
+}
+
+# Substring, not the whole attribute: the wizard's headings carry trailing copy
+# ("Enter your PIN to continue"), and matching the attribute exactly misses them.
+on_screen() { ui_xml | grep -oP 'text="\K[^"]*' | grep -qF -- "$1"; }
+
+# Scroll the enrolment consent page until its button is reachable. The copy runs
+# past a screen on a phone-sized AVD, and the button is below all of it.
+scroll_to_text() {
+  local label="$1" i
+  for i in $(seq 1 8); do
+    on_screen "$label" && return 0
+    "$ADB" shell input swipe 500 1500 500 400 300
+    sleep 1
+  done
+  on_screen "$label"
+}
+
+finger_count() {
+  "$ADB" shell dumpsys fingerprint 2>/dev/null \
+    | grep -oP '"count":\K[0-9]+' | head -1 | tr -d '\r'
+}
+
+# Walk Settings' enrolment wizard, because there is no adb command for it:
+# `adb emu finger touch` presents a finger to a sensor that has nothing to match
+# it against until this has run. Idempotent — a second call is a no-op.
+finger_enroll() {
+  local enrolled
+  enrolled="$(finger_count)"
+  if [ "${enrolled:-0}" -gt 0 ]; then
+    echo "already enrolled: ${enrolled} fingerprint(s)"
+    return 0
+  fi
+
+  # Tolerated rather than checked: a PIN that is already set makes this fail, and
+  # that is the state the next step wants anyway.
+  "$ADB" shell locksettings set-pin "$DEVICE_PIN" >/dev/null 2>&1 || true
+
+  # Force-stopped first: a Settings already sitting on one of these screens
+  # swallows the intent ("delivered to currently running top-most instance") and
+  # leaves the wizard wherever the last attempt abandoned it.
+  "$ADB" shell am force-stop com.android.settings >/dev/null 2>&1 || true
+  "$ADB" shell am start -a android.settings.FINGERPRINT_ENROLL >/dev/null
+  sleep 3
+
+  if on_screen 'Enter your PIN'; then
+    "$ADB" shell input text "$DEVICE_PIN"
+    "$ADB" shell input keyevent 66
+    sleep 3
+  fi
+
+  scroll_to_text 'I AGREE' || die "the enrolment consent page never appeared"
+  tap_text 'I AGREE' || die "could not reach the consent button"
+  sleep 3
+
+  # Each touch is one of the several images the wizard asks for; it decides when
+  # it has enough, so the loop watches the count rather than counting touches.
+  local i
+  for i in $(seq 1 40); do
+    "$ADB" emu finger touch 1 >/dev/null 2>&1 || true
+    sleep 0.6
+    [ "$(finger_count)" -gt 0 ] && break
+  done
+
+  [ "$(finger_count)" -gt 0 ] || die "enrolment did not take — see bin/shot for the screen"
+
+  tap_text 'DONE' >/dev/null 2>&1 || true
+  "$ADB" shell input keyevent KEYCODE_HOME
+  echo "enrolled 1 fingerprint (device PIN $DEVICE_PIN)"
+}
+
+# Back to a phone with no biometric, which is the condition KMO-10 #4 is about.
+# Clearing the device credential takes the enrolments with it: a fingerprint
+# cannot outlive the lock screen it was registered behind.
+finger_clear() {
+  "$ADB" shell locksettings clear --old "$DEVICE_PIN" >/dev/null 2>&1 || true
+  sleep 2
+
+  local remaining
+  remaining="$(finger_count)"
+  [ "${remaining:-0}" -eq 0 ] || die "still ${remaining} enrolled — clear it in Settings"
+  echo "no enrolled fingerprints, no device credential"
+}
 
 case "${1:-}" in
   geo)
@@ -70,7 +179,15 @@ case "${1:-}" in
     "$ADB" shell settings put system font_scale "$scale"
     echo "font scale $("$ADB" shell settings get system font_scale | tr -d '\r')"
     ;;
-  finger) "$ADB" emu finger touch 1 >/dev/null; echo "fingerprint presented" ;;
+  finger)
+    case "${2:-}" in
+      "")       "$ADB" emu finger touch 1 >/dev/null; echo "fingerprint presented" ;;
+      enroll)   finger_enroll ;;
+      clear)    finger_clear ;;
+      status)   echo "enrolled fingerprints: $(finger_count)" ;;
+      *) die "usage: bin/device finger [enroll|clear|status]" ;;
+    esac
+    ;;
   link)
     [ $# -eq 2 ] || die "usage: bin/device link <url>"
     "$ADB" shell am start -W -a android.intent.action.VIEW -d "$2" "$PACKAGE"
@@ -101,5 +218,5 @@ case "${1:-}" in
       echo "${perms:-  (none declared in the manifest yet)}"
     fi
     ;;
-  *) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  *) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

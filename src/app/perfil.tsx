@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 
+import { UnlockSetting } from '@/features/auth/unlock-setting';
 import { es } from '@/i18n';
 import { OverlayHeader } from '@/ui/overlay-header';
 import { Screen } from '@/ui/screen';
@@ -12,6 +13,11 @@ import { SectionScaffold } from '@/ui/section-scaffold';
  *
  * KMO-25 fills in the avatar, the name and the menu — Mis datos, Notificaciones,
  * Ayuda y soporte, Cerrar sesión — each of which is its own task.
+ *
+ * `UnlockSetting` sits above the scaffold rather than inside the menu KMO-25 has
+ * not built yet: KMO-10 #5 needs the biometric switch reachable from the profile,
+ * and building KMO-25's four-row card early to hold one switch would put that
+ * task's design decisions in this one's commit.
  */
 export default function ProfileScreen() {
   return (
@@ -25,6 +31,7 @@ export default function ProfileScreen() {
         />
       }
     >
+      <UnlockSetting />
       <SectionScaffold section={es.profile.title} />
     </Screen>
   );

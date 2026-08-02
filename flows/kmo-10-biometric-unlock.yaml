@@ -1,0 +1,178 @@
+# KMO-10 — biometric unlock, on a phone that has a biometric enrolled.
+#
+# Covers #1 (the offer is made after the first login, in Spanish), #2 (returning
+# from the background lands on the gate with no tab behind it), #3 (a dismissed
+# prompt keeps the gate up and leaves the password route open) and #5 (the switch
+# on Mi perfil turns it off without signing the employee out).
+#
+# #4 is the opposite device condition and lives in kmo-10-biometric-unavailable.yaml.
+# #6 is not a device criterion: it is about what the app *could* transmit, and it
+# is argued from src/features/auth/biometrics.ts and its tests.
+#
+# PRECONDITION, and why this is tagged out of the default suite: it means nothing
+# on an AVD with nothing enrolled, where every prompt returns `unavailable` and the
+# offer is never made. Enrol first — the helper is idempotent:
+#
+#   bin/device finger enroll && bin/e2e kmo-10-biometric-unlock
+#
+# WHAT THIS FLOW CANNOT DO. Passing the prompt with a *fingerprint* needs
+# `adb emu finger touch`, and Maestro's runScript has no shell — so where the flow
+# has to get past the prompt it taps through to the device PIN instead
+# (`button_use_credential`, matched by id because the OS labels it in the phone's
+# language, not the app's). That is not a detour around the feature: the app leaves
+# `disableDeviceFallback` off precisely so this route exists, and every success
+# reaching the app is the same `success` whichever hand it came from. The
+# fingerprint route itself was walked by hand on the emulator and written up on the
+# task.
+#
+# Needs a reachable `ams` with the demo seeders, exactly as shared/sign-in.yaml
+# does: EXPO_PUBLIC_API_URL pointing at it and `employee@example.com` still
+# holding the seeded password.
+appId: cl.kolvi.empleados
+name: KMO-10 biometric unlock
+tags:
+  - auth
+  - requires-biometric
+---
+# enter-credentials rather than sign-in: sign-in.yaml declines the offer on its
+# way to the shell, and the offer is the first thing this flow is about.
+- runFlow: shared/enter-credentials.yaml
+
+# #1 — offered on arrival rather than buried in a settings screen. Asserted
+# character for character: the wording is the compliance surface, and what matters
+# is that it says this unlocks the *app* and never that it identifies anyone.
+- extendedWaitUntil:
+    visible: 'Desbloqueo con huella o rostro'
+    timeout: 30000
+    label: 'The one-time offer, over the tab the login landed on'
+
+- assertVisible: 'Puedes abrir Kolvi con la huella o el rostro que ya usas en este teléfono. Es un bloqueo de la app: no reemplaza tu contraseña y no cambia cómo se registran tus marcas.'
+- assertVisible: 'Activar'
+- assertVisible: 'Ahora no'
+
+- takeScreenshot: kmo-10-offer
+
+- tapOn: 'Activar'
+
+# The OS prompt. `Desbloquea Kolvi` is the app's own catalogue string handed to
+# the system dialog, so asserting it is still asserting on Spanish copy this repo
+# owns — unlike the button below it, which the OS labels itself.
+- extendedWaitUntil:
+    visible: 'Desbloquea Kolvi'
+    timeout: 15000
+    label: 'Enabling raises the prompt rather than just flipping a switch'
+
+- tapOn:
+    id: 'com.android.systemui:id/button_use_credential'
+    label: 'Fall through to the device PIN'
+- inputText: '1111'
+- pressKey: Enter
+
+- extendedWaitUntil:
+    notVisible: 'Desbloqueo con huella o rostro'
+    timeout: 30000
+    label: 'The offer closed once the prompt was passed'
+- assertVisible: 'Inicio'
+
+# #2 — the criterion the task turns on. The lock latches on the way *out*, so what
+# comes back is the gate and not a frame of the tab underneath it.
+- pressKey: Home
+- waitForAnimationToEnd:
+    timeout: 3000
+- launchApp:
+    appId: cl.kolvi.empleados
+    stopApp: false
+
+- extendedWaitUntil:
+    visible: 'Desbloquea Kolvi'
+    timeout: 30000
+    label: 'The app came back to a prompt, not to a tab'
+
+# The negative half of #2, asserted while the prompt is still up: no employee
+# data anywhere behind it.
+- assertNotVisible: 'Inicio'
+- assertNotVisible: 'Jornada'
+- assertNotVisible: 'Permisos'
+- assertNotVisible: 'Documentos'
+
+# #3 — dismissing the prompt. Back is the cancel gesture here: with the device
+# credential allowed, Android replaces the prompt's negative button with `Use PIN`
+# and there is no Cancelar to tap.
+- pressKey: Back
+
+- extendedWaitUntil:
+    visible: 'Kolvi está bloqueado'
+    timeout: 15000
+    label: 'A dismissed prompt leaves the gate, not the app'
+
+- assertVisible: 'Usa tu huella o rostro para volver a entrar.'
+# Not worded as a failure — they chose to stop, and were not refused.
+- assertVisible: 'Inténtalo de nuevo o ingresa con tu contraseña.'
+- assertVisible: 'Desbloquear'
+# The non-biometric alternative is on the screen already, not offered only as a
+# consolation after something has gone wrong.
+- assertVisible: 'Ingresar con contraseña'
+
+# Still nothing behind it. A dismissed prompt must not decay into access.
+- assertNotVisible: 'Inicio'
+- assertNotVisible: 'Jornada'
+
+- takeScreenshot: kmo-10-locked
+
+# Back in, for the rest of the flow.
+- tapOn: 'Desbloquear'
+- extendedWaitUntil:
+    visible: 'Desbloquea Kolvi'
+    timeout: 15000
+    label: 'Desbloquear raises the prompt again'
+- tapOn:
+    id: 'com.android.systemui:id/button_use_credential'
+    label: 'Fall through to the device PIN'
+- inputText: '1111'
+- pressKey: Enter
+
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 30000
+    label: 'A passed prompt is the only thing that opened it'
+- assertNotVisible: 'Kolvi está bloqueado'
+
+# #5 — turned off from the profile.
+- tapOn:
+    id: 'profile-button'
+    label: 'The avatar that opens Mi perfil'
+
+- extendedWaitUntil:
+    visible: 'Seguridad'
+    timeout: 15000
+    label: 'The Seguridad card on Mi perfil'
+
+- assertVisible: 'Desbloqueo con huella o rostro'
+- assertVisible: 'Pide tu huella o rostro al volver a la app.'
+
+- tapOn:
+    id: 'unlock-setting-switch'
+    label: 'Turn biometric unlock off'
+
+- takeScreenshot: kmo-10-setting-off
+
+# The other half of #5. Signing out would have replaced this with the login form;
+# turning a lock off is not the same as ending the session behind it.
+- assertVisible: 'Mi perfil'
+- assertNotVisible: 'Ingresar'
+- assertNotVisible: 'Correo electrónico'
+
+# And it really is off — backgrounding no longer gates the way back.
+- pressKey: Home
+- waitForAnimationToEnd:
+    timeout: 3000
+- launchApp:
+    appId: cl.kolvi.empleados
+    stopApp: false
+
+- extendedWaitUntil:
+    visible: 'Mi perfil'
+    timeout: 30000
+    label: 'Straight back to where they were, with no gate'
+- assertNotVisible: 'Kolvi está bloqueado'
+- assertNotVisible: 'Desbloquea Kolvi'

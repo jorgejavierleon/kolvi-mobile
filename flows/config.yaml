@@ -11,5 +11,13 @@ flows:
 # would fail every full run. Excluded from collection and run on its own:
 #
 #   bin/device net off && bin/e2e flows/kmo-8-login-offline.yaml && bin/device net on
+#   bin/device finger enroll && bin/e2e kmo-10-biometric-unlock
+#   bin/device finger clear  && bin/e2e kmo-10-biometric-unavailable
+#
+# The two biometric tags are mutually exclusive by definition — one needs an
+# enrolled fingerprint on the AVD and the other needs there to be none — so
+# neither can be part of a run that also contains the other.
 excludeTags:
   - requires-offline
+  - requires-biometric
+  - requires-no-biometric
