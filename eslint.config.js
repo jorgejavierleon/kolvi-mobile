@@ -73,6 +73,30 @@ const naiveDatetimeSelectors = [
   },
 ];
 
+// The Sanctum token is a bearer credential to an employee's attendance record, so
+// it lives in the platform keystore and nowhere else (KMO-9 #2). That criterion asks
+// to be verifiable by inspecting the codebase, and a convention in the README is not
+// verifiable — a failing `npm run check` is. Neither package is a dependency today;
+// the rule is here so that adding one is a deliberate act with an argument attached,
+// rather than the reflex import that puts a token in plaintext.
+const insecureStorageImports = [
+  {
+    name: '@react-native-async-storage/async-storage',
+    message:
+      'AsyncStorage is unencrypted. Credentials go in expo-secure-store — see src/features/auth/token-store.ts.',
+  },
+  {
+    name: '@react-native-community/async-storage',
+    message:
+      'AsyncStorage is unencrypted. Credentials go in expo-secure-store — see src/features/auth/token-store.ts.',
+  },
+  {
+    name: 'expo-file-system',
+    message:
+      'A file in app storage is readable by a backup and by anything with the device. Credentials go in expo-secure-store — see src/features/auth/token-store.ts.',
+  },
+];
+
 // `no-restricted-syntax` takes one array of selectors, and a later config block
 // replaces that array rather than adding to it. So a block that wants two sets has
 // to spread both — the composition below is what keeps the theme rules applying
@@ -88,6 +112,12 @@ module.exports = defineConfig([
     ignores: ['src/theme/**'],
     rules: {
       'no-restricted-syntax': ['error', ...themeSelectors],
+    },
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', { paths: insecureStorageImports }],
     },
   },
   {

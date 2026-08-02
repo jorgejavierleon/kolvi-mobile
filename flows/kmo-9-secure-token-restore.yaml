@@ -1,0 +1,56 @@
+# KMO-9 — the token outlives the process it was issued in.
+#
+# Covers #3 (a valid stored token restores the session on cold start, with no
+# login screen in between) and the Android half of #1: nothing survives a process
+# death unless it was really written to EncryptedSharedPreferences, so a passing
+# run is evidence the keystore write happened, not just that the code compiled.
+#
+# #4 is not here and cannot be until KMO-12 adds a way to sign out; the store
+# deleting the key and the session clearing it are covered in
+# `src/features/auth/token-store.test.ts` and `session.test.tsx`. #5 needs a
+# keystore that refuses, which an emulator has no way to arrange, and is Jest-only
+# for the same reason.
+#
+# Needs a reachable `ams` with the demo seeders, exactly as shared/sign-in.yaml
+# does: EXPO_PUBLIC_API_URL pointing at it and `employee@example.com` still
+# holding the seeded password.
+appId: cl.kolvi.empleados
+name: KMO-9 secure token restore
+tags:
+  - auth
+---
+- runFlow: shared/sign-in.yaml
+
+# From here the flow deliberately does NOT use shared/launch.yaml. That file
+# starts with clearState, which wipes the very keystore entry this is about — it
+# is what makes every other flow start at a login screen. The relaunch below is
+# the same dev-client bootstrap with the clearState left out.
+- stopApp
+
+# The stopped app's last frame lingers in the view hierarchy while the window
+# animates away, and 'Inicio' is still in it. Without this wait the assertion
+# further down would match the *previous* process and pass whatever the keystore
+# did.
+- extendedWaitUntil:
+    notVisible: 'Inicio'
+    timeout: 15000
+    label: 'The signed-in shell is off the screen before the app is started again'
+
+# The dev client is handed the Metro URL the same way launch.yaml hands it over.
+# Nothing was cleared, so its one-time onboarding card does not reappear and there
+# is no Continue to tap: the app comes straight back up.
+- openLink: kolvi://expo-development-client/?url=${DEV_SERVER}
+
+# #3 — the assertion the whole flow exists for. The employee is back on the tab
+# shell without having typed anything, which is only possible if the token came
+# back out of the keystore.
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 120000
+    label: 'The stored token restored the session on a cold start'
+
+- assertVisible: 'Jornada'
+- assertNotVisible: 'Ingresar'
+- assertNotVisible: 'Correo electrónico'
+
+- takeScreenshot: kmo-9-restored-session

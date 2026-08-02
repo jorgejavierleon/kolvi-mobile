@@ -249,7 +249,9 @@ Tests sit next to what they test: `button.tsx` and `button.test.tsx` in the same
 - **Datetimes on the wire are naive Santiago wall-clock strings** (`YYYY-MM-DD HH:mm:ss`).
   Never apply a timezone conversion or stamp a device offset on them; doing so silently
   shifts legally-binding timestamps.
-- **Tokens go in Expo SecureStore**, never `AsyncStorage`.
+- **Tokens go in Expo SecureStore**, never `AsyncStorage`. ESLint blocks the imports that
+  would put a credential anywhere else — AsyncStorage and `expo-file-system` — so this is a
+  build failure rather than a convention.
 - Minimum hit target is 44px, and status is never encoded by colour alone.
 
 ## Project status
@@ -261,9 +263,9 @@ Jornada, Permisos, Documentos) with the profile surface over it, in `src/app/(ta
 
 A cold start now lands on `/login`. `src/features/auth/` exchanges the employee's credentials
 for a Sanctum token, reads the user behind it and holds the session; `Stack.Protected` in
-`src/app/_layout.tsx` decides which half of the app exists. The token is in memory only until
-KMO-9 moves it to SecureStore, so a restart signs the employee out. The tabs themselves are
-still empty — run `backlog task list --plain` to see the backlog.
+`src/app/_layout.tsx` decides which half of the app exists. The token lives in the platform
+keystore (`src/features/auth/token-store.ts`), so a restart lands a signed-in employee back on
+the tabs rather than at the login screen. The tabs themselves are still empty — run `backlog task list --plain` to see the backlog.
 
 Two things the session cannot do yet, both waiting on the backend: `GET /api/user` reports no
 permissions (`ams` KOL-5), so `can()` is wired up and answers `false` to everything; and there

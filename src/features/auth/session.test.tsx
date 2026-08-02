@@ -8,7 +8,8 @@ import { es } from '@/i18n';
 import type { AuthApi } from './auth-api';
 import { parsePermissions } from './permissions';
 import type { SessionUser } from './session-user';
-import { createMemoryTokenStore, SessionProvider, useSession, type TokenStore } from './session';
+import { SessionProvider, useSession } from './session';
+import { createMemoryTokenStore, type TokenStore } from './token-store';
 
 const employee: SessionUser = {
   id: 3,

@@ -9,8 +9,9 @@
 # does not need the shell should keep using shared/launch.yaml and stay
 # independent of the backend.
 #
-# The token lives in memory until KMO-9, so every run signs in again; that is
-# also why clearState inside launch.yaml is enough to guarantee a login screen.
+# Since KMO-9 the token is in the keystore, so a run only reaches the login screen
+# because clearState inside launch.yaml wipes it first. A flow that relaunches the
+# app without clearing state keeps its session — see kmo-9-secure-token-restore.yaml.
 appId: cl.kolvi.empleados
 ---
 - runFlow: launch.yaml

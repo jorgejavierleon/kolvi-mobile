@@ -6,10 +6,9 @@
  * permissions the app gates on. Keeping them in one place is what makes signing in
  * and signing out single events rather than a sequence a screen could half-perform.
  *
- * The token lives behind `TokenStore`, and the store used here keeps it in memory
- * only: it is gone when the process is. KMO-9 swaps in a SecureStore-backed store
- * and nothing else in this file changes — which is also why the restore path below
- * exists before there is anything to restore.
+ * The token lives behind `TokenStore`, which is the platform keystore in the app and
+ * memory in the tests. Where it sits is entirely that module's business; this one
+ * decides only when it is read, written and forgotten.
  */
 
 import {
@@ -35,6 +34,7 @@ import {
 import { resolveDeviceName } from './device-name';
 import { noPermissions, type Permission, type PermissionSet } from './permissions';
 import type { SessionUser } from './session-user';
+import { createSecureTokenStore, type TokenStore } from './token-store';
 
 /**
  * `restoring` is the first frame, before the store has been asked whether there is
@@ -42,12 +42,6 @@ import type { SessionUser } from './session-user';
  * employee who is already signed in.
  */
 export type SessionStatus = 'restoring' | 'signedOut' | 'signedIn';
-
-export type TokenStore = {
-  read(): Promise<string | null>;
-  write(token: string): Promise<void>;
-  clear(): Promise<void>;
-};
 
 export type SignInOutcome = { readonly ok: true } | { readonly ok: false; failure: AuthFailure };
 
@@ -65,26 +59,11 @@ export type Session = {
   signOut(): Promise<void>;
 };
 
-/** In-memory only: a restart signs the employee out. KMO-9 replaces this. */
-export function createMemoryTokenStore(): TokenStore {
-  let token: string | null = null;
-
-  return {
-    read: async () => token,
-    write: async (value: string) => {
-      token = value;
-    },
-    clear: async () => {
-      token = null;
-    },
-  };
-}
-
 const SessionContext = createContext<Session | null>(null);
 
 export type SessionProviderProps = {
   children: ReactNode;
-  /** Injected in tests, and by KMO-9 when the token becomes persistent. */
+  /** Injected in tests, which use the in-memory store rather than the keystore. */
   tokenStore?: TokenStore;
   authApi?: AuthApi;
   deviceName?: () => Promise<string>;
@@ -96,7 +75,7 @@ export function SessionProvider({
   authApi,
   deviceName = resolveDeviceName,
 }: SessionProviderProps) {
-  const store = useMemo(() => tokenStore ?? createMemoryTokenStore(), [tokenStore]);
+  const store = useMemo(() => tokenStore ?? createSecureTokenStore(), [tokenStore]);
   const api = useMemo(() => authApi ?? createAuthApi(), [authApi]);
 
   const [status, setStatus] = useState<SessionStatus>('restoring');

@@ -7,7 +7,8 @@ import type { AuthApi } from './auth-api';
 import { LoginScreen } from './login-screen';
 import { parsePermissions } from './permissions';
 import type { SessionUser } from './session-user';
-import { createMemoryTokenStore, SessionProvider } from './session';
+import { SessionProvider } from './session';
+import { createMemoryTokenStore } from './token-store';
 
 /** The two sentences `ams` returns, from `lang/es/auth.php`. */
 const CREDENTIALS_REJECTED = 'Estas credenciales no coinciden con nuestros registros.';
