@@ -1,12 +1,40 @@
+import { employeePermissions } from './permissions';
 import { parseSessionUser } from './session-user';
 
 /**
- * Trimmed from the real body of `GET /api/user` against a locally running `ams`:
- * the endpoint returns the raw model, so the payload carries far more than this
- * and the parse has to ignore all of it.
+ * The body of `GET /api/user` copied byte for byte off a locally running `ams`
+ * after KOL-5, which narrowed the endpoint to a `UserResource` and added the
+ * permission names. Reproduced rather than paraphrased: the whole point of these
+ * tests is that the app agrees with what the server actually sends.
  */
 const payload = {
-  id: 3,
+  id: 5,
+  name: 'Empleado Demo',
+  first_name: 'Empleado',
+  last_name: 'Demo',
+  rut: '21437581-8',
+  email: 'employee@example.com',
+  avatar: null,
+  permissions: [
+    'RequestOwn:Leave',
+    'ViewOwn:Leave',
+    'CancelOwn:Leave',
+    'ClockOwn:Mark',
+    'ViewOwn:Mark',
+    'ViewOwn:Workday',
+    'ReviewOwn:MarkModification',
+    'ViewOwn:Document',
+    'SignOwn:Document',
+  ],
+};
+
+/**
+ * What the endpoint returned before KOL-5: the raw Eloquent model, every column
+ * and no permissions. Kept because the parse is a whitelist and has to stay one —
+ * a column added in `ams` must not become something the app reads.
+ */
+const rawModelPayload = {
+  id: 5,
   organization_id: 1,
   company_id: 1,
   name: 'Empleado Demo',
@@ -24,10 +52,10 @@ const payload = {
 
 describe('parseSessionUser', () => {
   it('keeps only the fields the app uses', () => {
-    const user = parseSessionUser(payload);
+    const user = parseSessionUser(rawModelPayload);
 
     expect(user).toEqual({
-      id: 3,
+      id: 5,
       name: 'Empleado Demo',
       firstName: 'Empleado',
       email: 'employee@example.com',
@@ -36,15 +64,20 @@ describe('parseSessionUser', () => {
     });
   });
 
-  it('reads the permissions the server reports', () => {
-    const user = parseSessionUser({ ...payload, permissions: ['ClockOwn:Mark'] });
+  // #8 — the real payload, and the whole point of it: every permission the
+  // employee role grants arrives and is readable by name.
+  it('reads all nine permissions out of the payload ams actually sends', () => {
+    const user = parseSessionUser(payload);
 
-    expect(user?.permissions.has('ClockOwn:Mark')).toBe(true);
+    expect(user?.permissions.size).toBe(employeePermissions.length);
+    for (const permission of employeePermissions) {
+      expect(user?.permissions.has(permission)).toBe(true);
+    }
   });
 
-  // #8 — today's payload. The user parses, and holds nothing.
+  // A payload from before KOL-5, or from a deployment that has not caught up.
   it('parses a payload with no permissions field and grants nothing', () => {
-    expect(parseSessionUser(payload)?.permissions.size).toBe(0);
+    expect(parseSessionUser(rawModelPayload)?.permissions.size).toBe(0);
   });
 
   it.each<[string, unknown]>([

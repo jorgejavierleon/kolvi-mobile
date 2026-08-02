@@ -18,7 +18,14 @@ tags:
 ---
 - runFlow: shared/launch.yaml
 
-- assertVisible: 'Kolvi'
-- assertVisible: 'Ingresar'
+# Bounded rather than immediate: the dev menu closing and the first frame of the
+# app are two different moments, and a bare assertion between them fails on a
+# loaded machine while proving nothing on a quiet one.
+- extendedWaitUntil:
+    visible: 'Ingresar'
+    timeout: 60000
+    label: 'A cold launch reaches a rendered screen'
+
+- assertVisible: 'Correo electrónico'
 
 - takeScreenshot: kmo-1-launched

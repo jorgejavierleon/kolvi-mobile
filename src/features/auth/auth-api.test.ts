@@ -90,6 +90,40 @@ describe('fetchSessionUser', () => {
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer tok_abc');
   });
 
+  // #8, end to end through the real client: the bytes below are what a locally
+  // running `ams` returns after KOL-5, and every permission in them has to come
+  // out the other side as something `can()` can be asked about.
+  it('reads the permissions out of the payload ams returns after KOL-5', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue(
+      respondWith(200, {
+        id: 5,
+        name: 'Empleado Demo',
+        first_name: 'Empleado',
+        last_name: 'Demo',
+        rut: '21437581-8',
+        email: 'employee@example.com',
+        avatar: null,
+        permissions: [
+          'RequestOwn:Leave',
+          'ViewOwn:Leave',
+          'CancelOwn:Leave',
+          'ClockOwn:Mark',
+          'ViewOwn:Mark',
+          'ViewOwn:Workday',
+          'ReviewOwn:MarkModification',
+          'ViewOwn:Document',
+          'SignOwn:Document',
+        ],
+      }),
+    );
+
+    const user = await apiWith(fetchImpl).fetchSessionUser('tok_abc');
+
+    expect(user.permissions.has('ClockOwn:Mark')).toBe(true);
+    expect(user.permissions.size).toBe(9);
+    expect(user.rut).toBe('21437581-8');
+  });
+
   it('refuses a body that is not a user', async () => {
     const fetchImpl = jest.fn().mockResolvedValue(respondWith(200, { id: 3 }));
 

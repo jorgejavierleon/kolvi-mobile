@@ -1,11 +1,11 @@
 ---
 id: KMO-8
 title: Login screen and token acquisition
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-02 12:35'
+updated_date: '2026-08-02 14:04'
 labels:
   - mobile
   - auth
@@ -40,7 +40,7 @@ The app must gate features on the permissions the API reports for the user, neve
 - [x] #5 Network failure during login is distinguishable from a credential rejection and offers a retry
 - [x] #6 The submit control shows a loading state and cannot be double-submitted
 - [x] #7 The password field masks input and offers a reveal toggle
-- [ ] #8 The permissions reported for the user are stored and exposed to the app, and features gate on them rather than on the role name
+- [x] #8 The permissions reported for the user are stored and exposed to the app, and features gate on them rather than on the role name
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -108,6 +108,20 @@ Two flow-harness fixes came out of this:
 `npm run test:e2e`: 5/5 flows passed, twice in a row. `bin/device net off && bin/e2e flows/kmo-8-login-offline.yaml`: passed. `npm run check`: green (27 suites, 404 tests).
 
 Note for the reviewer: the demo employee accumulated Sanctum tokens in the local ams database, one per flow run, because clearState wipes the stored device id. They are dev fixtures and were left alone.
+
+ams KOL-5 shipped (ams commits c5e643d / f4ae279), so #8 was verified and checked.
+
+Probed the live endpoint with a real token against the running ams: `GET /api/user` now returns exactly the contract KOL-5 was raised for — `{id, name, first_name, last_name, rut, email, avatar, permissions}` with `permissions` a flat array of the nine EMPLOYEE_PERMISSIONS names, and none of the internal columns the raw model used to leak.
+
+Client-side evidence: `session-user.test.ts` and `auth-api.test.ts` now carry that payload byte for byte as their fixture, and assert that all nine names come out as a `PermissionSet` — the second one through the real `createApiClient`, so the whole path from response body to `can()` is covered. The old raw-model body is kept as a second fixture so the parse stays a whitelist and still fails closed when the field is absent.
+
+Device evidence: `flows/kmo-8-login.yaml` signs in against the real ams and reaches the tab shell, and the ams request log shows the `GET /api/user` behind it. The app parses that response — a shape it could not read would fail the sign-in outright, since `parseSessionUser` returning null is a malformed-response error.
+
+What is verified is that permissions are stored and exposed, and that the only gate the app has is `can(permission)`: no role name is parsed anywhere — `parseSessionUser` does not read one. No screen gates on anything yet because the tabs are still scaffolds; KMO-17 is the first real consumer.
+
+Flow-harness state, for the record. `shared/launch.yaml` needed three more fixes while re-running the suite on a windowed emulator (`bin/emu start --window`, which the reviewer asked for): the app is stopped before its state is cleared, the flow waits for the stopped app frame to leave the hierarchy before waiting for the dev-client onboarding (otherwise the wait matches the *previous* run within two seconds and every step after it races a launch that has not started), and the dev menu is dismissed by tapping the scrim rather than with a back press (back closes the app whenever the sheet has already gone, and guarding on visibility does not help because the sheet can close between the check and the press).
+
+That took the suite from a deterministic failure to passing, but not to reliably passing: three consecutive `npm run test:e2e` runs gave 5/5, 4/5 and 4/5, with a different flow failing each time and always the same symptom — the dev client never brings the app up and the assertion times out against the launcher. It reproduces on the windowed emulator and did not appear on the headless one earlier in the day. It is a harness problem, not an app problem: every flow passes when run on its own. KMO-47 owns the harness if this is worth chasing.
 <!-- SECTION:NOTES:END -->
 
 ## Comments
@@ -130,4 +144,6 @@ Both endpoints sit outside `/api/v1`, so the feature builds its own client again
 Verified on the emulator against a locally running `ams`: `flows/kmo-8-login.yaml` covers #1, #3, #4 wrong credentials and #7; `flows/kmo-8-login-offline.yaml` under `bin/device net off` covers #5; #2 was confirmed by relaunching without clearing storage and watching the second login reuse the same token name. #6 is Jest for the double-submit guard plus a screenshot of the in-flight button. `npm run check` green (404 tests, 27 suites); `npm run test:e2e` 5/5 twice.
 
 #8 is left open: `GET /api/user` reports no permissions, so nothing can gate on them yet. The client half — the Permission union, the tolerant parse, `can()` failing closed — is built and Jest-verified, and ams KOL-5 was raised for the UserResource that closes it.
+
+Closed out after ams KOL-5 shipped: `GET /api/user` now returns the nine permission names, the parser is tested against that exact body end to end through the real client, and a device login consumes it. All eight criteria verified. The one caveat worth carrying forward is that nothing gates on `can()` yet — the tabs are scaffolds — so KMO-17 is where the gate first does visible work.
 <!-- SECTION:FINAL_SUMMARY:END -->

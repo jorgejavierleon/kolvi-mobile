@@ -7,19 +7,41 @@
 # cold-starts into itself.
 #
 # Everything below the openLink is that detour: the dev client is handed the
-# Metro URL explicitly, then shows its one-time developer-menu onboarding, which
-# has to be dismissed before the app is on screen. bin/e2e supplies DEV_SERVER
+# Metro URL explicitly, and then shows up to two things in front of the app — a
+# one-time onboarding card and the developer menu behind it. Neither is
+# guaranteed: which of them appears depends on what the dev client remembers, so
+# every step that deals with them is conditional. bin/e2e supplies DEV_SERVER
 # already percent-encoded and guarantees Metro is reachable first.
 #
 # When a preview or release APK lands (KMO-7) this file collapses to clearState
 # + launchApp, and no flow that uses it has to change.
 appId: cl.kolvi.empleados
 ---
+# Stopped before the state is cleared, and before anything is asserted. A
+# clearState on a running app leaves its last screen on display, and the waits
+# below then match the *previous* run's dev menu within a second or two — every
+# step after that races the real cold start and fails somewhere else.
+- stopApp
+
 - clearState
+
+# The stopped app's last frame survives in the view hierarchy for a second or two
+# while the window animates away — long enough for the wait below to match the
+# *previous* run's onboarding card and let every step after it race a launch that
+# has not started. This is the wait for that frame to be gone. Optional: when the
+# app was not running there is nothing to wait for.
+- extendedWaitUntil:
+    notVisible: '.*This is the developer menu.*'
+    timeout: 15000
+    optional: true
+    label: 'Let the stopped app leave the screen'
 
 - openLink: kolvi://expo-development-client/?url=${DEV_SERVER}
 
-# Generous: a cold Metro start compiles the bundle before it can serve it.
+# Generous: a cold Metro start compiles the bundle before it can serve it. The
+# match is on the onboarding card's own sentence rather than on the app name —
+# the launcher labels its icon `Kolvi` too, and matching that would let every
+# step below race a launch that has not happened yet.
 - extendedWaitUntil:
     visible: '.*This is the developer menu.*'
     timeout: 180000
@@ -27,15 +49,29 @@ appId: cl.kolvi.empleados
 
 - tapOn: 'Continue'
 
-# `Continue` dismisses the onboarding card and leaves the dev menu itself up, so
-# a back press is what actually gets to the app. But the menu sometimes closes on
-# its own, and then the same back press closes the *app* — the flow goes on to
-# fail several steps later against the launcher, which looks nothing like the
-# cause. So the press is conditional on the menu still being there, matched on a
-# row only it has.
-- runFlow:
-    when:
-      visible: 'Toggle performance monitor'
-    commands:
-      - back:
-          label: 'Close the developer menu'
+# The onboarding card appears as soon as the dev client starts, well before the
+# bundle is ready, so dismissing it proves nothing about the app being up. The
+# dev menu behind it belongs to the loaded app, so waiting for one of its rows is
+# what actually says "the bundle is running" — and it is what makes the tap below
+# land on the sheet rather than on whatever the dev client is still showing.
+# Optional: on a dev client that skips the menu there is simply nothing to wait
+# for, and the flow's own first assertion takes over.
+- extendedWaitUntil:
+    visible: 'Toggle performance monitor'
+    timeout: 60000
+    optional: true
+    label: 'The dev menu, which only exists once the bundle is running'
+
+# `Continue` only dismisses the card; the dev menu sheet behind it can still be
+# up. Dismissed by tapping the scrim above it rather than with a back press: back
+# closes the *app* whenever the sheet has already gone, and the flow then fails
+# several steps later against the launcher, which looks nothing like the cause.
+# Guarding the press on the sheet being visible does not fix it either — the
+# sheet can close between the check and the press.
+#
+# The tap is unconditional because it is harmless either way: with the sheet up
+# it dismisses it, and without it the point lands on empty page tint above the
+# first screen's heading.
+- tapOn:
+    point: '50%,20%'
+    label: 'Dismiss the developer menu by tapping outside it'
