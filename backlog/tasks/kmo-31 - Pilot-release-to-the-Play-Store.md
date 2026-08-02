@@ -4,6 +4,7 @@ title: Pilot release to the Play Store
 status: To Do
 assignee: []
 created_date: '2026-07-30 20:59'
+updated_date: '2026-08-02 00:37'
 labels:
   - mobile
   - release
@@ -13,6 +14,7 @@ dependencies:
   - KMO-28
   - KMO-29
   - KMO-30
+  - KMO-48
 documentation:
   - docs/prd-mobile-app.md
   - docs/design-decisions.md

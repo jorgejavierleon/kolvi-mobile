@@ -7,6 +7,10 @@ java = "temurin-17.0.20+8"
 # checkout reproduces the version the flows were written against.
 maestro = "cli-2.7.0"
 
+# The one tool the README asked for (Node 20+, developed on 24) that nothing
+# pinned, so `mise install` now covers the whole toolchain rather than most of it.
+node = "24"
+
 [env]
 ANDROID_HOME = "{{ env.HOME }}/Android"
 ANDROID_SDK_ROOT = "{{ env.HOME }}/Android"

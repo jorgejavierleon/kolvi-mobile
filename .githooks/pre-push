@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Run the checks before anything leaves the machine.
+#
+# There is no CI on this repo: one developer, no pull requests, so the gate that
+# keeps master building has to be local. This is that gate — `npm run check`,
+# the same command the README documents, run once per push rather than once per
+# commit because 310 tests and a full typecheck are too slow to pay for on every
+# `git commit`.
+#
+# Installed by the `prepare` script in package.json, which points
+# core.hooksPath at this directory. Verify with:
+#
+#   git config core.hooksPath        -> .githooks
+#
+# To push anyway — a work-in-progress branch, a checkout that cannot build —
+# skip it deliberately and say so:
+#
+#   git push --no-verify
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+# Nothing to check if the dependencies were never installed; a checkout that has
+# not run `npm install` cannot have anything worth pushing either.
+if [ ! -d node_modules ]; then
+  echo "pre-push: node_modules missing — run 'npm install' first" >&2
+  exit 1
+fi
+
+echo "pre-push: npm run check (typecheck, lint, format, tests)" >&2
+
+if ! npm run --silent check; then
+  echo >&2
+  echo "pre-push: checks failed — push aborted. Fix them, or 'git push --no-verify'." >&2
+  exit 1
+fi

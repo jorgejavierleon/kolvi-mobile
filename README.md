@@ -165,6 +165,22 @@ everything resolves without needing a device.
 
 All of these pass on a clean checkout. Keep it that way.
 
+### Before a push
+
+There is no hosted CI. `.githooks/pre-push` runs `npm run check` and aborts the push if it
+fails, so the gate that keeps `master` building is local and runs the same command you would
+run by hand. `npm install` installs it — the `prepare` script points `core.hooksPath` at
+`.githooks/`, so a fresh checkout is gated after one command and nothing new is in
+`package.json`'s dependency tree.
+
+```bash
+git config core.hooksPath      # .githooks — confirms it is installed
+git push --no-verify           # skip it deliberately, for a WIP branch
+```
+
+Per push rather than per commit: a full typecheck and 310 tests are too slow to pay for on
+every `git commit`, and a broken intermediate commit on a branch harms nobody.
+
 ## Validation tiers
 
 A criterion is signed off at the cheapest tier that can honestly carry it, and never at a
