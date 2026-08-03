@@ -1,11 +1,11 @@
 ---
 id: KMO-12
 title: Sign out with server-side token revocation
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-03 16:38'
+updated_date: '2026-08-03 16:52'
 labels:
   - mobile
   - auth
@@ -132,3 +132,19 @@ npm run check green (539 tests). D7 in docs/design-decisions.md rewritten: it
 recorded 'v1 alongside the existing unversioned mark routes', which stopped being
 true.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Cerrar sesión on Mi perfil now revokes this device's Sanctum token server-side before it clears anything locally.
+
+A confirmation sheet stands in front of the action — the tap that ends a session is always the second one, and the sheet says what signing out costs rather than only asking twice. With unsynced punches queued the body is replaced by an explicit warning naming how many attendance records would be destroyed; that path is built and unit-tested but unreachable today, because no offline queue exists yet (#3, left unchecked).
+
+A revocation that cannot reach the server does not keep the employee signed in. The local state goes either way, and the login screen carries the part that is still true: this phone's access stays active until it reconnects. That sentence is the only thing distinguishing a deliberate sign-out from KMO-11's expiry notice, so the two are held apart by test.
+
+Shipped alongside ams KOL-6, which added DELETE /api/v1/tokens/current and moved the whole mobile surface under the version prefix. auth-api.ts followed it: it resolves the shared /api/v1 base and holds relative paths, keeping its own client only because the singleton would turn a refused login into a session-expiry notice. D7 rewritten to match.
+
+Verified: npm run check green (35 suites, 539 tests). flows/kmo-12-sign-out.yaml and flows/kmo-12-sign-out-offline.yaml both pass, screenshots read by eye. #1 proven server-side rather than by request shape — 5 tokens before the sign-out, 4 after, that device's token gone and the other four untouched. #4 proven the same way: after an offline sign-out the server still holds the token, exactly as the notice claims.
+
+#3 is the one criterion left open. It needs KMO-22/23's queue and a real count passed from src/app/perfil.tsx; nothing else about it is outstanding.
+<!-- SECTION:FINAL_SUMMARY:END -->
