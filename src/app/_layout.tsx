@@ -77,6 +77,7 @@ function RootNavigator() {
       <Stack.Protected guard={signedIn && !locked}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="perfil" />
+        <Stack.Screen name="cambiar-contrasena" />
       </Stack.Protected>
 
       {/* Not `!signedIn`: an employee behind the lock is signed in, and the way

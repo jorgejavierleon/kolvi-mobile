@@ -121,6 +121,57 @@ export const es = {
       notRevoked:
         'Cerramos tu sesión en este teléfono, pero no pudimos avisarle al servidor. El acceso de este teléfono seguirá activo hasta que vuelva a tener conexión.',
     },
+
+    /**
+     * Cambiar contraseña (KMO-13). Res. 38 Art. 7f: the worker changes their own
+     * password, and a confirmation email follows.
+     *
+     * `intro` says *la misma que usas en Kolvi* on purpose. There is one
+     * credential — `users.password` — and it is the same one the web console
+     * takes, so an employee who changes it here has changed it everywhere. A
+     * screen that let them believe this was a phone-only password would be
+     * describing an account that does not exist.
+     *
+     * What is *not* here, again: why the server refused. A wrong current password
+     * and a policy failure both arrive from `ams` in Spanish, out of
+     * `lang/es/validation.php`, and are shown verbatim under the field they name.
+     */
+    changePassword: {
+      /** The row on Mi perfil, the screen's title, and the submit button. */
+      action: 'Cambiar contraseña',
+      back: 'Volver a Mi perfil',
+      intro:
+        'Esta es la misma contraseña que usas para entrar a Kolvi desde el computador. Al cambiarla, cambia en los dos lugares.',
+      current: 'Contraseña actual',
+      new: 'Nueva contraseña',
+      confirm: 'Repite la nueva contraseña',
+
+      /** Caught before the request, so an empty field is not a round trip. */
+      currentRequired: 'Ingresa tu contraseña actual.',
+      newRequired: 'Ingresa la nueva contraseña.',
+      confirmRequired: 'Repite la nueva contraseña.',
+      /**
+       * Also caught here rather than sent. The server's `confirmed` rule would
+       * answer the same thing a second later, and a mismatch the employee can see
+       * on screen is not worth a round trip to be told about.
+       */
+      mismatch: 'Las dos contraseñas no coinciden.',
+
+      /**
+       * The success state (#3). It names the email because Art. 7f is what the
+       * email is for — an employee who did not change their password needs to
+       * recognise the message as the warning it is when it arrives.
+       *
+       * It does not print the address. `ams` mails whichever of `personal_email`
+       * and `email` it has, and the app is not told which was used; naming the
+       * wrong inbox would send someone looking in a place nothing arrived.
+       */
+      successTitle: 'Tu contraseña quedó cambiada',
+      successBody:
+        'Te enviamos un correo confirmando el cambio. Desde ahora entra a Kolvi con la contraseña nueva.',
+      /** Leaves the screen once the change is done. */
+      done: 'Listo',
+    },
   },
 
   /**

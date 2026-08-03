@@ -3,6 +3,8 @@ import { router } from 'expo-router';
 import { SignOut } from '@/features/auth/sign-out';
 import { UnlockSetting } from '@/features/auth/unlock-setting';
 import { es } from '@/i18n';
+import { Button } from '@/ui/button';
+import { Card } from '@/ui/card';
 import { OverlayHeader } from '@/ui/overlay-header';
 import { Screen } from '@/ui/screen';
 import { SectionScaffold } from '@/ui/section-scaffold';
@@ -19,6 +21,10 @@ import { SectionScaffold } from '@/ui/section-scaffold';
  * KMO-25 has not built yet: KMO-10 #5 needs the biometric switch reachable from the
  * profile and KMO-12 needs Cerrar sesión, and building KMO-25's four-row card early
  * to hold them would put that task's design decisions in these ones' commits.
+ *
+ * Cambiar contraseña sits with them for the same reason, and is a plain Card for
+ * now: KMO-13 #5 needs it reachable from here, and Mi perfil has no menu to put a
+ * row into yet.
  *
  * `SignOut` takes the count of punches this phone has not synced, which is zero
  * because there is no queue yet — KMO-22 and KMO-23 build the one this reads from,
@@ -37,6 +43,19 @@ export default function ProfileScreen() {
       }
     >
       <UnlockSetting />
+
+      {/* KMO-13 #5. Composed here rather than in `features/auth` because it is
+          navigation and nothing else — no feature in this app imports the router,
+          and the screen it opens owns the whole of the change. */}
+      <Card testID="change-password-link">
+        <Button
+          label={es.auth.changePassword.action}
+          onPress={() => router.push('/cambiar-contrasena')}
+          testID="change-password-open"
+          variant="secondary"
+        />
+      </Card>
+
       <SignOut />
       <SectionScaffold section={es.profile.title} />
     </Screen>
