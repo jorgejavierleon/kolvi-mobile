@@ -47,12 +47,16 @@ export type SessionStatus = 'restoring' | 'signedOut' | 'signedIn';
 export type SignInOutcome = { readonly ok: true } | { readonly ok: false; failure: AuthFailure };
 
 /**
- * A session the server ended, rather than one the employee did.
+ * What the login screen still has to say about the session that just ended.
  *
- * It exists so the login screen can say why it is on screen. Only a refusal the
- * server actually made produces one: a signed-out employee who never signed in,
- * and one who pressed Cerrar sesión, are both `null` — neither has anything to be
- * told (KMO-11 #1).
+ * Usually nothing: an employee who never signed in, and one whose Cerrar sesión
+ * did everything it promised, are both `null` — neither is owed an explanation for
+ * a screen they expected (KMO-11 #1).
+ *
+ * Two cases produce one. The server refused the token, so the session ended
+ * without the employee choosing it (KMO-11); or the employee chose it but the
+ * revocation never reached the server, which leaves a fact about this phone that
+ * outlives the session (KMO-12 #4).
  */
 export type SessionEnd = {
   /** The Spanish sentence the login screen shows. */
@@ -123,8 +127,26 @@ export function SessionProvider({
     [store],
   );
 
-  /** `Cerrar sesión`, once KMO-12 builds it. The employee's own doing, so no notice. */
-  const signOut = useCallback(() => forget(null), [forget]);
+  /**
+   * `Cerrar sesión`.
+   *
+   * The revocation goes first and the local clear happens regardless (#1, #4).
+   * That order is the whole point of the criterion: clearing local storage is not
+   * signing out, because the token keeps working for anyone holding the phone, so
+   * the server has to be told while the app still has a token to tell it with.
+   *
+   * Failing to reach the server does not keep the employee signed in. A phone that
+   * cannot revoke is often exactly the phone someone wants to sign out of, and
+   * refusing would leave the session, the token and the cached employee sitting on
+   * a device its owner is trying to hand over. So the token is cleared here and the
+   * login screen carries the part that is still true.
+   */
+  const signOut = useCallback(async () => {
+    const revoking = token.current;
+    const revoked = revoking === null ? true : await api.revokeToken(revoking);
+
+    await forget(revoked ? null : { message: es.auth.signOut.notRevoked });
+  }, [api, forget]);
 
   // Installed during render, not in an effect: effects run child-first, so a
   // screen that fires a request as it mounts would otherwise reach an

@@ -11,7 +11,14 @@
  * - `rut.ts` — the dotted RUT with its verifier digit
  * - `hours.ts` — decimal hours, as a decimal and as a duration on the clock
  */
-export { es, pendingSyncSummary, sectionEnd, tabWithPendingCount, weekSummary } from './strings';
+export {
+  es,
+  pendingSyncSummary,
+  sectionEnd,
+  tabWithPendingCount,
+  unsyncedPunchesWarning,
+  weekSummary,
+} from './strings';
 
 export {
   formatClockTime,

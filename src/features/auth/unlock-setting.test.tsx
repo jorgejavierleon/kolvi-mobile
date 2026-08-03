@@ -29,6 +29,7 @@ function fakeAuthApi(): AuthApi {
   return {
     issueToken: jest.fn(async () => 'tok_abc'),
     fetchSessionUser: jest.fn(async () => employee),
+    revokeToken: jest.fn(async () => true),
   };
 }
 

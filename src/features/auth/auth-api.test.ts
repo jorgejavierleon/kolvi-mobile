@@ -133,6 +133,52 @@ describe('fetchSessionUser', () => {
   });
 });
 
+// KMO-12 #1. `ams` has no such route yet (KOL-6), so these pin the contract the
+// app was built against rather than describing a server anyone can call today.
+describe('revokeToken', () => {
+  it('deletes the current token at the versioned path, carrying the token being revoked', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue(respondWith(204));
+
+    const revoked = await apiWith(fetchImpl).revokeToken('tok_abc');
+
+    expect(revoked).toBe(true);
+
+    const { url, init } = lastRequest(fetchImpl);
+    expect(url).toBe('https://ams.test/api/v1/tokens/current');
+    expect(init.method).toBe('DELETE');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer tok_abc');
+  });
+
+  // A token the server already refuses cannot be used by anyone, so there is
+  // nothing to warn the employee about.
+  it('counts a 401 as revoked, because the token is already dead', async () => {
+    const fetchImpl = jest
+      .fn()
+      .mockResolvedValue(respondWith(401, { message: 'Unauthenticated.' }));
+
+    await expect(apiWith(fetchImpl).revokeToken('tok_abc')).resolves.toBe(true);
+  });
+
+  it.each<[string, () => Response | Promise<never>]>([
+    ['no connection', () => Promise.reject(new TypeError('Network request failed'))],
+    ['the 404 this endpoint returns until KOL-6 ships', () => respondWith(404)],
+    ['a server error', () => respondWith(500, undefined, '<html>502</html>')],
+  ])('reports the token as still live on %s', async (_label, outcome) => {
+    const fetchImpl = jest.fn().mockImplementation(outcome);
+
+    await expect(apiWith(fetchImpl).revokeToken('tok_abc')).resolves.toBe(false);
+  });
+
+  // The caller is signing the employee out and has nowhere to put an exception:
+  // a throw here would leave a token in the keystore on the one path built to
+  // remove it.
+  it('never throws, whatever the transport did', async () => {
+    const fetchImpl = jest.fn().mockRejectedValue(new Error('boom'));
+
+    await expect(apiWith(fetchImpl).revokeToken('tok_abc')).resolves.toBe(false);
+  });
+});
+
 describe('authFailureFrom', () => {
   // #4 — the criterion. Both rejections are 422s with the same shape; only the
   // sentence differs, and the app hands it through untouched rather than

@@ -1,0 +1,95 @@
+# KMO-12 — Cerrar sesión asks first, and the answer decides.
+#
+# Covers #2 (the action is confirmed rather than done on one tap, and Cancelar
+# really does leave the session alone) and #5 (after signing out the app is on the
+# login screen and nothing about the employee is readable behind it).
+#
+# Not #1 and not #4. #1 is about what happens on the server, which nothing on the
+# device can see — and `ams` has no revocation endpoint yet (KOL-6), so the DELETE
+# this flow provokes comes back 404. #4 is the copy that 404 produces, but only a
+# *connectivity* failure is a condition the emulator can arrange honestly, so it
+# lives in kmo-12-sign-out-offline.yaml with the radio off.
+#
+# Needs a reachable `ams`, like every flow built on shared/sign-in.yaml.
+appId: cl.kolvi.empleados
+name: KMO-12 sign out
+tags:
+  - auth
+  - perfil
+---
+- runFlow: shared/sign-in.yaml
+
+- tapOn: 'Abrir mi perfil'
+- extendedWaitUntil:
+    visible: 'Mi perfil'
+    timeout: 10000
+    label: 'The profile overlay is up'
+
+- assertVisible: 'Cerrar sesión'
+
+# #2, the first half. One tap opens the question and does nothing else — the
+# employee is still signed in, and the proof is that Mi perfil is still behind it.
+- tapOn:
+    id: 'sign-out-action'
+    label: 'Cerrar sesión on the profile card'
+
+- extendedWaitUntil:
+    visible: '¿Cerrar sesión?'
+    timeout: 10000
+    label: 'The confirmation sheet, character for character from src/i18n'
+
+- assertVisible:
+    text: 'Este teléfono dejará de tener acceso a tu cuenta. Para volver a entrar necesitarás tu correo y tu contraseña.'
+    label: 'The sheet says what signing out costs, rather than only asking twice'
+
+- takeScreenshot: kmo-12-confirm
+
+# #2, the second half, and the one that matters: Cancelar has to be a real way
+# out. An employee who backs out here must still be signed in.
+- tapOn:
+    id: 'sign-out-cancel'
+    label: 'Cancelar'
+
+- extendedWaitUntil:
+    notVisible: '¿Cerrar sesión?'
+    timeout: 10000
+    label: 'The sheet is gone'
+
+- assertVisible: 'Mi perfil'
+- assertNotVisible: 'Ingresar'
+
+# Now the deliberate answer.
+- tapOn:
+    id: 'sign-out-action'
+    label: 'Cerrar sesión again'
+- extendedWaitUntil:
+    visible: '¿Cerrar sesión?'
+    timeout: 10000
+    label: 'The sheet is back'
+- tapOn:
+    id: 'sign-out-confirm-action'
+    label: 'Confirm it'
+
+# #5. The revocation is a network round trip — and against an `ams` without
+# KOL-6 it is a 404 round trip — so the wait is generous. What has to be true at
+# the end of it is the login screen.
+- extendedWaitUntil:
+    visible: 'Ingresar'
+    timeout: 60000
+    label: 'Back at the login screen'
+
+- assertVisible: 'Correo electrónico'
+
+# #5 — nothing of the employee survives. The tab shell is gone, and so is the
+# profile it was opened from. `Empleado` is the strictest of these: the seeded
+# employee's name can only be on screen if the session outlived the sign-out.
+- assertNotVisible: 'Inicio'
+- assertNotVisible: 'Jornada'
+- assertNotVisible: 'Mi perfil'
+- assertNotVisible: 'Empleado'
+
+# The employee chose this, so the screen owes them no explanation — the
+# session-ended notice belongs to the 401 path (KMO-11), not to this one.
+- assertNotVisible: 'Tu sesión terminó. Vuelve a ingresar para continuar.'
+
+- takeScreenshot: kmo-12-signed-out

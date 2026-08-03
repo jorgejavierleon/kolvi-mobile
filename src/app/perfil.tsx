@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 
+import { SignOut } from '@/features/auth/sign-out';
 import { UnlockSetting } from '@/features/auth/unlock-setting';
 import { es } from '@/i18n';
 import { OverlayHeader } from '@/ui/overlay-header';
@@ -14,10 +15,14 @@ import { SectionScaffold } from '@/ui/section-scaffold';
  * KMO-25 fills in the avatar, the name and the menu — Mis datos, Notificaciones,
  * Ayuda y soporte, Cerrar sesión — each of which is its own task.
  *
- * `UnlockSetting` sits above the scaffold rather than inside the menu KMO-25 has
- * not built yet: KMO-10 #5 needs the biometric switch reachable from the profile,
- * and building KMO-25's four-row card early to hold one switch would put that
- * task's design decisions in this one's commit.
+ * `UnlockSetting` and `SignOut` sit above the scaffold rather than inside the menu
+ * KMO-25 has not built yet: KMO-10 #5 needs the biometric switch reachable from the
+ * profile and KMO-12 needs Cerrar sesión, and building KMO-25's four-row card early
+ * to hold them would put that task's design decisions in these ones' commits.
+ *
+ * `SignOut` takes the count of punches this phone has not synced, which is zero
+ * because there is no queue yet — KMO-22 and KMO-23 build the one this reads from,
+ * and passing it here is what keeps `features/auth` from importing `features/marcaje`.
  */
 export default function ProfileScreen() {
   return (
@@ -32,6 +37,7 @@ export default function ProfileScreen() {
       }
     >
       <UnlockSetting />
+      <SignOut />
       <SectionScaffold section={es.profile.title} />
     </Screen>
   );

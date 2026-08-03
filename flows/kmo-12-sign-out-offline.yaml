@@ -1,0 +1,79 @@
+# KMO-12 — signing out with no connection still ends the session, and says what
+# that leaves behind.
+#
+# Covers #4: the revocation cannot reach the server, the app clears local state
+# anyway rather than trapping the employee in a session they asked to leave, and
+# the login screen explains that this phone's access stays live until it
+# reconnects.
+#
+# Tagged out of collection, like the other flows whose whole point is a device
+# condition. The radio has to be off for the sign-out but on for the login before
+# it, so the arrangement is two runs around one command:
+#
+#   bin/e2e flows/shared/sign-in.yaml
+#   bin/device net off
+#   bin/e2e flows/kmo-12-sign-out-offline.yaml
+#   bin/device net on
+#
+# **This flow does not relaunch, and must not.** It picks up the running app that
+# sign-in.yaml left on the tab shell, because a cold start with the radio off does
+# not land signed in: restoring a session calls `GET /api/user`, and session.tsx
+# treats a request it cannot complete the same as a token the server refused —
+# the employee ends up at the login screen with nothing to sign out of. That is
+# KMO-49's gap, not this one's, and reaching for `stopApp` here would test it
+# instead of #4.
+appId: cl.kolvi.empleados
+name: KMO-12 sign out offline
+tags:
+  - auth
+  - perfil
+  - requires-offline
+---
+# Where sign-in.yaml finished. Asserted rather than assumed: if the arrangement
+# above was not followed, this is the line that says so, instead of a confusing
+# failure four commands later.
+- assertVisible:
+    text: 'Inicio'
+    label: 'The previous run left the app signed in on the tab shell'
+
+- tapOn: 'Abrir mi perfil'
+- extendedWaitUntil:
+    visible: 'Mi perfil'
+    timeout: 10000
+    label: 'The profile overlay is up'
+
+- tapOn:
+    id: 'sign-out-action'
+    label: 'Cerrar sesión'
+- extendedWaitUntil:
+    visible: '¿Cerrar sesión?'
+    timeout: 10000
+    label: 'The confirmation sheet'
+- tapOn:
+    id: 'sign-out-confirm-action'
+    label: 'Confirm it'
+
+# #4, the first half. The DELETE cannot be sent, and the session ends regardless:
+# a phone with no signal is often exactly the phone someone needs to sign out of,
+# and refusing would leave a live token on it. The timeout covers the client's
+# 15s request timeout with room to spare.
+- extendedWaitUntil:
+    visible: 'Ingresar'
+    timeout: 60000
+    label: 'Signed out anyway, and back at the login screen'
+
+- assertNotVisible: 'Inicio'
+- assertNotVisible: 'Mi perfil'
+- assertNotVisible: 'Empleado'
+
+# #4, the second half, and the reason the criterion exists: the app must not
+# imply the token is dead. It says the access survives, and what ends it.
+- assertVisible:
+    text: 'Cerramos tu sesión en este teléfono, pero no pudimos avisarle al servidor. El acceso de este teléfono seguirá activo hasta que vuelva a tener conexión.'
+    label: 'The unrevoked-token notice, character for character from src/i18n'
+
+# And it is this sentence, not the 401 one. An employee who signed out
+# deliberately is never told their session expired.
+- assertNotVisible: 'Tu sesión terminó. Vuelve a ingresar para continuar.'
+
+- takeScreenshot: kmo-12-signed-out-offline

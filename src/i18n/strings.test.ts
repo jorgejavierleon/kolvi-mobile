@@ -1,6 +1,13 @@
 import type { ApiErrorKind } from '@/api';
 
-import { es, pendingSyncSummary, sectionEnd, tabWithPendingCount, weekSummary } from './strings';
+import {
+  es,
+  pendingSyncSummary,
+  sectionEnd,
+  tabWithPendingCount,
+  unsyncedPunchesWarning,
+  weekSummary,
+} from './strings';
 
 /** Every leaf of the catalogue, as `['errors.network', 'Sin conexión. …']` pairs. */
 function entries(node: unknown, path: string[] = []): [string, string][] {
@@ -114,6 +121,35 @@ describe('the login copy', () => {
   });
 });
 
+// KMO-12. Signing out is destructive and irreversible, so the copy carries the
+// weight of the criteria: the sheet has to say what is lost, and the login screen
+// has to be honest about a token that outlived the session.
+describe('the sign-out copy', () => {
+  it('names the action and asks before doing it', () => {
+    expect(es.auth.signOut.action).toBe('Cerrar sesión');
+    expect(es.auth.signOut.title).toContain('¿');
+  });
+
+  // #2 — a confirmation that only asks "are you sure" teaches employees to tap
+  // through it. This one has to describe the consequence.
+  it('says what signing out costs rather than merely asking twice', () => {
+    expect(es.auth.signOut.body).toMatch(/dejará de tener acceso/);
+    expect(es.auth.signOut.body).toMatch(/contraseña/);
+  });
+
+  // #4 — the sentence has to state that access survives, and say what ends it.
+  it('admits the token stays usable when the revocation did not reach the server', () => {
+    expect(es.auth.signOut.notRevoked).toMatch(/seguirá activo/);
+    expect(es.auth.signOut.notRevoked).toMatch(/conexión/);
+  });
+
+  // Two different sessions ending for two different reasons. An employee who chose
+  // to sign out must not be told their session expired.
+  it('does not reuse the expiry sentence', () => {
+    expect(es.auth.signOut.notRevoked).not.toBe(es.auth.sessionExpired);
+  });
+});
+
 describe('phrases assembled around a server value', () => {
   it('agrees the count and the noun in a tab badge', () => {
     expect(tabWithPendingCount(es.tabs.jornada, 1)).toBe('Jornada, 1 pendiente');
@@ -124,6 +160,16 @@ describe('phrases assembled around a server value', () => {
   it('agrees the count and the noun in the pending-sync banner', () => {
     expect(pendingSyncSummary(1)).toBe('1 marca esperando sincronizar');
     expect(pendingSyncSummary(2)).toBe('2 marcas esperando sincronizar');
+  });
+
+  // KMO-12 #3. The number and the verb both have to agree, and the sentence has to
+  // name what is destroyed — an attendance record, not a session.
+  it('agrees the count and the verb in the sign-out warning', () => {
+    expect(unsyncedPunchesWarning(1)).toContain('1 marca registrada');
+    expect(unsyncedPunchesWarning(1)).toContain('Se perderá ');
+    expect(unsyncedPunchesWarning(4)).toContain('4 marcas registradas');
+    expect(unsyncedPunchesWarning(4)).toContain('Se perderán ');
+    expect(unsyncedPunchesWarning(2)).toContain('registro de asistencia');
   });
 
   it('writes the week summary with comma decimals and a bare contracted total', () => {

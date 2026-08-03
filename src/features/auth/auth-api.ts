@@ -1,16 +1,21 @@
 /**
- * The two calls a sign-in makes, and the one way it can fail.
+ * The calls that begin and end a session, and the one way a sign-in can fail.
  *
- * Both endpoints sit **outside** `/api/v1`: `ams` mounts `POST /api/sanctum/token`
- * publicly and `GET /api/user` behind `auth:sanctum`, neither under the versioned
- * prefix the rest of the app talks to. So this module binds its own client to the
- * bare origin instead of using the `@/api` singleton — which also keeps a rejected
- * login out of the singleton's session-expiry latch, where a 401 means "your
- * session ended" rather than "that password is wrong".
+ * Two of the three endpoints sit **outside** `/api/v1`: `ams` mounts
+ * `POST /api/sanctum/token` publicly and `GET /api/user` behind `auth:sanctum`,
+ * neither under the versioned prefix the rest of the app talks to. So this module
+ * binds its own client to the bare origin instead of using the `@/api` singleton
+ * and spells the version into the one path that has it.
+ *
+ * Staying off the singleton matters for a second reason, and it is the same
+ * reason for all three calls: the singleton latches a 401 into "your session
+ * ended". Here a 401 means "that password is wrong" on the way in, and "the token
+ * was already dead" on the way out — neither is an announcement to make.
  */
 
 import {
   ApiError,
+  API_VERSION_PREFIX,
   createApiClient,
   isApiError,
   resolveApiOrigin,
@@ -51,10 +56,24 @@ export type AuthApi = {
    * store, because the first call happens before the token has been stored.
    */
   fetchSessionUser(token: string): Promise<SessionUser>;
+  /**
+   * Kill this device's token on the server, and report whether it is dead.
+   *
+   * Never throws: a sign-out that fails is still a sign-out, and the caller's next
+   * move is the same either way. `false` is what makes the app say the token stays
+   * active until the device reconnects, so it has to mean exactly that.
+   */
+  revokeToken(token: string): Promise<boolean>;
 };
 
 const TOKEN_PATH = '/api/sanctum/token';
 const USER_PATH = '/api/user';
+/**
+ * PRD A2, and versioned where the other two are not: this route is new, and D7
+ * puts everything new under `/api/v1`. Tracked as `ams` KOL-6 — until it lands the
+ * call 404s, which reads here as "not revoked", which is the truth.
+ */
+const REVOKE_PATH = `${API_VERSION_PREFIX}/tokens/current`;
 
 export function createAuthApi(client?: ApiClient): AuthApi {
   const http = client ?? createApiClient({ baseUrl: resolveApiOrigin() });
@@ -87,6 +106,23 @@ export function createAuthApi(client?: ApiClient): AuthApi {
       }
 
       return user;
+    },
+
+    async revokeToken(token: string): Promise<boolean> {
+      try {
+        await http.del<unknown>(REVOKE_PATH, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        return true;
+      } catch (error) {
+        // A 401 is the one refusal that means the job is done: the server will not
+        // accept this token, so there is nothing left to revoke and telling the
+        // employee otherwise would be a warning about a credential that cannot be
+        // used. Everything else — no connection, a timeout, the 404 this endpoint
+        // returns until KOL-6 ships, a 500 — leaves a live token behind.
+        return isApiError(error) && error.kind === 'unauthorized';
+      }
     },
   };
 }

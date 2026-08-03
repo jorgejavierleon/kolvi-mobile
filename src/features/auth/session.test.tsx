@@ -26,6 +26,7 @@ function fakeAuthApi(overrides: Partial<AuthApi> = {}): AuthApi {
   return {
     issueToken: jest.fn(async () => 'tok_abc'),
     fetchSessionUser: jest.fn(async () => employee),
+    revokeToken: jest.fn(async () => true),
     ...overrides,
   };
 }
@@ -225,6 +226,76 @@ describe('signOut', () => {
 
     await act(() => result.current.signOut());
 
+    expect(result.current.ended).toBeNull();
+  });
+
+  // KMO-12 #1, and the reason the criterion says "before": once the token is out
+  // of the keystore there is nothing left to authenticate the revocation with, so
+  // an order that cleared first could never revoke at all.
+  it('revokes the token on the server before clearing it locally', async () => {
+    const order: string[] = [];
+    const tokenStore = createMemoryTokenStore();
+    const authApi = fakeAuthApi({
+      revokeToken: jest.fn(async (token: string) => {
+        order.push(`revoke ${token}`);
+        return true;
+      }),
+    });
+    const recording: TokenStore = {
+      ...tokenStore,
+      clear: async () => {
+        order.push('clear');
+        await tokenStore.clear();
+      },
+    };
+
+    const { result } = await mountSignedOut({ authApi, tokenStore: recording });
+    await act(() => result.current.signIn(credentials));
+    await waitFor(() => expect(result.current.status).toBe('signedIn'));
+    // The restore pass clears an empty store on the way to `signedOut`; only what
+    // the sign-out itself does is the subject here.
+    order.length = 0;
+
+    await act(() => result.current.signOut());
+
+    expect(order).toEqual(['revoke tok_abc', 'clear']);
+  });
+
+  // #4. The employee is signing out of a phone; a server that cannot be reached
+  // is not a reason to leave a live token sitting on it.
+  it('clears everything even when the revocation never reached the server', async () => {
+    const authApi = fakeAuthApi({ revokeToken: jest.fn(async () => false) });
+    const { result, tokenStore } = await mountSignedOut({ authApi });
+    await act(() => result.current.signIn(credentials));
+    await waitFor(() => expect(result.current.status).toBe('signedIn'));
+
+    await act(() => result.current.signOut());
+
+    expect(result.current.status).toBe('signedOut');
+    expect(result.current.user).toBeNull();
+    await expect(tokenStore.read()).resolves.toBeNull();
+  });
+
+  it('says the token stays active until the phone reconnects', async () => {
+    const authApi = fakeAuthApi({ revokeToken: jest.fn(async () => false) });
+    const { result } = await mountSignedOut({ authApi });
+    await act(() => result.current.signIn(credentials));
+    await waitFor(() => expect(result.current.status).toBe('signedIn'));
+
+    await act(() => result.current.signOut());
+
+    expect(result.current.ended?.message).toBe(es.auth.signOut.notRevoked);
+  });
+
+  // Nothing to revoke and no server to ask: the lock screen's "Ingresar con
+  // contraseña" reaches this on a session that failed to restore.
+  it('does not call the server when there is no token to revoke', async () => {
+    const authApi = fakeAuthApi();
+    const { result } = await mountSignedOut({ authApi });
+
+    await act(() => result.current.signOut());
+
+    expect(authApi.revokeToken).not.toHaveBeenCalled();
     expect(result.current.ended).toBeNull();
   });
 });

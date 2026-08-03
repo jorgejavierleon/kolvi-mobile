@@ -85,6 +85,42 @@ export const es = {
      * Spanish, when the employee tries to sign in again.
      */
     sessionExpired: 'Tu sesión terminó. Vuelve a ingresar para continuar.',
+
+    /**
+     * Cerrar sesión (KMO-12).
+     *
+     * Signing out is destructive in a way the word does not suggest: it revokes
+     * this phone's token and drops anything the phone was still holding. So it is
+     * confirmed rather than done on one tap, and the confirmation says what
+     * happens rather than asking `¿Estás seguro?` — a question with no
+     * consequences in it is one employees learn to tap through.
+     */
+    signOut: {
+      /** The row on Mi perfil, and the sheet's own confirm button. */
+      action: 'Cerrar sesión',
+      title: '¿Cerrar sesión?',
+      /**
+       * The ordinary case. It names the two things that change — the phone stops
+       * being authorised, and the password is what comes back — so an employee
+       * who tapped this by accident can see it is not a small thing.
+       */
+      body: 'Este teléfono dejará de tener acceso a tu cuenta. Para volver a entrar necesitarás tu correo y tu contraseña.',
+      /** The backdrop, which is a control with nothing visible to name it. */
+      close: 'Cerrar el aviso de cierre de sesión',
+
+      /**
+       * Revocation did not happen — no signal, or a server that did not answer
+       * (#4). The session is over on this phone either way, and this is the part
+       * that is still true afterwards, so it goes on the login screen rather than
+       * into a sheet the employee has already left.
+       *
+       * It says *hasta que* rather than apologising: the token becomes unusable on
+       * its own once the phone reaches the server again, and an employee who lost
+       * the phone needs to know the window exists, not that the app is sorry.
+       */
+      notRevoked:
+        'Cerramos tu sesión en este teléfono, pero no pudimos avisarle al servidor. El acceso de este teléfono seguirá activo hasta que vuelva a tener conexión.',
+    },
   },
 
   /**
@@ -274,4 +310,20 @@ export function weekSummary(worked: number, contracted: number): string {
 /** `2 marcas esperando sincronizar` — the offline queue banner on the home screen. */
 export function pendingSyncSummary(count: number): string {
   return `${count} ${count === 1 ? 'marca esperando' : 'marcas esperando'} sincronizar`;
+}
+
+/**
+ * What Cerrar sesión says when the phone is still holding punches nobody has
+ * seen — KMO-12 #3, replacing `auth.signOut.body` rather than sitting under it.
+ *
+ * It leads with the count and the word `perderán`, because the thing at risk is
+ * not the session: an unsynced punch is an attendance record that exists only on
+ * this phone, and signing out is the one action that can destroy one. The
+ * employee is told to sync first, since that is the way out that costs nothing.
+ */
+export function unsyncedPunchesWarning(count: number): string {
+  const marks = count === 1 ? '1 marca registrada' : `${count} marcas registradas`;
+  const lost = count === 1 ? 'Se perderá' : 'Se perderán';
+
+  return `Tienes ${marks} en este teléfono que aún no llegan al servidor. ${lost} al cerrar sesión y no quedarán en tu registro de asistencia. Conéctate y sincroniza antes de salir.`;
 }
