@@ -40,11 +40,11 @@ function fakeAuthApi(overrides: Partial<AuthApi> = {}): AuthApi {
   };
 }
 
-async function mount(authApi: AuthApi = fakeAuthApi()) {
+async function mount(authApi: AuthApi = fakeAuthApi(), tokenStore = createMemoryTokenStore()) {
   const view = await render(
     <SessionProvider
       authApi={authApi}
-      tokenStore={createMemoryTokenStore()}
+      tokenStore={tokenStore}
       deviceName={async () => 'Kolvi test'}
     >
       <LoginScreen />
@@ -277,6 +277,69 @@ describe('the login screen', () => {
       await user.press(screen.getByTestId('login-submit'));
 
       await waitFor(() => expect(issueToken).toHaveBeenCalledTimes(2));
+    });
+  });
+
+  /**
+   * KMO-11 #1. The employee did not ask to be here — a stored token the server
+   * refused put them here — so the screen says so before they type anything.
+   */
+  describe('after the server ended the session', () => {
+    /** Mounted with a token the server refuses, which is what a revoked one looks like. */
+    async function mountAfterExpiry(authApi = fakeAuthApi()) {
+      const tokenStore = createMemoryTokenStore();
+      await tokenStore.write('tok_revoked');
+
+      return mount(
+        {
+          ...authApi,
+          fetchSessionUser: jest.fn(async () => {
+            throw new ApiError({ kind: 'unauthorized', status: 401 });
+          }),
+        },
+        tokenStore,
+      );
+    }
+
+    it('explains why the login screen is on screen again', async () => {
+      await mountAfterExpiry();
+
+      await waitFor(() => expect(screen.getByText(es.auth.sessionExpired)).toBeOnTheScreen());
+    });
+
+    it('announces the notice rather than only tinting it', async () => {
+      await mountAfterExpiry();
+
+      await waitFor(() => expect(screen.getByTestId('login-session-ended')).toBeOnTheScreen());
+      expect(screen.getByTestId('login-session-ended')).toHaveProp(
+        'accessibilityLiveRegion',
+        'polite',
+      );
+    });
+
+    it('is absent on a launch nobody was signed in for', async () => {
+      await mount();
+
+      expect(screen.queryByTestId('login-session-ended')).not.toBeOnTheScreen();
+    });
+
+    // Two boxes stacked above one form is two reasons to read for one screen. The
+    // newer one — the attempt they just made — is the one that still applies.
+    it('gives way to the failure of the next attempt', async () => {
+      const user = userEvent.setup();
+      await mountAfterExpiry(
+        fakeAuthApi({
+          issueToken: jest.fn(async () => {
+            throw rejectionError(CREDENTIALS_REJECTED);
+          }),
+        }),
+      );
+      await waitFor(() => expect(screen.getByTestId('login-session-ended')).toBeOnTheScreen());
+
+      await signIn(user);
+
+      await waitFor(() => expect(screen.getByText(CREDENTIALS_REJECTED)).toBeOnTheScreen());
+      expect(screen.queryByText(es.auth.sessionExpired)).not.toBeOnTheScreen();
     });
   });
 });

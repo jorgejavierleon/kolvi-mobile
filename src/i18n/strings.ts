@@ -72,6 +72,19 @@ export const es = {
     /** Caught before the request, so an empty field is not a round trip. */
     emailRequired: 'Ingresa tu correo electrónico.',
     passwordRequired: 'Ingresa tu contraseña.',
+
+    /**
+     * Why the employee is looking at this screen again (KMO-11 #1). The one 401
+     * message in the app that is written here rather than taken from the server:
+     * Laravel's guard answers a dead token with an untranslated `Unauthenticated.`,
+     * and Res. 38 Art. 5 has no exception for a sentence that arrived over HTTP.
+     *
+     * It says the session ended and not *why* on purpose. An expired token and a
+     * deactivated account look identical from here — one 401 each — and the
+     * difference is announced accurately a moment later, by the server's own
+     * Spanish, when the employee tries to sign in again.
+     */
+    sessionExpired: 'Tu sesión terminó. Vuelve a ingresar para continuar.',
   },
 
   /**

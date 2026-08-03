@@ -214,6 +214,201 @@ describe('signOut', () => {
     expect(result.current.user).toBeNull();
     await expect(tokenStore.read()).resolves.toBeNull();
   });
+
+  // The employee pressed the button. They know why they are looking at the login
+  // screen, and telling them their session ended would read as something going
+  // wrong with the thing they just asked for.
+  it('leaves no notice behind, because the employee did it deliberately', async () => {
+    const { result } = await mountSignedOut();
+    await act(() => result.current.signIn(credentials));
+    await waitFor(() => expect(result.current.status).toBe('signedIn'));
+
+    await act(() => result.current.signOut());
+
+    expect(result.current.ended).toBeNull();
+  });
+});
+
+/**
+ * KMO-11. The 401 path, which is the same path whether the token expired or the
+ * employee was deactivated behind it (PRD A7/A8) — from this side both are one
+ * status code with an untranslated body, and the difference is announced by the
+ * server's own Spanish at the next sign-in attempt.
+ */
+describe('a session the server ends', () => {
+  // Installed before the provider mounts, because `configureApi` captures `fetch`
+  // when it builds the client and never looks at the global again.
+  const originalFetch = globalThis.fetch;
+  let answer: unknown = null;
+
+  beforeEach(() => {
+    globalThis.fetch = (async () => answer) as unknown as typeof globalThis.fetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  /**
+   * A 401 to whatever the app asks for next, on the app-wide client. Inside
+   * `act`, because the session ends from the response handler rather than from
+   * anything the test called directly.
+   */
+  async function withUnauthorizedServer(body: unknown, run: () => Promise<void>): Promise<void> {
+    answer = { ok: false, status: 401, text: async () => JSON.stringify(body) };
+
+    await act(run);
+  }
+
+  /** Signed in through the provider, which is what arms the app-wide client. */
+  async function mountSignedIn(options: MountOptions = {}) {
+    const mounted = await mountSignedOut(options);
+    await act(() => mounted.result.current.signIn(credentials));
+    await waitFor(() => expect(mounted.result.current.status).toBe('signedIn'));
+
+    return mounted;
+  }
+
+  // #1 — the token goes, and the employee is told why in Spanish rather than
+  // being dropped on the login screen with no explanation.
+  it('clears the token and explains itself when a request comes back 401', async () => {
+    const { result, tokenStore } = await mountSignedIn();
+
+    await withUnauthorizedServer({ message: 'Unauthenticated.' }, async () => {
+      await expect(api.get('/me/today')).rejects.toBeInstanceOf(ApiError);
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('signedOut'));
+    expect(result.current.ended).toEqual({ message: es.auth.sessionExpired });
+    await expect(tokenStore.read()).resolves.toBeNull();
+  });
+
+  // #1 again, and the reason the sentence is not the server's. Laravel's guard
+  // answers a dead token with an untranslated `Unauthenticated.`, and Res. 38
+  // Art. 5 does not stop applying because a string arrived over HTTP.
+  it('never puts the server 401 body in front of the employee', async () => {
+    const { result } = await mountSignedIn();
+
+    await withUnauthorizedServer({ message: 'Unauthenticated.' }, async () => {
+      await expect(api.get('/me/today')).rejects.toBeInstanceOf(ApiError);
+    });
+
+    await waitFor(() => expect(result.current.ended).not.toBeNull());
+    expect(result.current.ended?.message).not.toMatch(/Unauthenticated/);
+  });
+
+  // #5 — nothing about the employee is left readable. Every field the app holds
+  // is the token or comes off `user`, so this is the whole of it until something
+  // starts caching.
+  it('leaves no employee data behind', async () => {
+    const { result, tokenStore } = await mountSignedIn();
+    expect(result.current.user).toEqual(employee);
+
+    await withUnauthorizedServer({}, async () => {
+      await expect(api.get('/me/today')).rejects.toBeInstanceOf(ApiError);
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('signedOut'));
+    expect(result.current.user).toBeNull();
+    expect(result.current.permissions.size).toBe(0);
+    expect(result.current.can('ClockOwn:Mark')).toBe(false);
+    await expect(tokenStore.read()).resolves.toBeNull();
+  });
+
+  // #3 — opening the app fires several requests at once and they come back 401
+  // together. One sign-out, one notice: `store.clear` counts the transitions
+  // because the session cannot end without going through it.
+  it('ends once across concurrent 401s', async () => {
+    const memory = createMemoryTokenStore();
+    const tokenStore: TokenStore = { ...memory, clear: jest.fn(memory.clear) };
+    const { result } = await mountSignedIn({ tokenStore });
+    (tokenStore.clear as jest.Mock).mockClear();
+
+    await withUnauthorizedServer({}, async () => {
+      const answers = await Promise.allSettled([
+        api.get('/me/today'),
+        api.get('/me/shifts/upcoming'),
+        api.get('/me/documents'),
+      ]);
+
+      // Each caller still learns its own request failed; only the session
+      // announcement is collapsed.
+      expect(answers.map((answer) => answer.status)).toEqual(['rejected', 'rejected', 'rejected']);
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('signedOut'));
+    expect(tokenStore.clear).toHaveBeenCalledTimes(1);
+    expect(result.current.ended).toEqual({ message: es.auth.sessionExpired });
+  });
+
+  // A 401 answering a request made with no token at all is not a session ending.
+  // Without this guard the login screen would tell an employee who never signed
+  // in that their session expired.
+  it('raises no notice when there was no session to lose', async () => {
+    const { result } = await mountSignedOut();
+
+    await withUnauthorizedServer({}, async () => {
+      await expect(api.get('/me/today')).rejects.toBeInstanceOf(ApiError);
+    });
+
+    expect(result.current.status).toBe('signedOut');
+    expect(result.current.ended).toBeNull();
+  });
+
+  it('clears the notice once the employee signs in again', async () => {
+    const { result } = await mountSignedIn();
+
+    await withUnauthorizedServer({}, async () => {
+      await expect(api.get('/me/today')).rejects.toBeInstanceOf(ApiError);
+    });
+    await waitFor(() => expect(result.current.ended).not.toBeNull());
+
+    await act(() => result.current.signIn(credentials));
+
+    await waitFor(() => expect(result.current.status).toBe('signedIn'));
+    expect(result.current.ended).toBeNull();
+  });
+
+  // The restore call is a request like any other, and today it is the only 401 an
+  // employee can actually reach — see flows/kmo-11-session-expiry.yaml.
+  it('explains a stored token the server refuses on cold start', async () => {
+    const tokenStore = createMemoryTokenStore();
+    await tokenStore.write('tok_revoked');
+    const authApi = fakeAuthApi({
+      fetchSessionUser: jest.fn(async () => {
+        throw new ApiError({ kind: 'unauthorized', status: 401 });
+      }),
+    });
+
+    const { result } = await mount({ authApi, tokenStore });
+
+    await waitFor(() => expect(result.current.status).toBe('signedOut'));
+    expect(result.current.ended).toEqual({ message: es.auth.sessionExpired });
+  });
+
+  // The opposite case, and the one that matters in a warehouse basement: a token
+  // that could not be checked has not expired, and saying so would be the app
+  // inventing a fact. KMO-49 decides whether this should sign out at all.
+  it('says nothing about a stored token it could not check', async () => {
+    const tokenStore = createMemoryTokenStore();
+    await tokenStore.write('tok_unchecked');
+    const authApi = fakeAuthApi({
+      fetchSessionUser: jest.fn(async () => {
+        throw new ApiError({ kind: 'network' });
+      }),
+    });
+
+    const { result } = await mount({ authApi, tokenStore });
+
+    await waitFor(() => expect(result.current.status).toBe('signedOut'));
+    expect(result.current.ended).toBeNull();
+  });
+
+  it('says nothing on a launch that simply had no token', async () => {
+    const { result } = await mountSignedOut();
+
+    expect(result.current.ended).toBeNull();
+  });
 });
 
 describe('can', () => {

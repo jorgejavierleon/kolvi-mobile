@@ -6,11 +6,11 @@
  * 401 turns into "your session ended". A screen that talked to `fetch` directly
  * would be a screen that quietly skipped one of those.
  *
- * What the client deliberately does **not** own: where the token is kept (KMO-9
- * puts it in SecureStore) and what happens on the way out (KMO-11 clears the
- * session and routes to login). Both arrive as injected functions, so this module
- * stays testable without a device and those tickets can change their half without
- * touching transport.
+ * What the client deliberately does **not** own: where the token is kept
+ * (`features/auth/token-store.ts` puts it in SecureStore) and what happens on the
+ * way out (`features/auth/session.tsx` clears the session and the navigator routes
+ * to login). Both arrive as injected functions, so this module stays testable
+ * without a device and either half can change without touching transport.
  */
 
 import { REQUEST_TIMEOUT_MS, resolveApiBaseUrl } from './config';
@@ -31,6 +31,12 @@ export type ApiClientOptions = {
   /**
    * Called at most once per session when the server stops accepting the token —
    * an expired token, or an employee deactivated mid-session (PRD A7/A8).
+   *
+   * Deliberately carries nothing: Laravel's guard answers a dead token with an
+   * untranslated `Unauthenticated.`, so the 401 body is the one server message in
+   * this app that cannot be shown to an employee. What ended the session is
+   * announced in Spanish at the next sign-in attempt instead, by `ams`' own
+   * `lang/es/auth.php`.
    */
   onSessionExpired?: () => void;
   timeoutMs?: number;

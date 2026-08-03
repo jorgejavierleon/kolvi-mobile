@@ -265,11 +265,15 @@ A cold start now lands on `/login`. `src/features/auth/` exchanges the employee'
 for a Sanctum token, reads the user behind it and holds the session; `Stack.Protected` in
 `src/app/_layout.tsx` decides which half of the app exists. The token lives in the platform
 keystore (`src/features/auth/token-store.ts`), so a restart lands a signed-in employee back on
-the tabs rather than at the login screen. The tabs themselves are still empty — run `backlog task list --plain` to see the backlog.
+the tabs rather than at the login screen. A token the server stops accepting ends that session at
+the next request and returns the employee to the login screen with a Spanish explanation, rather
+than dropping them there unannounced. The tabs themselves are still empty — run `backlog task list --plain` to see the backlog.
 
-Two things the session cannot do yet, both waiting on the backend: `GET /api/user` reports no
-permissions (`ams` KOL-5), so `can()` is wired up and answers `false` to everything; and there
-is no sign-out (KMO-12).
+Three things the session cannot do yet, all waiting on the backend: `GET /api/user` reports no
+permissions (`ams` KOL-5), so `can()` is wired up and answers `false` to everything; there is no
+sign-out (KMO-12); and a deactivated employee keeps a working token, because `ams` checks
+`is_active` only when issuing one (PRD A7/A8) — the app ends the session on the 401 that check
+would produce, and there is nothing on this side left to build for it.
 
 Two files are temporary: `src/ui/section-scaffold.tsx`, the stand-in body each tab renders
 until KMO-15, 32, 39 and 42 build it, and `src/ui/gallery.tsx` (reachable at `kolvi://gallery`),

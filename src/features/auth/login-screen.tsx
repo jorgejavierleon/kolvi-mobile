@@ -23,10 +23,14 @@ type FieldErrors = {
  * screen renders the sentence it was handed. What it does decide is the shape of
  * the failure: a request that never reached the server gets a retry next to it,
  * because pressing the same button again is the right thing to do only when
- * nothing was decided (AC#5).
+ * nothing was decided (KMO-8 #5).
+ *
+ * Since KMO-11 it also answers a question it is asked before anything is typed:
+ * an employee who was signed in a moment ago and is suddenly here again is told
+ * why, above the form.
  */
 export function LoginScreen() {
-  const { signIn } = useSession();
+  const { ended, signIn } = useSession();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -87,6 +91,20 @@ export function LoginScreen() {
         <Text style={styles.heading}>{es.auth.heading}</Text>
         <Text style={styles.subheading}>{es.auth.intro}</Text>
       </View>
+
+      {/* KMO-11 #1. Above the form rather than inside it, because it explains the
+          screen rather than the last thing typed into it — and in the warning
+          tone, since nothing the employee did went wrong. It gives way to a
+          sign-in failure so there is never more than one message to read. */}
+      {ended === null || failure !== null ? null : (
+        <View
+          accessibilityLiveRegion="polite"
+          style={styles.sessionEnded}
+          testID="login-session-ended"
+        >
+          <Text style={styles.sessionEndedMessage}>{ended.message}</Text>
+        </View>
+      )}
 
       <View style={styles.form}>
         <TextField
@@ -160,6 +178,16 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: spacing[5],
+  },
+  sessionEnded: {
+    borderRadius: radius.md,
+    backgroundColor: tones.warning.background,
+    marginBottom: spacing[5],
+    padding: spacing[4],
+  },
+  sessionEndedMessage: {
+    ...typography.body,
+    color: tones.warning.foreground,
   },
   failure: {
     gap: spacing[3],

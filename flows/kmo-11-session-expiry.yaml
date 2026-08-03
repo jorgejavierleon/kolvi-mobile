@@ -1,0 +1,101 @@
+# KMO-11 — a token the server no longer accepts ends the session, visibly.
+#
+# Covers #1 (the 401 clears the stored token and lands the employee on the login
+# screen with a Spanish explanation) and #5 (nothing about the employee is left
+# readable behind it).
+#
+# The 401 has to come from somewhere. The app makes no /api/v1 request after login
+# yet — the tabs are still scaffolds — so the only request an emulator can make the
+# server refuse today is the one that restores the session on a cold start. That is
+# a real 401 on a real request, and it is the path an employee actually meets: the
+# phone in their pocket overnight, the token revoked from the web console meanwhile.
+#
+# Three commands, in this order, because the token has to be revoked *between* the
+# sign-in and the relaunch and Maestro cannot pause for that:
+#
+#   bin/e2e flows/shared/sign-in.yaml
+#   (cd ../ams && ./vendor/bin/sail artisan tinker --execute \
+#      "App\Models\User::where('email','employee@example.com')->firstOrFail()->tokens()->delete()")
+#   bin/e2e flows/kmo-11-session-expiry.yaml
+#
+# The middle step is the same thing an administrator revoking a lost phone does,
+# and there is no API for it to do from inside the flow: KMO-12/PRD A2 is the
+# ticket that adds one. So this flow is tagged out of collection like the offline
+# and biometric ones — in a full run it would find a live token and fail on an
+# arrangement rather than on the behaviour.
+appId: cl.kolvi.empleados
+name: KMO-11 session expiry
+tags:
+  - auth
+  - requires-revoked-token
+---
+# Deliberately not shared/launch.yaml: its clearState would wipe the very keystore
+# entry this flow is about. This is the same dev-client bootstrap with the clearing
+# left out — see the comment in flows/kmo-9-secure-token-restore.yaml, which relaunches
+# for the opposite reason.
+- stopApp
+
+# The stopped app's last frame lingers while the window animates away, and the
+# tab shell is still in it. Without this the assertions below could match the
+# previous process and pass whatever the app does on its next start.
+- extendedWaitUntil:
+    notVisible: 'Inicio'
+    timeout: 15000
+    label: 'The signed-in shell is off the screen before the app starts again'
+
+- openLink: kolvi://expo-development-client/?url=${DEV_SERVER}
+
+# #1 — the whole point. The token came back out of the keystore, `GET /api/user`
+# answered 401, and the employee is on the login screen being told why rather
+# than dropped there with no explanation.
+- extendedWaitUntil:
+    visible: 'Tu sesión terminó. Vuelve a ingresar para continuar.'
+    timeout: 120000
+    label: 'The session-ended notice, character for character from src/i18n'
+
+- assertVisible: 'Ingresar'
+- assertVisible: 'Correo electrónico'
+
+# #5 — the tab shell is gone, and so is everything it was showing. The employee's
+# own name is the strictest of these: it can only be on screen if the session
+# survived, and the hierarchy dump on a failure would show exactly where.
+- assertNotVisible: 'Inicio'
+- assertNotVisible: 'Jornada'
+- assertNotVisible: 'Empleado'
+
+- takeScreenshot: kmo-11-session-ended
+
+# And it is not a message that outlives the reason for it: typing into the form
+# leaves the notice alone, but a fresh attempt replaces it with whatever the
+# server says about that attempt. Signing in again is the cure, so the flow ends
+# by proving the screen still works.
+- tapOn:
+    id: 'login-email'
+    label: 'The email field'
+- inputText: 'employee@example.com'
+- tapOn:
+    id: 'login-password'
+    label: 'The password field'
+- inputText: 'admin'
+- hideKeyboard
+- tapOn: 'Ingresar'
+
+- extendedWaitUntil:
+    visible: 'Ahora no'
+    timeout: 10000
+    optional: true
+    label: 'The biometric offer, if this phone can do it'
+
+- runFlow:
+    when:
+      visible: 'Ahora no'
+    commands:
+      - tapOn: 'Ahora no'
+    label: 'Decline it, so the shell is what this flow ends on'
+
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 30000
+    label: 'A new sign-in issues a new token and the employee is back in'
+
+- assertNotVisible: 'Tu sesión terminó. Vuelve a ingresar para continuar.'

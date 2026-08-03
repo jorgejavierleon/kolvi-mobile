@@ -17,7 +17,12 @@ flows:
 # The two biometric tags are mutually exclusive by definition — one needs an
 # enrolled fingerprint on the AVD and the other needs there to be none — so
 # neither can be part of a run that also contains the other.
+#
+# `requires-revoked-token` is the same shape of problem one step further out: the
+# condition is on the *server*, and it has to be arranged between two runs rather
+# than before one. The flow's own header carries the three commands.
 excludeTags:
   - requires-offline
   - requires-biometric
   - requires-no-biometric
+  - requires-revoked-token
