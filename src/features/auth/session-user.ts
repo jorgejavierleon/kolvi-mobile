@@ -1,7 +1,7 @@
 /**
  * The signed-in employee, as the app is willing to hold them.
  *
- * `GET /api/user` currently returns the whole Eloquent model — every column on the
+ * `GET /api/v1/user` currently returns the whole Eloquent model — every column on the
  * users table plus an appended avatar — so this is a whitelist rather than a cast.
  * Reading only what a screen actually uses means a column added in `ams` cannot
  * quietly become something the app depends on, and the parse keeps working once

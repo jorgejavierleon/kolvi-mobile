@@ -1,24 +1,24 @@
 /**
  * The calls that begin and end a session, and the one way a sign-in can fail.
  *
- * Two of the three endpoints sit **outside** `/api/v1`: `ams` mounts
- * `POST /api/sanctum/token` publicly and `GET /api/user` behind `auth:sanctum`,
- * neither under the versioned prefix the rest of the app talks to. So this module
- * binds its own client to the bare origin instead of using the `@/api` singleton
- * and spells the version into the one path that has it.
+ * All three live under `/api/v1` like everything else the app talks to, so this
+ * module resolves the same base URL the `@/api` singleton does — but it still
+ * builds its **own client** rather than using that singleton, and the reason is
+ * the session-expiry latch.
  *
- * Staying off the singleton matters for a second reason, and it is the same
- * reason for all three calls: the singleton latches a 401 into "your session
- * ended". Here a 401 means "that password is wrong" on the way in, and "the token
- * was already dead" on the way out — neither is an announcement to make.
+ * The singleton turns any 401 into "your session ended" and shows it on the login
+ * screen. That is right for a request made *during* a session and wrong for all
+ * three of these: on the way in a refusal means "that password is wrong", on the
+ * way out it means "the token was already dead", and a restore that 401s is
+ * handled by `SessionProvider` itself, which knows whether there was a session to
+ * lose. A second client is what keeps those three off the announcement.
  */
 
 import {
   ApiError,
-  API_VERSION_PREFIX,
   createApiClient,
   isApiError,
-  resolveApiOrigin,
+  resolveApiBaseUrl,
   type ApiClient,
   type RequestOptions,
 } from '@/api';
@@ -66,17 +66,16 @@ export type AuthApi = {
   revokeToken(token: string): Promise<boolean>;
 };
 
-const TOKEN_PATH = '/api/sanctum/token';
-const USER_PATH = '/api/user';
-/**
- * PRD A2, and versioned where the other two are not: this route is new, and D7
- * puts everything new under `/api/v1`. Tracked as `ams` KOL-6 — until it lands the
- * call 404s, which reads here as "not revoked", which is the truth.
- */
-const REVOKE_PATH = `${API_VERSION_PREFIX}/tokens/current`;
+// Relative to `/api/v1`, like every other path in the app. `ams` KOL-6 moved the
+// login and user endpoints under the prefix and added the revocation one there,
+// so there is no longer a path in this app that spells its own version.
+const TOKEN_PATH = '/tokens';
+const USER_PATH = '/user';
+/** PRD A2. Revokes the token the request authenticates with, and nothing else. */
+const REVOKE_PATH = '/tokens/current';
 
 export function createAuthApi(client?: ApiClient): AuthApi {
-  const http = client ?? createApiClient({ baseUrl: resolveApiOrigin() });
+  const http = client ?? createApiClient({ baseUrl: resolveApiBaseUrl() });
 
   return {
     async issueToken(credentials: Credentials, deviceName: string): Promise<string> {
@@ -119,8 +118,9 @@ export function createAuthApi(client?: ApiClient): AuthApi {
         // A 401 is the one refusal that means the job is done: the server will not
         // accept this token, so there is nothing left to revoke and telling the
         // employee otherwise would be a warning about a credential that cannot be
-        // used. Everything else — no connection, a timeout, the 404 this endpoint
-        // returns until KOL-6 ships, a 500 — leaves a live token behind.
+        // used. Everything else — no connection, a timeout, a 404 from a build
+        // pointed at a server without this route, a 500 — leaves a live token
+        // behind, and the employee is told so.
         return isApiError(error) && error.kind === 'unauthorized';
       }
     },

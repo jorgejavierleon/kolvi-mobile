@@ -3,7 +3,7 @@ import { es } from '@/i18n';
 
 import { authFailureFrom, createAuthApi, type AuthFailure } from './auth-api';
 
-const ORIGIN = 'https://ams.test';
+const BASE_URL = 'https://ams.test/api/v1';
 
 /** The two sentences `ams` actually returns, from `lang/es/auth.php`. */
 const CREDENTIALS_REJECTED = 'Estas credenciales no coinciden con nuestros registros.';
@@ -18,7 +18,7 @@ function respondWith(status: number, body?: unknown, raw?: string): Response {
 }
 
 function apiWith(fetchImpl: jest.Mock) {
-  return createAuthApi(createApiClient({ baseUrl: ORIGIN, fetch: fetchImpl }));
+  return createAuthApi(createApiClient({ baseUrl: BASE_URL, fetch: fetchImpl }));
 }
 
 function lastRequest(fetchImpl: jest.Mock): { url: string; init: RequestInit } {
@@ -32,8 +32,7 @@ function rejection(message: string) {
 }
 
 describe('issueToken', () => {
-  // The endpoint is outside /api/v1 — the versioned base URL would 404 here.
-  it('posts the credentials and the device name to the unversioned endpoint', async () => {
+  it('posts the credentials and the device name to the versioned token endpoint', async () => {
     const fetchImpl = jest.fn().mockResolvedValue(respondWith(200, { token: 'tok_abc' }));
 
     const token = await apiWith(fetchImpl).issueToken(
@@ -44,7 +43,7 @@ describe('issueToken', () => {
     expect(token).toBe('tok_abc');
 
     const { url, init } = lastRequest(fetchImpl);
-    expect(url).toBe('https://ams.test/api/sanctum/token');
+    expect(url).toBe('https://ams.test/api/v1/tokens');
     expect(init.method).toBe('POST');
     expect(JSON.parse(String(init.body))).toEqual({
       email: 'employee@example.com',
@@ -86,7 +85,7 @@ describe('fetchSessionUser', () => {
     expect(user.name).toBe('Empleado Demo');
 
     const { url, init } = lastRequest(fetchImpl);
-    expect(url).toBe('https://ams.test/api/user');
+    expect(url).toBe('https://ams.test/api/v1/user');
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer tok_abc');
   });
 
@@ -133,8 +132,7 @@ describe('fetchSessionUser', () => {
   });
 });
 
-// KMO-12 #1. `ams` has no such route yet (KOL-6), so these pin the contract the
-// app was built against rather than describing a server anyone can call today.
+// KMO-12 #1, against the contract `ams` KOL-6 shipped.
 describe('revokeToken', () => {
   it('deletes the current token at the versioned path, carrying the token being revoked', async () => {
     const fetchImpl = jest.fn().mockResolvedValue(respondWith(204));
@@ -161,7 +159,7 @@ describe('revokeToken', () => {
 
   it.each<[string, () => Response | Promise<never>]>([
     ['no connection', () => Promise.reject(new TypeError('Network request failed'))],
-    ['the 404 this endpoint returns until KOL-6 ships', () => respondWith(404)],
+    ['a 404 from a server without the route', () => respondWith(404)],
     ['a server error', () => respondWith(500, undefined, '<html>502</html>')],
   ])('reports the token as still live on %s', async (_label, outcome) => {
     const fetchImpl = jest.fn().mockImplementation(outcome);

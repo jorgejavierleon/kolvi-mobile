@@ -269,7 +269,7 @@ the tabs rather than at the login screen. A token the server stops accepting end
 the next request and returns the employee to the login screen with a Spanish explanation, rather
 than dropping them there unannounced. The tabs themselves are still empty — run `backlog task list --plain` to see the backlog.
 
-Three things the session cannot do yet, all waiting on the backend: `GET /api/user` reports no
+Three things the session cannot do yet, all waiting on the backend: `GET /api/v1/user` reports no
 permissions (`ams` KOL-5), so `can()` is wired up and answers `false` to everything; there is no
 sign-out (KMO-12); and a deactivated employee keeps a working token, because `ams` checks
 `is_active` only when issuing one (PRD A7/A8) — the app ends the session on the 401 that check

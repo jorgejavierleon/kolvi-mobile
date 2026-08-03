@@ -35,8 +35,8 @@ describe('the API origin', () => {
     expect(resolveApiOrigin()).toBe('http://10.0.2.2:8000');
   });
 
-  // D7 — the app targets the versioned surface exclusively, never the three
-  // unversioned mark routes that still exist alongside it.
+  // D7 — the app targets the versioned surface exclusively, and since `ams`
+  // KOL-6 there is no other surface for it to reach.
   it('always appends the v1 prefix', () => {
     process.env.EXPO_PUBLIC_API_URL = 'https://ams.kolvi.cl';
 

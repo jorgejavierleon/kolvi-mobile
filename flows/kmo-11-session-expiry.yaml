@@ -45,7 +45,7 @@ tags:
 
 - openLink: kolvi://expo-development-client/?url=${DEV_SERVER}
 
-# #1 — the whole point. The token came back out of the keystore, `GET /api/user`
+# #1 — the whole point. The token came back out of the keystore, `GET /api/v1/user`
 # answered 401, and the employee is on the login screen being told why rather
 # than dropped there with no explanation.
 - extendedWaitUntil:

@@ -23,7 +23,7 @@ external prerequisites but are not tracked here.
 | D1 | **React Native (Expo)**, TypeScript. |
 | D2 | **Android first** (the design is a 412×892 Android frame), iOS from the same codebase one release later. Android 9+ / iOS 15+. |
 | D3 | Single app on Play Store / App Store; the organization resolves from the user's credentials. No per-tenant white-label builds. |
-| D7 | API versioning: **`/api/v1` alongside** the existing unversioned mark routes. The app targets `/api/v1` exclusively. |
+| D7 | API versioning: **the mobile surface is `/api/v1` in its entirety** — login, the user payload, marks, token revocation. The app targets it exclusively, and there is nothing outside it for the app to reach. Superseded the original "v1 alongside the existing unversioned mark routes" on 2026-08-03 (`ams` KOL-6): those routes had been added for this app days earlier and had no other consumer, so leaving them would have meant two surfaces where the app's own client can only resolve one. Internal XHR endpoints the web console calls stay unversioned in `routes/web.php` and are not part of this. |
 | §9 | Design system: **deliberate split**. The employee app adopts the Kolvi design-system tokens as its single source of truth; the admin console keeps its Tailwind/shadcn theme. The two are not reconciled. |
 
 ## 2. Marcaje

@@ -1,7 +1,7 @@
 /**
  * The name this installation gives its Sanctum token.
  *
- * `POST /api/sanctum/token` keys tokens by `device_name`, and `ams` deletes the
+ * `POST /api/v1/tokens` keys tokens by `device_name`, and `ams` deletes the
  * user's existing token of that name before issuing a new one. So the name is not
  * cosmetic: a name that changes between logins leaves a trail of live tokens for
  * one phone, and a name shared by two phones lets the second login silently revoke

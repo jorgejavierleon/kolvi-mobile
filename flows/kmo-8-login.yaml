@@ -10,7 +10,7 @@
 #
 # #2 and #8 are not here and cannot be. A second login needs a way to sign out,
 # which KMO-12 adds; `src/features/auth/device-name.test.ts` carries the reuse of
-# the stored id instead. And `GET /api/user` reports no permissions until ams
+# the stored id instead. And `GET /api/v1/user` reports no permissions until ams
 # KOL-5 ships, so there is nothing on a device to gate on yet.
 #
 # #6 is half here: the screenshot below is taken while the request is in flight,

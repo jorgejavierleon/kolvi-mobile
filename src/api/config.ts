@@ -17,8 +17,9 @@
 const DEV_FALLBACK_ORIGIN = 'http://10.0.2.2:8000';
 
 /**
- * D7: the app targets `/api/v1` exclusively, never the three unversioned mark
- * routes that exist alongside it.
+ * D7: the app targets `/api/v1` exclusively. Since `ams` KOL-6 that is the whole
+ * of the mobile surface — the login, the user payload, the marks and the token
+ * revocation all sit under it, and nothing this app calls lives outside it.
  */
 export const API_VERSION_PREFIX = '/api/v1';
 

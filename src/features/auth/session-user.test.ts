@@ -2,7 +2,7 @@ import { employeePermissions } from './permissions';
 import { parseSessionUser } from './session-user';
 
 /**
- * The body of `GET /api/user` copied byte for byte off a locally running `ams`
+ * The body of `GET /api/v1/user` copied byte for byte off a locally running `ams`
  * after KOL-5, which narrowed the endpoint to a `UserResource` and added the
  * permission names. Reproduced rather than paraphrased: the whole point of these
  * tests is that the app agrees with what the server actually sends.

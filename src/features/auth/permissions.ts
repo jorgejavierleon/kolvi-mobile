@@ -7,7 +7,7 @@
  * `ViewOwn:Mark` and nothing else, and must get a working Marcaje tab with empty
  * or hidden sections elsewhere rather than a screenful of 403s.
  *
- * `GET /api/user` does not report permissions yet — it returns the raw model. That
+ * `GET /api/v1/user` does not report permissions yet — it returns the raw model. That
  * is `ams` KOL-5. Until it ships, `parsePermissions` finds nothing and every gate
  * closes, which is the safe direction to be wrong in: a hidden action is a support
  * call, a shown one that 403s is an employee who thinks their punch registered.
@@ -39,7 +39,7 @@ const known: ReadonlySet<string> = new Set<string>(employeePermissions);
 export const noPermissions: PermissionSet = new Set<Permission>();
 
 /**
- * Read the permission names out of whatever `GET /api/user` sends.
+ * Read the permission names out of whatever `GET /api/v1/user` sends.
  *
  * Two shapes are accepted: a flat `["ClockOwn:Mark"]`, which is what KOL-5 asks
  * for, and Spatie's own `[{"name": "ClockOwn:Mark"}]`, which is what a plain

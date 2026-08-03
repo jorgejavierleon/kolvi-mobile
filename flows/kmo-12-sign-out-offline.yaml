@@ -17,7 +17,7 @@
 #
 # **This flow does not relaunch, and must not.** It picks up the running app that
 # sign-in.yaml left on the tab shell, because a cold start with the radio off does
-# not land signed in: restoring a session calls `GET /api/user`, and session.tsx
+# not land signed in: restoring a session calls `GET /api/v1/user`, and session.tsx
 # treats a request it cannot complete the same as a token the server refused —
 # the employee ends up at the login screen with nothing to sign out of. That is
 # KMO-49's gap, not this one's, and reaching for `stopApp` here would test it
