@@ -13,10 +13,12 @@
  */
 export {
   es,
+  greeting,
   passwordResetSent,
   pendingSyncSummary,
   sectionEnd,
   tabWithPendingCount,
+  timeRange,
   tooManyAttempts,
   unsyncedPunchesWarning,
   weekSummary,

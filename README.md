@@ -257,9 +257,10 @@ Tests sit next to what they test: `button.tsx` and `button.test.tsx` in the same
 ## Project status
 
 Scaffold, the design tokens, the shared UI primitives — `Button`, `Card`, `StatusBadge`,
-`SegmentedControl`, `BottomSheet`, `TileRow`, `TextField` — the typed `/api/v1` client, the
-es-CL catalogue with its formatters, and the navigation shell: the four-tab bar (Inicio,
-Jornada, Permisos, Documentos) with the profile surface over it, in `src/app/(tabs)/`.
+`SegmentedControl`, `BottomSheet`, `TileRow`, `TextField`, `Skeleton` — the typed `/api/v1`
+client, the es-CL catalogue with its formatters, and the navigation shell: the four-tab bar
+(Inicio, Jornada, Permisos, Documentos) with the profile surface over it, in
+`src/app/(tabs)/`.
 
 A cold start now lands on `/login`. `src/features/auth/` exchanges the employee's credentials
 for a Sanctum token, reads the user behind it and holds the session; `Stack.Protected` in
@@ -267,15 +268,25 @@ for a Sanctum token, reads the user behind it and holds the session; `Stack.Prot
 keystore (`src/features/auth/token-store.ts`), so a restart lands a signed-in employee back on
 the tabs rather than at the login screen. A token the server stops accepting ends that session at
 the next request and returns the employee to the login screen with a Spanish explanation, rather
-than dropping them there unannounced. The tabs themselves are still empty — run `backlog task list --plain` to see the backlog.
+than dropping them there unannounced.
 
-Three things the session cannot do yet, all waiting on the backend: `GET /api/v1/user` reports no
-permissions (`ams` KOL-5), so `can()` is wired up and answers `false` to everything; there is no
-sign-out (KMO-12); and a deactivated employee keeps a working token, because `ams` checks
-`is_active` only when issuing one (PRD A7/A8) — the app ends the session on the 401 that check
-would produce, and there is nothing on this side left to build for it.
+Inicio is the first tab with a real body (`src/features/marcaje/`): the long date and
+`Hola, {nombre}` over the shift card, the live clock and its status line, and the week
+summary — all of it drawn from one `GET /api/v1/me/today`, with skeletons on the way and a
+Spanish retry when it does not arrive. **That endpoint does not exist in `ams` yet**, so on a
+device the screen paints its header and then the failed state; `src/features/marcaje/today-api.ts`
+is currently the contract's only written form rather than a reader of one. The geolocation
+card (KMO-16), the punch button (KMO-17) and the pending-sync banner (KMO-22) land in the
+slots the design puts them in. Jornada, Permisos and Documentos are still empty — run
+`backlog task list --plain` to see the backlog.
 
-Two files are temporary: `src/ui/section-scaffold.tsx`, the stand-in body each tab renders
-until KMO-15, 32, 39 and 42 build it, and `src/ui/gallery.tsx` (reachable at `kolvi://gallery`),
-which puts every primitive on a device so `flows/kmo-3-ui-primitives.yaml` has something to
-drive. KMO-30 deletes both.
+One thing the session still cannot do, and it is the backend's: a deactivated employee keeps a
+working token, because `ams` checks `is_active` only when issuing one (PRD A7/A8) — the app ends
+the session on the 401 that check would produce, and there is nothing on this side left to build
+for it. `GET /api/v1/user` does now report permissions (`ams` KOL-5), so `can()` answers from the
+real set rather than closing every gate.
+
+Two files are temporary: `src/ui/section-scaffold.tsx`, the stand-in body Jornada, Permisos and
+Documentos render until KMO-32, 39 and 42 build them, and `src/ui/gallery.tsx` (reachable at
+`kolvi://gallery`), which puts every primitive on a device so `flows/kmo-3-ui-primitives.yaml`
+has something to drive. KMO-30 deletes both.

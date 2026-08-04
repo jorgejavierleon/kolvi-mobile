@@ -7,6 +7,14 @@ import { UserIcon } from './icons';
 export type ScreenHeaderProps = {
   /** The screen title — `Mi jornada`, `Permisos`, `Documentos`. */
   title: string;
+  /**
+   * A muted line above the title. The home screen puts today's long date there,
+   * over `Hola, {nombre}`, which is the only place the design draws one.
+   *
+   * It reads as part of the title rather than as a separate announcement, so the
+   * two are one accessibility element — `Miércoles 5 de agosto. Hola, Camila`.
+   */
+  eyebrow?: string;
   /** Opens the profile surface. */
   onPressAvatar: () => void;
   /** What a screen reader calls the avatar button, e.g. `Abrir mi perfil`. */
@@ -30,6 +38,7 @@ export type ScreenHeaderProps = {
  */
 export function ScreenHeader({
   title,
+  eyebrow,
   onPressAvatar,
   avatarLabel,
   avatarInitials,
@@ -38,7 +47,14 @@ export function ScreenHeader({
 }: ScreenHeaderProps) {
   return (
     <View style={[styles.header, style]} testID={testID}>
-      <Text style={styles.title}>{title}</Text>
+      {eyebrow === undefined ? (
+        <Text style={styles.title}>{title}</Text>
+      ) : (
+        <View accessible accessibilityLabel={`${eyebrow}. ${title}`} style={styles.titleBlock}>
+          <Text style={styles.eyebrow}>{eyebrow}</Text>
+          <Text style={styles.title}>{title}</Text>
+        </View>
+      )}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={avatarLabel}
@@ -66,6 +82,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing[3],
     marginBottom: spacing[4],
+  },
+  // Wraps the two lines so they shrink together; without it the date and the
+  // title each negotiate with the avatar on their own and wrap at different
+  // widths.
+  titleBlock: {
+    flexShrink: 1,
+  },
+  eyebrow: {
+    ...typography.caption,
+    color: colors.textMuted,
   },
   title: {
     ...typography.h2,

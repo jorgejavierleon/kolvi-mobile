@@ -280,6 +280,65 @@ export const es = {
     tabBar: 'Secciones de la app',
   },
 
+  /**
+   * Inicio — the marcaje screen (KMO-15), and the copy the punch itself reads from
+   * (KMO-17).
+   *
+   * Most of this is transcribed from the design rather than authored: `Turno de
+   * hoy`, `Colación (informativo)` and the three status lines are drawn in the
+   * mockup, and the mockup is authoritative per docs/design-decisions.md. The two
+   * entries the design has no state for — a day with no shift, and a screen whose
+   * request failed — are written here, because a home screen that is blank on a
+   * day off is the "the app is broken" report `es.states` exists to prevent.
+   */
+  marcaje: {
+    /**
+     * The shift card. Read-only throughout: per docs/design-decisions.md §2
+     * colación was dropped as a punch type, so the scheduled window is shown and
+     * never punched — which is what `(informativo)` is there to say, and why it
+     * is part of the label rather than a footnote under it.
+     */
+    shift: {
+      eyebrow: 'Turno de hoy',
+      lunch: 'Colación (informativo)',
+      /**
+       * A day with nothing scheduled (#7). It says which day it is talking about,
+       * because the alternative an employee reaches for is "the app did not
+       * load" — and then punches nowhere and calls their supervisor.
+       *
+       * `jefatura` rather than `supervisor`: it is the word `ams` and Chilean HR
+       * use, and it covers the case where the person to ask is not one.
+       */
+      emptyTitle: 'Hoy no tienes turno programado',
+      emptyBody: 'Si esto no es correcto, avísale a tu jefatura.',
+    },
+
+    /**
+     * The line under the clock, one per punch state (#4). Verbatim from the
+     * design's own `punchStatusLabels`; the state machine that chooses between
+     * them is `punch-state.ts`, and KMO-17 hangs the button labels off the same
+     * three states.
+     *
+     * There is no fourth entry for "we do not know yet". A screen that has not
+     * been told the state says nothing here rather than guessing `Aún no marcas
+     * entrada` — claiming an employee has not punched when they have is the one
+     * wrong answer on this screen that costs them a workday.
+     */
+    status: {
+      before: 'Aún no marcas entrada',
+      working: 'En jornada',
+      done: 'Jornada finalizada',
+    },
+
+    /**
+     * The whole screen failed to load (#9). Distinct from `es.states.failed`,
+     * which is a list that came back empty-handed: this one is the screen an
+     * employee opened *in order to punch*, so it names the consequence rather
+     * than the request, and the retry sits next to it.
+     */
+    loadFailed: 'No pudimos cargar tu turno de hoy.',
+  },
+
   profile: {
     title: 'Mi perfil',
     /** The avatar button in every tab header. */
@@ -402,6 +461,29 @@ export function tabWithPendingCount(tab: string, count: number): string {
 /** The bottom marker of a scaffolded section, e.g. `Fin de Jornada`. */
 export function sectionEnd(section: string): string {
   return `Fin de ${section}`;
+}
+
+/**
+ * `Hola, Camila` — the home screen's own title, under the date (KMO-15 #1).
+ *
+ * The name is the server's, shown as it arrives. `first_name` is nullable in
+ * `ams`, so the caller falls back to the full name rather than to `Hola, ` with
+ * nothing after the comma — see `SessionUser`.
+ */
+export function greeting(firstName: string): string {
+  return `Hola, ${firstName}`;
+}
+
+/**
+ * `08:00 – 17:00` — the shift window on the card, and the punch pair on a
+ * workday row.
+ *
+ * The separator is an en dash, as the design writes it — not a hyphen, which is
+ * what gets typed when a range is spelled out per screen instead of here. Both
+ * ends arrive already formatted: this joins two strings and computes nothing.
+ */
+export function timeRange(start: string, end: string): string {
+  return `${start} – ${end}`;
 }
 
 /**

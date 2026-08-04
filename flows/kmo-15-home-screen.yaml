@@ -1,0 +1,129 @@
+# KMO-15 — Inicio opens with the date and the employee's own name, and says so in
+# Spanish when it cannot load the rest.
+#
+# Covers #1 (the capitalised long date, `Hola, {first_name}`, and the avatar
+# opening Mi perfil) and the second half of #9 (a failed load offers retry
+# without losing the tab).
+#
+# **It deliberately covers no more than that, and the reason is the endpoint.**
+# `GET /api/v1/me/today` does not exist in `ams` yet — it is the external
+# prerequisite the task names — so on a device the shift card, the clock's status
+# line and the week summary have nothing to render from. The failed state below
+# is not a contrived condition: it is what the app honestly does today, and it is
+# the one part of #9 a device can prove right now.
+#
+# The rest of the device tier waits on that endpoint. When it lands, this flow
+# grows the assertions for #2, #4, #5 and #7 — and in particular for the half of
+# #3 that Jest cannot see, since a clock derived during render freezes under React
+# Compiler and Jest does not run the compiler (see kmo-50-login-throttled.yaml).
+#
+# Needs a reachable `ams`, because it signs in. Against one that has since shipped
+# /me/today the failed-load assertions below will fail, which is the correct
+# answer: this flow is then out of date and the shift-card assertions are what
+# belong here.
+appId: cl.kolvi.empleados
+name: KMO-15 home screen shell
+tags:
+  - marcaje
+---
+- runFlow: shared/sign-in.yaml
+
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 30000
+    label: 'On the tab shell'
+
+# #1. The date is the phone's and the name is the session's, so both are up
+# before the request settles. The weekday and month cannot be pinned to a literal
+# — the flow runs on whatever day it runs — so the assertion is on the *form*:
+# a capitalised Spanish weekday, a day number, and a lowercase month.
+#
+# Lowercase months are the point of the second half. The design's mockup applies
+# a CSS `text-transform:capitalize` over the whole line, which would render
+# `5 De Agosto`; KMO-6 #4 read that as an artefact of the prototype. A regex that
+# accepted either would pass on the wrong one.
+- assertVisible:
+    text: '(Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo) \d{1,2} de (enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)'
+    label: '#1 — the capitalised long date, with the month in lowercase'
+
+# The seeded employee is `Empleado Demo`, so `first_name` is `Empleado`. Not the
+# full name: the greeting is a first name, and matching `Hola, Empleado Demo`
+# would pass on the fallback that exists for an employee `ams` has no first name
+# for.
+- assertVisible:
+    text: 'Hola, Empleado'
+    label: '#1 — greeted by name'
+
+- takeScreenshot: kmo-15-header
+
+# #9. `/me/today` is not routed in `ams`, so the request 404s and this is the
+# state an employee actually lands in today.
+- extendedWaitUntil:
+    visible: 'No pudimos cargar tu turno de hoy.'
+    timeout: 30000
+    label: '#9 — the failure is announced in Spanish rather than left blank'
+
+- assertVisible:
+    text: 'Reintentar'
+    label: '#9 — and a retry is offered'
+
+# Res. 38 Art. 5. Laravel answers a missing route with an English sentence and a
+# stack trace; none of it may reach an employee.
+- assertNotVisible:
+    text: '.*could not be found.*'
+    label: 'None of the server English reached the screen'
+
+- takeScreenshot: kmo-15-load-failed
+
+# "without losing the tab" is the half of #9 that is easy to satisfy on paper and
+# easy to break in practice. The header the employee was looking at is still
+# there, and so is the way out of the tab.
+- assertVisible:
+    text: 'Hola, Empleado'
+    label: '#9 — the header survived the failure'
+
+- assertVisible:
+    id: 'tab-jornada'
+    label: '#9 — and the tab bar, so the employee has not lost their place'
+
+# The retry is a real control and not a decoration. It fails again — the route is
+# still missing — and the screen has to come back to the same offer rather than
+# to a blank body or a crash.
+- tapOn:
+    id: 'home-retry'
+
+- extendedWaitUntil:
+    visible: 'No pudimos cargar tu turno de hoy.'
+    timeout: 30000
+    label: '#9 — a retry that fails leaves the employee where they were'
+
+- assertVisible:
+    id: 'home-retry'
+    label: '#9 — and offers again'
+
+# The tab is still navigable after all of it, which is what "without losing the
+# tab" is finally about.
+- tapOn:
+    id: 'tab-jornada'
+- extendedWaitUntil:
+    visible: 'Mi jornada'
+    timeout: 15000
+    label: 'The shell still works after a failed load'
+
+- tapOn:
+    id: 'tab-inicio'
+- extendedWaitUntil:
+    visible: 'Hola, Empleado'
+    timeout: 15000
+    label: 'And Inicio is still Inicio on the way back'
+
+# #1's last clause: the avatar is the way to Mi perfil.
+- tapOn:
+    id: 'profile-button'
+
+- extendedWaitUntil:
+    visible: 'Mi perfil'
+    timeout: 15000
+    label: '#1 — the avatar opens the profile'
+
+- takeScreenshot: kmo-15-perfil
