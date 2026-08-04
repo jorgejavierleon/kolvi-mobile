@@ -92,6 +92,10 @@ const styles = StyleSheet.create({
   eyebrow: {
     ...typography.caption,
     color: colors.textMuted,
+    // The design's own `margin-top:2px` on the greeting is off the 4px grid and
+    // reads as one cramped block on a device; a full grid step separates the two
+    // lines without letting the date drift free of the name it belongs to.
+    marginBottom: spacing[1],
   },
   title: {
     ...typography.h2,
