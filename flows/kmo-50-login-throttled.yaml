@@ -1,0 +1,94 @@
+# KMO-50 — the server throttles the login, and the app says so in Spanish and
+# stops pressing.
+#
+# Covers #3 (the wait is named in Spanish and none of the server's untranslated
+# `Too Many Attempts.` reaches the screen) and #4 (the submit control is out of
+# reach until the interval elapses).
+#
+# **The email is deliberately one that does not exist.** `ams` keys its token
+# limiter on email + IP (KOL-8, ThrottleTokenIssuance), so throttling
+# employee@example.com would poison that bucket for a minute and take
+# shared/sign-in.yaml — and therefore most of this directory — down with it. A
+# throwaway address gets its own bucket and counts failed attempts identically.
+# The baseline unauthenticated limit is 100/minute per IP, so six requests do not
+# come near it.
+#
+# Five attempts are refused as bad credentials; the sixth is refused as a
+# throttle. That is the limiter's own shape (5 per minute), so the count here is
+# not arbitrary — it is one more than `ams` allows.
+#
+# Needs a reachable `ams` carrying KOL-8. Against a server without it the sixth
+# attempt is just another credentials rejection and the flow fails on the
+# `Demasiados intentos` assertion, which is the correct answer: the app would
+# have nothing to handle.
+appId: cl.kolvi.empleados
+name: KMO-50 login throttled
+tags:
+  - auth
+  - login
+---
+- runFlow: shared/launch.yaml
+
+- extendedWaitUntil:
+    visible: 'Ingresar'
+    timeout: 60000
+    label: 'The login screen is up'
+
+# A fresh address per run, so the flow is re-runnable. The limiter's bucket is
+# keyed on the email, and it decays over a minute — a fixed address would make a
+# second run inside that minute start already throttled, and the five
+# credentials refusals below would never appear.
+- evalScript: ${output.email = 'no-existe-kmo50-' + Date.now() + '@example.com'}
+
+- tapOn:
+    id: 'login-email'
+- inputText: ${output.email}
+- tapOn:
+    id: 'login-password'
+- inputText: 'contrasena-incorrecta'
+- hideKeyboard
+
+# The first five are ordinary refusals — `ams` answers 422 with its own Spanish,
+# which the app shows verbatim. This is the app behaving as it did before KMO-50.
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: 'login-submit'
+      - extendedWaitUntil:
+          visible: 'Estas credenciales no coinciden con nuestros registros.'
+          timeout: 15000
+          label: 'Refused on the credentials, not yet on the rate'
+
+- takeScreenshot: kmo-50-before-throttle
+
+# The sixth crosses the limit. From here the refusal is a 429 whose body is
+# Laravel's English, and everything on screen has to be the catalogue's Spanish.
+- tapOn:
+    id: 'login-submit'
+
+- extendedWaitUntil:
+    visible: 'Demasiados intentos.*'
+    timeout: 15000
+    label: '#3 — the throttle, in Spanish'
+
+- takeScreenshot: kmo-50-throttled
+
+# #3, the half that matters most. Res. 38 Art. 5: the server's untranslated
+# sentence must not be what an employee reads.
+- assertNotVisible:
+    text: 'Too Many Attempts.'
+    label: 'None of the server English reached the screen'
+
+# #4. Not merely dimmed — actually unpressable, so the app cannot feed the
+# limiter that just refused it.
+- assertVisible:
+    id: 'login-submit'
+    enabled: false
+    label: 'The submit control is out of reach while the wait runs'
+
+# The retry button belongs to a lost connection, where pressing again is the
+# right move. Inside a throttle window it is the wrong one.
+- assertNotVisible:
+    id: 'login-retry'
+    label: 'No retry is offered for a throttle'

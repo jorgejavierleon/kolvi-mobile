@@ -1,7 +1,7 @@
 import { act, render, screen, userEvent, waitFor } from '@testing-library/react-native';
 
 import { ApiError } from '@/api';
-import { es } from '@/i18n';
+import { es, tooManyAttempts } from '@/i18n';
 
 import type { AuthApi } from './auth-api';
 import { LoginScreen } from './login-screen';
@@ -342,5 +342,84 @@ describe('the login screen', () => {
       await waitFor(() => expect(screen.getByText(CREDENTIALS_REJECTED)).toBeOnTheScreen());
       expect(screen.queryByText(es.auth.sessionExpired)).not.toBeOnTheScreen();
     });
+  });
+});
+
+describe('a throttled sign-in (KMO-50)', () => {
+  /** What `ams` sends: a 429 whose body is Laravel's untranslated sentence. */
+  function throttleError(retryAfterSeconds?: number): ApiError {
+    return new ApiError({
+      kind: 'rateLimited',
+      status: 429,
+      serverMessage: 'Too Many Attempts.',
+      retryAfterSeconds,
+    });
+  }
+
+  function throttledApi(retryAfterSeconds?: number) {
+    return fakeAuthApi({
+      issueToken: jest.fn(async () => {
+        throw throttleError(retryAfterSeconds);
+      }),
+    });
+  }
+
+  it('never puts the server English on screen (#3)', async () => {
+    await mount(throttledApi(59));
+
+    await signIn(userEvent.setup());
+
+    expect(screen.getByTestId('login-error')).toBeOnTheScreen();
+    expect(screen.queryByText('Too Many Attempts.')).not.toBeOnTheScreen();
+  });
+
+  it('names the wait the server asked for', async () => {
+    await mount(throttledApi(59));
+
+    await signIn(userEvent.setup());
+
+    expect(screen.getByText(tooManyAttempts(59))).toBeOnTheScreen();
+  });
+
+  it('falls back to the wait-less sentence when the server did not say how long', async () => {
+    await mount(throttledApi());
+
+    await signIn(userEvent.setup());
+
+    expect(screen.getByText(es.errors.rateLimited)).toBeOnTheScreen();
+  });
+
+  // #4. A retry is offered for connectivity, where pressing again is the right
+  // move. Inside a throttle window it is the wrong one — another refusal, and on
+  // the token endpoint it feeds `ams`'s limiter rather than testing it.
+  it('offers no retry button and disables the submit', async () => {
+    await mount(throttledApi(59));
+
+    await signIn(userEvent.setup());
+
+    expect(screen.queryByTestId('login-retry')).not.toBeOnTheScreen();
+    expect(screen.getByTestId('login-submit')).toBeDisabled();
+  });
+
+  it('does not send another request while the wait is running', async () => {
+    const { authApi } = await mount(throttledApi(59));
+    const user = userEvent.setup();
+
+    await signIn(user);
+    expect(authApi.issueToken).toHaveBeenCalledTimes(1);
+
+    await user.press(screen.getByTestId('login-submit'));
+
+    expect(authApi.issueToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the submit alone when the server refused without naming a wait', async () => {
+    await mount(throttledApi());
+
+    await signIn(userEvent.setup());
+
+    // Nothing to count down, so blocking the control would strand the employee
+    // with no way back and no stated reason.
+    expect(screen.getByTestId('login-submit')).not.toBeDisabled();
   });
 });

@@ -5,6 +5,7 @@ import {
   pendingSyncSummary,
   sectionEnd,
   tabWithPendingCount,
+  tooManyAttempts,
   unsyncedPunchesWarning,
   weekSummary,
 } from './strings';
@@ -82,6 +83,7 @@ describe('the states beyond the happy path', () => {
       forbidden: true,
       notFound: true,
       validation: true,
+      rateLimited: true,
       server: true,
       client: true,
       malformed: true,
@@ -203,5 +205,32 @@ describe('domain vocabulary, which belongs to the server', () => {
     const found = catalogue.filter(([, value]) => value === label).map(([path]) => path);
 
     expect(found).toEqual([]);
+  });
+});
+
+describe('the throttle copy (KMO-50)', () => {
+  it('names the wait in seconds', () => {
+    expect(tooManyAttempts(59)).toContain('59 segundos');
+  });
+
+  it('says one second in the singular', () => {
+    expect(tooManyAttempts(1)).toContain('1 segundo');
+    expect(tooManyAttempts(1)).not.toContain('1 segundos');
+  });
+
+  // `Retry-After` is not guaranteed. A sentence naming no interval beats one
+  // naming an invented one.
+  it.each([undefined, 0])('falls back to the wait-less sentence for %p', (seconds) => {
+    expect(tooManyAttempts(seconds)).toBe(es.errors.rateLimited);
+  });
+
+  // Art. 5. `ams` throttles through Laravel's own middleware, whose body is
+  // untranslated — this catalogue is the only thing standing between that and
+  // the screen.
+  it('is Spanish, with nothing of the server default in it', () => {
+    for (const message of [es.errors.rateLimited, tooManyAttempts(30)]) {
+      expect(message).not.toMatch(/Too Many|Attempts/i);
+      expect(message).toMatch(/[áéíóúñ¡¿]|intentos/i);
+    }
   });
 });

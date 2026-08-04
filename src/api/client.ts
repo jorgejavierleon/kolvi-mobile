@@ -178,7 +178,7 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
     const body = await readBody(response);
 
     if (!response.ok) {
-      const error = errorFromResponse(response.status, body);
+      const error = errorFromResponse(response.status, body, response.headers);
 
       if (error.kind === 'unauthorized') {
         announceSessionExpiry();
@@ -234,7 +234,7 @@ async function readBody(response: Response): Promise<unknown> {
     // The body stream died mid-read — the connection dropped after the headers.
     throw response.ok
       ? malformedResponseError(cause)
-      : errorFromResponse(response.status, undefined);
+      : errorFromResponse(response.status, undefined, response.headers);
   }
 
   if (text.length === 0) {

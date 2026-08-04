@@ -1,5 +1,5 @@
 import { ApiError, createApiClient } from '@/api';
-import { es } from '@/i18n';
+import { es, tooManyAttempts } from '@/i18n';
 
 import { authFailureFrom, createAuthApi, type AuthFailure } from './auth-api';
 
@@ -240,11 +240,45 @@ describe('authFailureFrom', () => {
     expect(authFailureFrom(error).message).toBe(CREDENTIALS_REJECTED);
   });
 
-  it('passes the throttle message through as a rejection', () => {
-    const throttled = 'Demasiados intentos de acceso. Inténtelo de nuevo en 45 segundos.';
-    const error = new ApiError({ kind: 'client', status: 429, serverMessage: throttled });
+  // KMO-50. This replaces a test that asserted the throttle message was passed
+  // through as a rejection, on the assumption that `ams` sent Spanish. It does
+  // not: KOL-8 throttles through Laravel's own middleware, whose body is the
+  // untranslated `Too Many Attempts.` — so the old test encoded putting English
+  // in front of an employee, which Art. 5 does not allow.
+  it('reports a throttle as its own kind, in Spanish, ignoring what the server said', () => {
+    const error = new ApiError({
+      kind: 'rateLimited',
+      status: 429,
+      serverMessage: 'Too Many Attempts.',
+      retryAfterSeconds: 45,
+    });
 
-    expect(authFailureFrom(error)).toEqual({ kind: 'rejected', message: throttled });
+    expect(authFailureFrom(error)).toEqual({
+      kind: 'throttled',
+      message: tooManyAttempts(45),
+      retryAfterSeconds: 45,
+    });
+  });
+
+  it('still reports a throttle when the server did not say how long', () => {
+    const error = new ApiError({ kind: 'rateLimited', status: 429 });
+
+    // No `retryAfterSeconds` key at all rather than a zero: the screen must not
+    // be told to wait an interval the server never named.
+    expect(authFailureFrom(error)).toEqual({
+      kind: 'throttled',
+      message: es.errors.rateLimited,
+    });
+  });
+
+  it('never lets the server throttle sentence reach the screen', () => {
+    const error = new ApiError({
+      kind: 'rateLimited',
+      status: 429,
+      serverMessage: 'Too Many Attempts.',
+    });
+
+    expect(authFailureFrom(error).message).not.toContain('Too Many');
   });
 
   // #5 — a failure that never reached the server is a different kind of failure,

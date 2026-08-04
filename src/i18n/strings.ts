@@ -321,6 +321,20 @@ export const es = {
     forbidden: 'No tienes permiso para realizar esta acción.',
     notFound: 'No encontramos lo que buscabas.',
     validation: 'Revisa los datos ingresados.',
+    /**
+     * The server refused because the app asked too often (KMO-50).
+     *
+     * Written here rather than taken from the server, which is the exception to
+     * the rule the rest of this catalogue follows. `ams` throttles through
+     * Laravel's own middleware, whose body is the untranslated `Too Many
+     * Attempts.` — the same problem as the guard's `Unauthenticated.` that put
+     * `sessionExpired` in this file. Art. 5 has no exception for a sentence that
+     * arrived over HTTP.
+     *
+     * The wait is not in this sentence because `Retry-After` is not always
+     * there; `tooManyAttempts` is what says it when it is.
+     */
+    rateLimited: 'Demasiados intentos. Espera un momento e inténtalo de nuevo.',
     server: 'Ocurrió un error en el servidor. Inténtalo más tarde.',
     client: 'No pudimos completar la solicitud.',
     malformed: 'No pudimos leer la respuesta del servidor.',
@@ -372,6 +386,28 @@ export function pendingSyncSummary(count: number): string {
  * this phone, and signing out is the one action that can destroy one. The
  * employee is told to sync first, since that is the way out that costs nothing.
  */
+/**
+ * The throttle message with the wait in it (KMO-50).
+ *
+ * Separate from `es.errors.rateLimited` rather than replacing it: `Retry-After`
+ * is not guaranteed, and a sentence that names no interval is better than one
+ * that names a made-up one. Falls back to the catalogue sentence when the server
+ * did not say how long.
+ *
+ * Seconds rather than a rounded minute because that is the unit the server
+ * answers in — `Retry-After: 59` is a wait an employee will sit through at a
+ * shift change, and rounding it to "un minuto" would overstate it every time.
+ */
+export function tooManyAttempts(seconds?: number): string {
+  if (seconds === undefined || seconds <= 0) {
+    return es.errors.rateLimited;
+  }
+
+  const wait = seconds === 1 ? '1 segundo' : `${seconds} segundos`;
+
+  return `Demasiados intentos. Espera ${wait} e inténtalo de nuevo.`;
+}
+
 export function unsyncedPunchesWarning(count: number): string {
   const marks = count === 1 ? '1 marca registrada' : `${count} marcas registradas`;
   const lost = count === 1 ? 'Se perderá' : 'Se perderán';

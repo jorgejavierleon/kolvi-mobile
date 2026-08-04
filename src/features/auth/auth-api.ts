@@ -22,7 +22,7 @@ import {
   type ApiClient,
   type RequestOptions,
 } from '@/api';
-import { es } from '@/i18n';
+import { es, tooManyAttempts } from '@/i18n';
 
 import { parseSessionUser, type SessionUser } from './session-user';
 
@@ -42,10 +42,21 @@ export type Credentials = {
  *
  * `connectivity` — the request never got an answer, so nothing was decided and
  * pressing the same button again is a reasonable thing to offer.
+ *
+ * `throttled` — the server answered and said *not yet* (KMO-50). Distinct from
+ * `rejected` because the credentials may well have been right, and distinct from
+ * `connectivity` because pressing again is the one thing that must not be
+ * offered: another attempt inside the window is another refusal, and on the
+ * token endpoint it is `ams`'s limiter being fed rather than tested.
  */
 export type AuthFailure = {
-  readonly kind: 'rejected' | 'connectivity';
+  readonly kind: 'rejected' | 'connectivity' | 'throttled';
   readonly message: string;
+  /**
+   * Set only on `throttled`, and only when the server said how long. The screen
+   * counts it down and keeps the submit control out of reach until it elapses.
+   */
+  readonly retryAfterSeconds?: number;
 };
 
 export type AuthApi = {
@@ -141,6 +152,19 @@ export function authFailureFrom(error: unknown): AuthFailure {
 
   if (error.isConnectivityFailure) {
     return { kind: 'connectivity', message: error.userMessage };
+  }
+
+  // Ahead of the field-message branch on purpose. A throttled token request has
+  // no `errors.email` to read, and its body carries Laravel's untranslated
+  // sentence — falling through would put `Too Many Attempts.` on the screen.
+  if (error.kind === 'rateLimited') {
+    return {
+      kind: 'throttled',
+      message: tooManyAttempts(error.retryAfterSeconds),
+      ...(error.retryAfterSeconds === undefined
+        ? {}
+        : { retryAfterSeconds: error.retryAfterSeconds }),
+    };
   }
 
   return { kind: 'rejected', message: error.messageFor('email') ?? error.userMessage };

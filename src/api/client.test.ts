@@ -427,3 +427,53 @@ describe('failures that never reached the server', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
+
+describe('a throttled response (KMO-50)', () => {
+  /** A response that carries headers, which `respondWith` deliberately does not. */
+  function throttledResponse(retryAfter?: string): Response {
+    return {
+      ok: false,
+      status: 429,
+      text: async () => JSON.stringify({ message: 'Too Many Attempts.' }),
+      headers: {
+        get: (name: string) => (name === 'Retry-After' ? (retryAfter ?? null) : null),
+      },
+    } as unknown as Response;
+  }
+
+  it('carries Retry-After from the response onto the error', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue(throttledResponse('59'));
+    const client = createApiClient({ baseUrl: BASE_URL, fetch: fetchImpl });
+
+    // The whole point of this test: the client is the only thing holding the
+    // Response, so a screen can only ever back off if it passes the headers on.
+    await expect(client.get('/marks')).rejects.toMatchObject({
+      kind: 'rateLimited',
+      retryAfterSeconds: 59,
+    });
+  });
+
+  it('survives a response with no headers, which the other doubles here are', async () => {
+    const fetchImpl = jest
+      .fn()
+      .mockResolvedValue(respondWith(429, { message: 'Too Many Attempts.' }));
+    const client = createApiClient({ baseUrl: BASE_URL, fetch: fetchImpl });
+
+    await expect(client.get('/marks')).rejects.toMatchObject({
+      kind: 'rateLimited',
+      retryAfterSeconds: undefined,
+    });
+  });
+
+  it('does not announce a session expiry for a throttle', async () => {
+    const onSessionExpired = jest.fn();
+    const fetchImpl = jest.fn().mockResolvedValue(throttledResponse('30'));
+    const client = createApiClient({ baseUrl: BASE_URL, fetch: fetchImpl, onSessionExpired });
+
+    await expect(client.get('/marks')).rejects.toThrow();
+
+    // A 429 is the server pacing the app, not refusing its token. Ending the
+    // session here would sign an employee out for typing too fast.
+    expect(onSessionExpired).not.toHaveBeenCalled();
+  });
+});

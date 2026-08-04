@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { es } from '@/i18n';
+import { es, tooManyAttempts } from '@/i18n';
 import { colors, radius, spacing, tones, typography } from '@/theme';
 import { Button } from '@/ui/button';
 import { Card } from '@/ui/card';
@@ -13,6 +13,7 @@ import {
   type PasswordApi,
   type PasswordChangeFailure,
 } from './password-api';
+import { throttleDeadline, useThrottleCountdown } from './throttle-countdown';
 
 type FieldErrors = {
   current?: string;
@@ -55,8 +56,14 @@ export function ChangePassword({ onDone, api }: ChangePasswordProps) {
   // taps inside one frame would both pass it. The ref is true at the tap.
   const inFlight = useRef(false);
 
+  // KMO-50 #5. Same gate as the login screen: a throttled change waits out the
+  // interval rather than being retried into the limiter that just refused it.
+  const [throttledUntil, setThrottledUntil] = useState<number | null>(null);
+  const waiting = useThrottleCountdown(throttledUntil);
+  const throttled = waiting !== null && waiting > 0;
+
   const submit = async (): Promise<void> => {
-    if (inFlight.current) {
+    if (inFlight.current || throttled) {
       return;
     }
 
@@ -93,6 +100,9 @@ export function ChangePassword({ onDone, api }: ChangePasswordProps) {
         ...(refusal.newPassword === undefined ? {} : { next: refusal.newPassword }),
       });
       setFailure(refusal.message === undefined ? null : refusal);
+      setThrottledUntil(
+        refusal.throttled === true ? throttleDeadline(refusal.retryAfterSeconds) : null,
+      );
     } finally {
       inFlight.current = false;
       setSubmitting(false);
@@ -169,11 +179,14 @@ export function ChangePassword({ onDone, api }: ChangePasswordProps) {
           style={styles.failure}
           testID="change-password-error"
         >
-          <Text style={styles.failureMessage}>{failure.message}</Text>
+          <Text style={styles.failureMessage}>
+            {throttled ? tooManyAttempts(waiting) : failure.message}
+          </Text>
         </View>
       )}
 
       <Button
+        disabled={throttled}
         label={es.auth.changePassword.action}
         loading={submitting}
         onPress={() => void submit()}

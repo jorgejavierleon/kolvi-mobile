@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { es } from '@/i18n';
+import { es, tooManyAttempts } from '@/i18n';
 import { colors, radius, spacing, tones, typography } from '@/theme';
 import { Button } from '@/ui/button';
 import { Screen } from '@/ui/screen';
@@ -9,6 +9,7 @@ import { TextField } from '@/ui/text-field';
 
 import type { AuthFailure } from './auth-api';
 import { useSession } from './session';
+import { throttleDeadline, useThrottleCountdown } from './throttle-countdown';
 
 type FieldErrors = {
   email?: string;
@@ -43,8 +44,14 @@ export function LoginScreen() {
   // what makes the guard true at the moment of the tap.
   const inFlight = useRef(false);
 
+  // KMO-50 #4. Set when a refusal names an interval, and the gate on the submit
+  // control until it runs out.
+  const [throttledUntil, setThrottledUntil] = useState<number | null>(null);
+  const waiting = useThrottleCountdown(throttledUntil);
+  const throttled = waiting !== null && waiting > 0;
+
   const submit = async (): Promise<void> => {
-    if (inFlight.current) {
+    if (inFlight.current || throttled) {
       return;
     }
 
@@ -75,6 +82,11 @@ export function LoginScreen() {
 
     if (!outcome.ok) {
       setFailure(outcome.failure);
+      setThrottledUntil(
+        outcome.failure.kind === 'throttled'
+          ? throttleDeadline(outcome.failure.retryAfterSeconds)
+          : null,
+      );
     }
 
     // Nothing on success: the token is in the session, and the navigator moves to
@@ -137,8 +149,15 @@ export function LoginScreen() {
 
         {failure === null ? null : (
           <View accessibilityLiveRegion="polite" style={styles.failure} testID="login-error">
-            <Text style={styles.failureMessage}>{failure.message}</Text>
+            {/* While a throttle is counting down the message is rebuilt each
+                tick, so the number on screen is the number still to wait. */}
+            <Text style={styles.failureMessage}>
+              {throttled ? tooManyAttempts(waiting) : failure.message}
+            </Text>
 
+            {/* Never offered for a throttle: pressing again inside the window is
+                another refusal, and on the token endpoint it feeds `ams`'s
+                limiter rather than testing it. */}
             {failure.kind === 'connectivity' ? (
               <Button
                 label={es.actions.retry}
@@ -152,6 +171,7 @@ export function LoginScreen() {
         )}
 
         <Button
+          disabled={throttled}
           label={es.auth.submit}
           loading={submitting}
           onPress={onSubmit}

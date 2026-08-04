@@ -16,6 +16,7 @@ export {
   pendingSyncSummary,
   sectionEnd,
   tabWithPendingCount,
+  tooManyAttempts,
   unsyncedPunchesWarning,
   weekSummary,
 } from './strings';

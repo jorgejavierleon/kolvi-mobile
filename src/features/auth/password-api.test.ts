@@ -1,5 +1,5 @@
 import { ApiError, createApiClient } from '@/api';
-import { es } from '@/i18n';
+import { es, tooManyAttempts } from '@/i18n';
 
 import { createPasswordApi, passwordChangeFailureFrom } from './password-api';
 
@@ -135,5 +135,49 @@ describe('passwordChangeFailureFrom', () => {
 
   it('gives a Spanish sentence for something that was not a request failure at all', () => {
     expect(passwordChangeFailureFrom(new Error('boom'))).toEqual({ message: es.errors.client });
+  });
+});
+
+describe('a throttled change (KMO-50)', () => {
+  it('reports a 429 as a throttle rather than as a field problem', () => {
+    const error = new ApiError({
+      kind: 'rateLimited',
+      status: 429,
+      serverMessage: 'Too Many Attempts.',
+      retryAfterSeconds: 45,
+    });
+
+    expect(passwordChangeFailureFrom(error)).toEqual({
+      throttled: true,
+      message: tooManyAttempts(45),
+      retryAfterSeconds: 45,
+    });
+  });
+
+  it('leaves both field slots empty, so nothing lands under an input', () => {
+    const error = new ApiError({ kind: 'rateLimited', status: 429, retryAfterSeconds: 45 });
+    const failure = passwordChangeFailureFrom(error);
+
+    expect(failure.currentPassword).toBeUndefined();
+    expect(failure.newPassword).toBeUndefined();
+  });
+
+  it('omits the wait entirely when the server did not name one', () => {
+    const error = new ApiError({ kind: 'rateLimited', status: 429 });
+
+    expect(passwordChangeFailureFrom(error)).toEqual({
+      throttled: true,
+      message: es.errors.rateLimited,
+    });
+  });
+
+  it('never carries the server English through', () => {
+    const error = new ApiError({
+      kind: 'rateLimited',
+      status: 429,
+      serverMessage: 'Too Many Attempts.',
+    });
+
+    expect(passwordChangeFailureFrom(error).message).not.toContain('Too Many');
   });
 });

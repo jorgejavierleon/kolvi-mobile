@@ -23,7 +23,7 @@ export {
 } from './config';
 
 export { ApiError, isApiError } from './errors';
-export type { ApiErrorKind, FieldErrors } from './errors';
+export type { ApiErrorKind, FieldErrors, ResponseHeaders } from './errors';
 
 export {
   compareNaiveDateTime,

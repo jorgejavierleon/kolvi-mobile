@@ -1,7 +1,7 @@
 import { act, render, screen, userEvent } from '@testing-library/react-native';
 
 import { ApiError } from '@/api';
-import { es } from '@/i18n';
+import { es, tooManyAttempts } from '@/i18n';
 
 import { ChangePassword } from './change-password';
 import type { PasswordApi } from './password-api';
@@ -239,5 +239,77 @@ describe('when it works', () => {
     await act(async () => {
       release();
     });
+  });
+});
+
+describe('a throttled change (KMO-50 #5)', () => {
+  function throttleError(retryAfterSeconds?: number): ApiError {
+    return new ApiError({
+      kind: 'rateLimited',
+      status: 429,
+      serverMessage: 'Too Many Attempts.',
+      retryAfterSeconds,
+    });
+  }
+
+  function throttledApi(retryAfterSeconds?: number): PasswordApi {
+    return fakeApi({
+      changePassword: jest.fn(async () => {
+        throw throttleError(retryAfterSeconds);
+      }),
+    });
+  }
+
+  // The failure this criterion exists for. `ams` throttles this endpoint at
+  // 6/minute, and a 429 has no `errors.current_password` in it — reporting it
+  // under that field would tell an employee they mistyped a password they got
+  // right, and send them looking for a mistake that is not there.
+  it('is not reported as a wrong current password', async () => {
+    await render(<ChangePassword onDone={jest.fn()} api={throttledApi(45)} />);
+
+    await fillAndSubmit();
+
+    expect(screen.getByTestId('change-password-current').props['aria-invalid']).toBe(false);
+    expect(screen.queryByText(WRONG_CURRENT)).not.toBeOnTheScreen();
+  });
+
+  it('never puts the server English on screen', async () => {
+    await render(<ChangePassword onDone={jest.fn()} api={throttledApi(45)} />);
+
+    await fillAndSubmit();
+
+    expect(screen.getByTestId('change-password-error')).toBeOnTheScreen();
+    expect(screen.queryByText('Too Many Attempts.')).not.toBeOnTheScreen();
+  });
+
+  it('names the wait and holds the submit', async () => {
+    await render(<ChangePassword onDone={jest.fn()} api={throttledApi(45)} />);
+
+    await fillAndSubmit();
+
+    expect(screen.getByText(tooManyAttempts(45))).toBeOnTheScreen();
+    expect(screen.getByTestId('change-password-submit')).toBeDisabled();
+  });
+
+  it('does not report the change as done', async () => {
+    await render(<ChangePassword onDone={jest.fn()} api={throttledApi(45)} />);
+
+    await fillAndSubmit();
+
+    // The password did not change. Showing the success panel would tell the
+    // employee to start using one that was never accepted.
+    expect(screen.queryByTestId('change-password-success')).not.toBeOnTheScreen();
+  });
+
+  it('does not resubmit while the wait is running', async () => {
+    const api = throttledApi(45);
+    await render(<ChangePassword onDone={jest.fn()} api={api} />);
+
+    await fillAndSubmit();
+    expect(api.changePassword).toHaveBeenCalledTimes(1);
+
+    await userEvent.setup().press(screen.getByTestId('change-password-submit'));
+
+    expect(api.changePassword).toHaveBeenCalledTimes(1);
   });
 });

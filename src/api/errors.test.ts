@@ -17,6 +17,7 @@ const KINDS: ApiErrorKind[] = [
   'forbidden',
   'notFound',
   'validation',
+  'rateLimited',
   'server',
   'client',
   'malformed',
@@ -33,7 +34,7 @@ describe('errorFromResponse', () => {
     [409, 'client'],
     [419, 'unauthorized'],
     [422, 'validation'],
-    [429, 'client'],
+    [429, 'rateLimited'],
     [500, 'server'],
     [503, 'server'],
   ])('maps %i to %s', (status, kind) => {
@@ -184,5 +185,63 @@ describe('isApiError', () => {
     expect(error).toBeInstanceOf(Error);
     expect(error.name).toBe('ApiError');
     expect(error.message).toContain('server');
+  });
+});
+
+describe('a throttled response (KMO-50)', () => {
+  /** What `ams` actually returns: Laravel's own untranslated envelope. */
+  const THROTTLE_BODY = { message: 'Too Many Attempts.' };
+
+  function headers(values: Record<string, string>) {
+    return { get: (name: string) => values[name] ?? null };
+  }
+
+  it('reads Retry-After off the response', () => {
+    const error = errorFromResponse(429, THROTTLE_BODY, headers({ 'Retry-After': '59' }));
+
+    expect(error.kind).toBe('rateLimited');
+    expect(error.retryAfterSeconds).toBe(59);
+  });
+
+  it('leaves the wait undefined when the header is absent', () => {
+    expect(errorFromResponse(429, THROTTLE_BODY, headers({})).retryAfterSeconds).toBeUndefined();
+  });
+
+  it('leaves the wait undefined when there are no headers at all', () => {
+    expect(errorFromResponse(429, THROTTLE_BODY).retryAfterSeconds).toBeUndefined();
+  });
+
+  // The spec also allows an HTTP-date, which is deliberately not parsed — `ams`
+  // never sends one, and resolving it against a phone clock that may be wrong
+  // would produce a wait the employee sits through for nothing.
+  it.each(['', 'soon', '-5', '12.5', 'Wed, 21 Oct 2026 07:28:00 GMT'])(
+    'leaves the wait undefined for an unparseable %p',
+    (value) => {
+      const error = errorFromResponse(429, THROTTLE_BODY, headers({ 'Retry-After': value }));
+
+      expect(error.retryAfterSeconds).toBeUndefined();
+    },
+  );
+
+  // The one place the server's own message is overruled. Everywhere else it
+  // wins; here it is English by construction and Art. 5 does not bend for it.
+  it('shows the catalogue sentence rather than the server English', () => {
+    const error = errorFromResponse(429, THROTTLE_BODY, headers({ 'Retry-After': '59' }));
+
+    expect(error.userMessage).toBe(es.errors.rateLimited);
+    expect(error.userMessage).not.toContain('Too Many');
+  });
+
+  it('still keeps the server message for logging', () => {
+    const error = errorFromResponse(429, THROTTLE_BODY, headers({}));
+
+    expect(error.serverMessage).toBe('Too Many Attempts.');
+  });
+
+  it('is a server failure rather than a lost connection, so nothing retries it blindly', () => {
+    const error = errorFromResponse(429, THROTTLE_BODY, headers({}));
+
+    expect(error.isServerFailure).toBe(true);
+    expect(error.isConnectivityFailure).toBe(false);
   });
 });

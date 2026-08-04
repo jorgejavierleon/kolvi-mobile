@@ -15,7 +15,7 @@
  */
 
 import { api, isApiError, type ApiClient } from '@/api';
-import { es } from '@/i18n';
+import { es, tooManyAttempts } from '@/i18n';
 
 export type PasswordChange = {
   currentPassword: string;
@@ -39,6 +39,14 @@ export type PasswordChangeFailure = {
   readonly currentPassword?: string;
   readonly newPassword?: string;
   readonly message?: string;
+  /**
+   * Set when the server throttled this change (KMO-50 #5). The screen counts it
+   * down and holds the submit control, rather than letting the employee retry
+   * into the same limiter.
+   */
+  readonly retryAfterSeconds?: number;
+  /** True for a throttle, so the screen can tell it from an ordinary refusal. */
+  readonly throttled?: boolean;
 };
 
 export type PasswordApi = {
@@ -78,6 +86,20 @@ export function passwordChangeFailureFrom(error: unknown): PasswordChangeFailure
     // gets a Spanish sentence rather than a form that appears to have done
     // nothing (Art. 5).
     return { message: es.errors.client };
+  }
+
+  // Before the field branch. `ams` throttles this endpoint at 6/minute per
+  // employee, and a 429 has no `errors.current_password` in it — falling through
+  // would leave the whole-form message reading Laravel's English, and worse,
+  // reporting a wait as though the employee had mistyped their own password (#5).
+  if (error.kind === 'rateLimited') {
+    return {
+      throttled: true,
+      message: tooManyAttempts(error.retryAfterSeconds),
+      ...(error.retryAfterSeconds === undefined
+        ? {}
+        : { retryAfterSeconds: error.retryAfterSeconds }),
+    };
   }
 
   const currentPassword = error.messageFor('current_password');

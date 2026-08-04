@@ -26,6 +26,7 @@ export type ApiErrorKind =
   | 'forbidden'
   | 'notFound'
   | 'validation'
+  | 'rateLimited'
   | 'server'
   | 'client'
   | 'malformed';
@@ -33,11 +34,24 @@ export type ApiErrorKind =
 /** Laravel's `errors` bag: one field, one or more messages, already in Spanish. */
 export type FieldErrors = Readonly<Record<string, readonly string[]>>;
 
+/**
+ * Just enough of `Headers` to read one off a response.
+ *
+ * Structural rather than the DOM `Headers` type, because the response doubles in
+ * the tests are `{ok, status, text}` object literals. A real `Response` always
+ * carries headers, so the only thing this shape buys is not having to rewrite
+ * every helper in three test files to add a property they do not exercise.
+ */
+export type ResponseHeaders = {
+  get(name: string): string | null;
+};
+
 type ApiErrorInit = {
   kind: ApiErrorKind;
   status?: number;
   serverMessage?: string;
   fieldErrors?: FieldErrors;
+  retryAfterSeconds?: number;
   cause?: unknown;
 };
 
@@ -53,7 +67,21 @@ export class ApiError extends Error {
   /** Field-level messages from a 422. Empty for every other kind. */
   readonly fieldErrors: FieldErrors;
 
-  constructor({ kind, status, serverMessage, fieldErrors, cause }: ApiErrorInit) {
+  /**
+   * How long the server said to wait, from `Retry-After` on a 429. Undefined
+   * when the header was absent or unreadable — the caller then knows only that
+   * it was refused for going too fast, which is still worth saying.
+   */
+  readonly retryAfterSeconds: number | undefined;
+
+  constructor({
+    kind,
+    status,
+    serverMessage,
+    fieldErrors,
+    retryAfterSeconds,
+    cause,
+  }: ApiErrorInit) {
     // The `Error` message is for logs and stack traces; `userMessage` is what an
     // employee reads. Keeping them apart is what stops an English fetch message
     // reaching a screen.
@@ -63,6 +91,7 @@ export class ApiError extends Error {
     this.status = status;
     this.serverMessage = serverMessage;
     this.fieldErrors = fieldErrors ?? {};
+    this.retryAfterSeconds = retryAfterSeconds;
     this.cause = cause;
     // Hermes and the Babel class transform both need this for `instanceof` to
     // survive extending a built-in.
@@ -78,6 +107,19 @@ export class ApiError extends Error {
    * failure the server never saw, or a response with no usable message in it.
    */
   get userMessage(): string {
+    // The one kind where the server does not get to speak.
+    //
+    // A 429 from `ams` is always an `Illuminate` ThrottleRequestsException, whose
+    // body is the framework's untranslated `Too Many Attempts.` — and this getter
+    // would otherwise prefer it, putting English in front of a Chilean employee
+    // (Art. 5). There is no good Spanish being discarded here: a Fortify-shaped
+    // throttle arrives as a 422 carrying `errors.email` instead, so no 429 in this
+    // API has a translated sentence in it. `serverMessage` stays on the error for
+    // logging either way.
+    if (this.kind === 'rateLimited') {
+      return es.errors.rateLimited;
+    }
+
     const serverMessage = this.serverMessage?.trim();
 
     return serverMessage !== undefined && serverMessage.length > 0
@@ -118,12 +160,17 @@ export function isApiError(error: unknown): error is ApiError {
  * body — a 500 from a proxy is often HTML, and it must still produce a Spanish
  * sentence rather than a parse failure.
  */
-export function errorFromResponse(status: number, body: unknown): ApiError {
+export function errorFromResponse(
+  status: number,
+  body: unknown,
+  headers?: ResponseHeaders,
+): ApiError {
   return new ApiError({
     kind: kindForStatus(status),
     status,
     serverMessage: readMessage(body),
     fieldErrors: readFieldErrors(body),
+    retryAfterSeconds: readRetryAfter(headers),
   });
 }
 
@@ -157,9 +204,34 @@ function kindForStatus(status: number): ApiErrorKind {
       return 'validation';
     case 419:
       return 'unauthorized';
+    // The server is refusing because the app asked too often, not because the
+    // request was wrong. Its own kind so a screen can wait rather than retry.
+    case 429:
+      return 'rateLimited';
     default:
       return status >= 500 ? 'server' : 'client';
   }
+}
+
+/**
+ * `Retry-After`, as the delta-seconds Laravel sends.
+ *
+ * The header may also be an HTTP-date by the spec, and that form is deliberately
+ * not parsed: `ams` never sends it, and a date parsed against a phone clock that
+ * may be wrong would produce a wait the employee sits through for no reason.
+ * Anything that is not a non-negative integer is treated as absent, which the
+ * caller already has to handle.
+ */
+function readRetryAfter(headers: ResponseHeaders | undefined): number | undefined {
+  const raw = headers?.get('Retry-After')?.trim();
+
+  if (raw === undefined || raw === null || !/^\d+$/.test(raw)) {
+    return undefined;
+  }
+
+  const seconds = Number(raw);
+
+  return Number.isSafeInteger(seconds) ? seconds : undefined;
 }
 
 function readMessage(body: unknown): string | undefined {
