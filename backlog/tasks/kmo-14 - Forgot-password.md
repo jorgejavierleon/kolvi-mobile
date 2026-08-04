@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-04 13:54'
+updated_date: '2026-08-04 18:29'
 labels:
   - mobile
   - auth
@@ -135,6 +135,23 @@ Validation:
 - #4 walked through by hand on the emulator end to end, against a throwaway employee cloned from the seeded one (kmo14@example.com) so employee@example.com's seeded password was never rotated — the trap KMO-13 documented. Requested the link from the app, drained the queue, opened the mailed URL with `adb shell am start -a VIEW`; Chrome loaded the console reset page with the address pre-filled, set a new password, and the page answered 'Su contraseña ha sido restablecida.' Signing into the app with that password landed on Inicio. The throwaway employee was deleted afterwards and the seeded one verified intact.
   Two dev-environment obstacles worth knowing for the next person: the page is blank on the emulator while public/hot points Vite at localhost:5173 (unreachable from the AVD, and the dev server was not running anyway) — serving the compiled bundle instead makes it same-origin and it renders. public/hot was restored.
 - The flow's countdown assertion was rewritten after a first failure that was the flow's fault, not the app's: this limiter's window opens on the *first* of the four requests, so what is left of it by the fourth depends on how long Maestro took to walk back through the login screen three times. It was 7 seconds on the run that failed. The assertion now checks that an interval is named at all (Retry-After was read), then that it reaches single digits, then that the control comes back — which proves movement from whatever it started at.
+
+Revised after review: the Spanish reset email is now built by `ResetPassword::toMailUsing()` in FortifyServiceProvider rather than by an App\\Notifications\\ResetPassword of our own. Same email, same blade view, same lang/es/mail.php copy — but the broker keeps sending the framework's class, so app/Models/User.php needs no sendPasswordResetNotification override and tests/Feature/Auth/PasswordResetTest.php goes back to untouched. KOL-9 is 8 files instead of 10, about 90 lines lighter.
+
+Not a lang/es.json, which would have been smaller still: that file is keyed on the English source sentence, so a framework reword stops matching and silently reverts the line to English with nothing to fail. Laravel already changed this subject once ('Reset Password Notification' -> 'Reset your password'), so a translation written against the old key would be dead today. ForgotPasswordApiTest asserts through toMail() rather than against the catalogue, so removing the callback fails the suite — the class name alone would not notice.
+
+One consequence worth carrying: the framework's notification is NOT ShouldQueue, so the reset email now goes out synchronously inside the request; the class it replaced was queued. Measured against the local Mailpit, a known address answers in ~245-270ms against ~232-234ms for an unknown one. The channel is not new — sendResetLink() already hashed a token and wrote a row for a known address only, so the difference existed before this change — but a synchronous send widens it, and a production SMTP provider would widen it much further than Mailpit on the same host does. Closing it properly means dispatching the whole sendResetLink() call to the queue so the controller does identical work either way. Raised, not done.
+
+The reset mail is now queued: ForgotPasswordController dispatches App\\Jobs\\SendPasswordResetLink instead of calling Password::broker()->sendResetLink() inline, so the broker's token hash, its password_reset_tokens write and the SMTP handshake all happen off the request. That closes the timing side of #2, which the uniform 204 alone did not:
+
+  before, inline    known 0.245 0.244 0.272s   unknown 0.231 0.234 0.234s
+  after, dispatched known 0.032 0.034 0.033s   unknown 0.035 0.034 0.032s
+
+Measured against the local Mailpit, warmed first and interleaved in both orders — the earlier run that put all the known addresses first showed a gap that turned out to be warm-up, not the address. After the change the ordering no longer predicts anything, which is the point: response time stops tracking whether the account exists.
+
+Encoded as a test rather than left to the numbers, since a timing measurement cannot live in a suite: 'the request does identical work whether or not the address has an account' fakes the queue, asserts the job is pushed for both addresses, and asserts nothing was notified during the request — which only holds while the broker is off the request path.
+
+Also restores the async send that was lost when App\\Notifications\\ResetPassword went away (the framework's notification is not ShouldQueue; the deleted class was). No new operational requirement — ams already needs a worker for the mark, leave and document mails.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
