@@ -13,6 +13,7 @@
  */
 export {
   es,
+  passwordResetSent,
   pendingSyncSummary,
   sectionEnd,
   tabWithPendingCount,

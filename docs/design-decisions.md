@@ -74,6 +74,8 @@ The design specifies:
 | A5 / F06 — Biometric | **Adopted.** Device biometric unlock gates a token held in secure storage. Combined with the password it is the Art. 7g "two identification alternatives, one non-biometric". |
 | A9 — 2FA | **Not in the mobile login for v1.** The device-bound token plus biometric unlock substitutes. |
 | A6 — Token storage | Expo SecureStore / Keychain / EncryptedSharedPreferences. Never AsyncStorage. |
+| A4 — Forgot password | **The app requests the link; the console's existing page accepts the new password.** `POST /api/v1/forgot-password` (`ams` KOL-9) puts the request on the mobile surface, and the mail links to `GET /reset-password/{token}`, which the phone's browser opens. Rejected: a deep link into the app with its own reset screen — it would need Android App Links (`assetlinks.json` on the `ams` host, cert fingerprints, an https redirect, because mail clients do not follow a bare `kolvi://`) to duplicate a page that already exists and already works on a phone. |
+| A4 — Non-disclosure | **The endpoint answers `204` whether or not the address has an account**, and the app's confirmation is worded conditionally (`Si {correo} tiene una cuenta…`). Fortify's own route cannot be used: it answers an unknown address with a 422 naming it as unknown, which makes a public endpoint a way to test whether a given person works at the company. Repetition is capped by a limiter keyed on email + IP that counts every request, so a 429 discloses nothing either. |
 
 ## 6. Jornada
 

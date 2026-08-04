@@ -89,6 +89,9 @@ function RootNavigator() {
 
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" />
+        {/* Beside the login screen rather than behind the signed-in guard: the
+            employee who needs it is the one who cannot get a session. */}
+        <Stack.Screen name="recuperar-contrasena" />
       </Stack.Protected>
     </Stack>
   );

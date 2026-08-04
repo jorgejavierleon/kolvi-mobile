@@ -6,6 +6,7 @@ import { colors, radius, spacing, tones, typography } from '@/theme';
 import { Button } from '@/ui/button';
 import { Screen } from '@/ui/screen';
 import { TextField } from '@/ui/text-field';
+import { TextLink } from '@/ui/text-link';
 
 import type { AuthFailure } from './auth-api';
 import { useSession } from './session';
@@ -14,6 +15,14 @@ import { throttleDeadline, useThrottleCountdown } from './throttle-countdown';
 type FieldErrors = {
   email?: string;
   password?: string;
+};
+
+export type LoginScreenProps = {
+  /**
+   * Opens Recuperar contraseña (KMO-14 #1). Handed in by the route so nothing
+   * under `src/features` has to import the router.
+   */
+  onForgotPassword: () => void;
 };
 
 /**
@@ -30,7 +39,7 @@ type FieldErrors = {
  * an employee who was signed in a moment ago and is suddenly here again is told
  * why, above the form.
  */
-export function LoginScreen() {
+export function LoginScreen({ onForgotPassword }: LoginScreenProps) {
   const { ended, signIn } = useSession();
 
   const [email, setEmail] = useState('');
@@ -179,6 +188,18 @@ export function LoginScreen() {
           onPress={onSubmit}
           testID="login-submit"
         />
+
+        {/* KMO-14 #1. Under the submit button rather than beside the password
+            field: it is the way out of this screen for someone the form cannot
+            help, and putting it above `Ingresar` would offer it before the
+            employee has tried the thing they came to do. Drawn as a link so it
+            does not compete with the button it sits under. */}
+        <TextLink
+          label={es.auth.forgotPassword.action}
+          onPress={onForgotPassword}
+          style={styles.forgotPassword}
+          testID="login-forgot-password"
+        />
       </View>
     </Screen>
   );
@@ -200,6 +221,13 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: spacing[5],
+  },
+  forgotPassword: {
+    // Centred under the full-width button it belongs to, and pulled up out of
+    // the form's own gap so it reads as attached to `Ingresar` rather than as a
+    // third row of the form.
+    alignSelf: 'center',
+    marginTop: -spacing[3],
   },
   sessionEnded: {
     borderRadius: radius.md,

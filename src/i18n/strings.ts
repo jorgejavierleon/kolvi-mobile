@@ -172,6 +172,49 @@ export const es = {
       /** Leaves the screen once the change is done. */
       done: 'Listo',
     },
+
+    /**
+     * ¿Olvidaste tu contraseña? (KMO-14). The one route back in for an employee
+     * who is mobile-only — until this existed the answer was a desktop they may
+     * not have or a call to HR.
+     *
+     * Every sentence here is written around a constraint the screen cannot see:
+     * **the server never says whether the address has an account** (#2). It
+     * answers the same 204 either way, so a confirmation that said *te enviamos
+     * un correo* would be a claim the app cannot support, and would turn this
+     * screen into a way to test whether a given person works at the company. The
+     * copy is conditional — *si … tiene una cuenta* — which is the whole reason
+     * `passwordResetSent` is a function: it names the address the employee typed,
+     * which is theirs to know, without confirming anything about it.
+     */
+    forgotPassword: {
+      /** The link under the login form, and the screen's own title. */
+      action: '¿Olvidaste tu contraseña?',
+      title: 'Recuperar contraseña',
+      back: 'Volver a ingresar',
+      intro:
+        'Escribe el correo con el que entras a Kolvi y te enviaremos un enlace para crear una contraseña nueva.',
+      submit: 'Enviar enlace',
+
+      /**
+       * The confirmation (#3). It answers the three things an employee standing
+       * at a gate actually needs: where to look, that the link is opened on this
+       * phone, and that it does not wait for them.
+       *
+       * The body is `passwordResetSent`, below — it names the address, so the
+       * employee can see a typo rather than wonder why nothing arrived.
+       */
+      successTitle: 'Revisa tu correo',
+      /**
+       * Deliberately below the confirmation rather than inside it: it is the
+       * thing to do *after* waiting, and putting it in the same sentence as
+       * "revisa tu correo" invites tapping it immediately, which only feeds the
+       * limiter.
+       */
+      retryHint: 'Si no llega en unos minutos, revisa que el correo esté bien escrito.',
+      /** Leaves the screen once the mail is on its way. */
+      done: 'Volver a ingresar',
+    },
   },
 
   /**
@@ -406,6 +449,26 @@ export function tooManyAttempts(seconds?: number): string {
   const wait = seconds === 1 ? '1 segundo' : `${seconds} segundos`;
 
   return `Demasiados intentos. Espera ${wait} e inténtalo de nuevo.`;
+}
+
+/**
+ * The forgot-password confirmation (KMO-14 #2, #3).
+ *
+ * Conditional on purpose. `ams` answers the same 204 for an address with an
+ * account and one without, so this screen genuinely does not know whether a mail
+ * was sent — and *si … tiene una cuenta* is the only honest phrasing as well as
+ * the one that keeps the endpoint from being used to test who works here.
+ *
+ * It names the address the employee typed. That discloses nothing they did not
+ * just write, and it is what turns "nothing arrived" from a mystery into a typo
+ * they can see.
+ *
+ * `60 minutos` is `config/auth.php`'s `passwords.users.expire` in `ams`. The app
+ * cannot read it, so this sentence is the one place a server-side duration is
+ * restated here — if that config ever changes, this string changes with it.
+ */
+export function passwordResetSent(email: string): string {
+  return `Si ${email} tiene una cuenta en Kolvi, te enviamos un enlace para crear una contraseña nueva. Ábrelo en este teléfono dentro de los próximos 60 minutos. Si no lo ves, revisa la carpeta de spam o correo no deseado.`;
 }
 
 export function unsyncedPunchesWarning(count: number): string {

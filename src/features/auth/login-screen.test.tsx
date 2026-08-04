@@ -41,21 +41,25 @@ function fakeAuthApi(overrides: Partial<AuthApi> = {}): AuthApi {
   };
 }
 
-async function mount(authApi: AuthApi = fakeAuthApi(), tokenStore = createMemoryTokenStore()) {
+async function mount(
+  authApi: AuthApi = fakeAuthApi(),
+  tokenStore = createMemoryTokenStore(),
+  onForgotPassword: () => void = jest.fn(),
+) {
   const view = await render(
     <SessionProvider
       authApi={authApi}
       tokenStore={tokenStore}
       deviceName={async () => 'Kolvi test'}
     >
-      <LoginScreen />
+      <LoginScreen onForgotPassword={onForgotPassword} />
     </SessionProvider>,
   );
 
   // The provider asks the store for a token before anything can be typed.
   await waitFor(() => expect(screen.getByTestId('login-submit')).toBeOnTheScreen());
 
-  return { ...view, authApi };
+  return { ...view, authApi, onForgotPassword };
 }
 
 async function signIn(user: ReturnType<typeof userEvent.setup>, password = 'admin') {
@@ -421,5 +425,45 @@ describe('a throttled sign-in (KMO-50)', () => {
     // Nothing to count down, so blocking the control would strand the employee
     // with no way back and no stated reason.
     expect(screen.getByTestId('login-submit')).not.toBeDisabled();
+  });
+});
+
+describe('the way out for an employee the form cannot help (KMO-14 #1)', () => {
+  it('offers the forgot-password link', async () => {
+    await mount();
+
+    expect(screen.getByText(es.auth.forgotPassword.action)).toBeOnTheScreen();
+  });
+
+  it('opens the recovery screen when it is pressed', async () => {
+    const onForgotPassword = jest.fn();
+    await mount(fakeAuthApi(), createMemoryTokenStore(), onForgotPassword);
+
+    await userEvent.setup().press(screen.getByTestId('login-forgot-password'));
+
+    expect(onForgotPassword).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays reachable while the login is throttled', async () => {
+    // The one moment it matters most: an employee locked out by five wrong
+    // attempts is the employee who has forgotten their password, and the
+    // throttle holds `Ingresar` for the next minute.
+    await mount(
+      fakeAuthApi({
+        issueToken: jest.fn(async () => {
+          throw new ApiError({
+            kind: 'rateLimited',
+            status: 429,
+            serverMessage: 'Too Many Attempts.',
+            retryAfterSeconds: 59,
+          });
+        }),
+      }),
+    );
+
+    await signIn(userEvent.setup());
+
+    expect(screen.getByTestId('login-submit')).toBeDisabled();
+    expect(screen.getByTestId('login-forgot-password')).not.toBeDisabled();
   });
 });
