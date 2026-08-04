@@ -1,8 +1,10 @@
 import { router } from 'expo-router';
+import { StyleSheet } from 'react-native';
 
 import { SignOut } from '@/features/auth/sign-out';
 import { UnlockSetting } from '@/features/auth/unlock-setting';
 import { es } from '@/i18n';
+import { spacing } from '@/theme';
 import { Button } from '@/ui/button';
 import { Card } from '@/ui/card';
 import { OverlayHeader } from '@/ui/overlay-header';
@@ -34,6 +36,12 @@ export default function ProfileScreen() {
   return (
     <Screen
       bottomInset
+      // The cards here are siblings in the scroll area rather than one composed
+      // block, so nothing was separating them and they read as a single seam.
+      // Set on this screen and not as a `Screen` default: every tab puts a
+      // `ScreenHeader` first, which carries its own bottom margin, and a gap on
+      // the container would double it there.
+      contentContainerStyle={styles.stack}
       header={
         <OverlayHeader
           title={es.profile.title}
@@ -61,3 +69,9 @@ export default function ProfileScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  stack: {
+    gap: spacing[4],
+  },
+});
