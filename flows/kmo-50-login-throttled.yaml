@@ -92,3 +92,28 @@ tags:
 - assertNotVisible:
     id: 'login-retry'
     label: 'No retry is offered for a throttle'
+
+# The two assertions below exist because of a bug that shipped past a fully green
+# Jest suite, and they are the only tier that can catch it.
+#
+# The count was first derived from the clock during render. This app builds with
+# React Compiler (`reactCompiler: true`), which memoises render-time computation
+# on its tracked inputs — and `Date.now()` is not one of them. The value was
+# computed once, cached against the deadline and never recomputed: the number
+# froze and the submit control never came back, locking the employee out of the
+# login screen until they restarted the app. Jest cannot see it because it does
+# not run the compiler.
+#
+# Starting from about 45, a number in the thirties proves the count is moving.
+- extendedWaitUntil:
+    visible: 'Demasiados intentos. Espera 3[0-9] segundos.*'
+    timeout: 30000
+    label: 'The countdown is ticking down rather than frozen on its first value'
+
+# And the wait ends. This is the one that fails outright on the frozen version.
+- extendedWaitUntil:
+    visible:
+      id: 'login-submit'
+      enabled: true
+    timeout: 60000
+    label: 'The submit control comes back once the interval has passed'

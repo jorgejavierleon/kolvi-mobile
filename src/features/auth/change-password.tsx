@@ -180,7 +180,7 @@ export function ChangePassword({ onDone, api }: ChangePasswordProps) {
           testID="change-password-error"
         >
           <Text style={styles.failureMessage}>
-            {throttled ? tooManyAttempts(waiting) : failure.message}
+            {waiting === null ? failure.message : tooManyAttempts(waiting)}
           </Text>
         </View>
       )}

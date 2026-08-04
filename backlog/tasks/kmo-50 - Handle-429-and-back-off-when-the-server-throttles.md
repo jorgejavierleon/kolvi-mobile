@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-08-03 22:20'
-updated_date: '2026-08-04 00:34'
+updated_date: '2026-08-04 01:02'
 labels:
   - mobile
   - auth
@@ -104,6 +104,26 @@ Validation:
 - Verified against a live `ams` carrying KOL-8: six failed logins for one email return 429 with body {"message":"Too Many Attempts."} and headers Retry-After: 59, X-RateLimit-Limit: 5, X-RateLimit-Remaining: 0. The device screenshot shows 'Demasiados intentos. Espera 45 segundos e inténtalo de nuevo.' with Ingresar dimmed and unpressable.
 
 **Pre-existing E2E flake, not from this branch.** Full-suite runs fail 1-4 flows at random with 'Ingresar/Inicio is visible' — the app not reaching a screen after launch. The failing flow moves between runs and each passes when run alone. Confirmed unrelated by stashing this branch entirely and running the suite on master: 3/8 failed with the identical symptom and none of this code present. Restarting Metro and the AVD reduces it but does not remove it. Worth its own ticket; it is a launch/dev-client problem, not an app one.
+
+---
+
+### The bug that got past a green Jest suite
+
+I reported the countdown as working on the strength of 616 passing tests. It was not. On a device the number froze on its first value and **the submit control never came back** — the employee was locked out of the login screen until they restarted the app, which is worse than the problem this ticket set out to fix. Caught only by watching the real screen: the button was still `enabled="false"` ninety seconds into a forty-five second wait.
+
+**Cause: React Compiler.** This app builds with `reactCompiler: true` (app.config.ts, babel-plugin-react-compiler 1.0.0). The first implementation derived the count during render — `return secondsUntil(deadline)` reading `Date.now()`. The compiler memoises render-time computation on its tracked inputs, and the clock is not one of them, so the value was computed once, cached against `deadline`, and never recomputed. Logcat showed it exactly: the interval fired every second and the component re-rendered every second, while the returned value stayed pinned to the first render's number as `Date.now()` moved on beneath it.
+
+**Fix:** hold the count in state and let the interval write it. A state read cannot be memoised away, and the interval is event-time code the compiler does not touch.
+
+**Why Jest could not see it:** jest-expo does not run the React Compiler babel plugin, so the memoisation that breaks this never happens in tests. Every unit test passed against both the broken and the fixed hook. This is a structural gap in the Jest tier, not a gap in these tests — any hook whose value depends on something the compiler cannot track has the same exposure.
+
+The flow now carries the two assertions that do catch it: the count reaching the thirties (it is moving, not frozen) and `login-submit` becoming enabled again (the wait actually ends). Verified by reintroducing the broken version and re-running — it fails at step 38, the ticking assertion.
+
+Also fixed while confirming: once the wait elapsed the message kept reading 'Espera 45 segundos' over a button that had already come back, because the render fell through to the static `failure.message`. The message is now built from the live count whenever there is one, so at zero it drops the interval and reads 'Espera un momento'.
+
+Device evidence: screenshots eight seconds apart read 'Espera 42 segundos' and 'Espera 34 segundos', with the button dimmed in both; logcat shows waiting= 45, 44, 43, 42, 41 at one-second intervals.
+
+One measurement trap worth recording: `bin/ui` reads the screen with `uiautomator dump`, which takes several seconds and starves the JS thread while it runs, so consecutive `bin/ui` reads of a live countdown return the same number and look frozen even when it is not. Use `bin/shot` or logcat to observe anything that ticks.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

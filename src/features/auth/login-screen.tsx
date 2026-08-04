@@ -149,10 +149,12 @@ export function LoginScreen() {
 
         {failure === null ? null : (
           <View accessibilityLiveRegion="polite" style={styles.failure} testID="login-error">
-            {/* While a throttle is counting down the message is rebuilt each
-                tick, so the number on screen is the number still to wait. */}
+            {/* Rebuilt each tick, so the number on screen is the number still to
+                wait — and once it reaches zero `tooManyAttempts` drops the
+                interval rather than leaving a stale "espera 45 segundos" over a
+                button that has already come back. */}
             <Text style={styles.failureMessage}>
-              {throttled ? tooManyAttempts(waiting) : failure.message}
+              {waiting === null ? failure.message : tooManyAttempts(waiting)}
             </Text>
 
             {/* Never offered for a throttle: pressing again inside the window is
