@@ -6,11 +6,11 @@
  * fans out to the shift, the marks, the week and the geofence pays four round
  * trips on a warehouse connection before the button is live.
  *
- * **The contract below is provisional.** The endpoint does not exist in `ams` yet
- * — it is the external prerequisite the task names — so this module is currently
- * the specification rather than a reader of one, and it was written from the
- * shape the PRD asks for. Where `ams` lands on different field names, this parser
- * is the only place that changes.
+ * **The contract below is provisional.** The endpoint does not exist in `ams`
+ * yet — it is tracked there as KOL-31, which names this file as the authoritative
+ * reading — so this module is currently the specification rather than a reader of
+ * one, and it was written from the shape the PRD asks for. Where `ams` lands on
+ * different field names, this parser is the only place that changes.
  *
  * It uses the `@/api` singleton rather than building its own client, which is the
  * opposite of what `auth-api.ts` and `forgot-password-api.ts` do. Their reason

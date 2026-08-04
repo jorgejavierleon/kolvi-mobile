@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-04 21:45'
+updated_date: '2026-08-04 22:08'
 labels:
   - mobile
   - marcaje
@@ -112,4 +112,8 @@ Checked:
 - **#8** permission gate — `home-screen.test.tsx` covers all four cases including the admin who carries only `ClockOwn:Mark`/`ViewOwn:Mark`. Now verifiable on device too, since KOL-5 shipped, but only once there is a screen behind the gate to see.
 
 Validation: `npm run check` green — typecheck, lint, format, 747 Jest tests across 49 suites. `bin/e2e kmo-15` passed in 49s.
+
+The backend prerequisite is now tracked: **`ams` KOL-31 — Aggregate the mobile home screen on GET /api/v1/me/today**, HIGH, 10 acceptance criteria. It names `src/features/marcaje/today-api.ts` as the authoritative reading of the contract, carries the naive-datetime requirement explicitly (a resource copied from `MarkResource` would stamp an offset and fail this parser), and asks the demo seeder to give `employee@example.com` a shift today with a colación window so this ticket's Maestro flow has something to assert against.
+
+KOL-31 shipping is what unblocks #2, #3, #4, #5, #7 and #8 here.
 <!-- SECTION:NOTES:END -->

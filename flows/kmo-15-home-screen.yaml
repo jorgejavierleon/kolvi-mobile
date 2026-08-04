@@ -6,8 +6,8 @@
 # without losing the tab).
 #
 # **It deliberately covers no more than that, and the reason is the endpoint.**
-# `GET /api/v1/me/today` does not exist in `ams` yet — it is the external
-# prerequisite the task names — so on a device the shift card, the clock's status
+# `GET /api/v1/me/today` does not exist in `ams` yet — it is tracked there as
+# KOL-31 — so on a device the shift card, the clock's status
 # line and the week summary have nothing to render from. The failed state below
 # is not a contrived condition: it is what the app honestly does today, and it is
 # the one part of #9 a device can prove right now.
