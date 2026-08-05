@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-05 22:43'
+updated_date: '2026-08-05 22:59'
 labels:
   - mobile
   - marcaje
@@ -40,14 +40,14 @@ Per docs/design-decisions.md §2 there are exactly three states and one entrada 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The primary button is at least 64pt tall, full width, coral, with the display font, and shows a spinner in its loading state
-- [ ] #2 The three states drive the status line and the primary label exactly as tabulated in the description
-- [ ] #3 The done state replaces the punch button with the success panel reading Jornada finalizada and Nos vemos en tu próximo turno
+- [x] #1 The primary button is at least 64pt tall, full width, coral, with the display font, and shows a spinner in its loading state
+- [x] #2 The three states drive the status line and the primary label exactly as tabulated in the description
+- [x] #3 The done state replaces the punch button with the success panel reading Jornada finalizada and Nos vemos en tu próximo turno
 - [ ] #4 The punch request carries no client-supplied timestamp; the server-assigned time is what the receipt displays
-- [ ] #5 The reported latitude, longitude and accuracy are sent when available, and their absence is sent explicitly rather than omitted
-- [ ] #6 The button cannot be double-tapped into two punches, including on a slow network
+- [x] #5 The reported latitude, longitude and accuracy are sent when available, and their absence is sent explicitly rather than omitted
+- [x] #6 The button cannot be double-tapped into two punches, including on a slow network
 - [ ] #7 A server rejection because the punch already exists for today renders as a friendly Spanish state, never as an error dialog
-- [ ] #8 A failed punch leaves the state unchanged and offers retry without the employee losing their place
+- [x] #8 A failed punch leaves the state unchanged and offers retry without the employee losing their place
 - [ ] #9 The button remains legible and operable in direct sunlight and with gloves, verified on a physical mid-range Android
 - [ ] #10 A successful punch transitions the state and opens the comprobante sheet built in KMO-19
 - [ ] #11 A punch made without a location fix — permission permanently denied, or no signal — is recorded rather than blocked, and travels with geo_status unknown (carried over from KMO-16 #7)
@@ -108,4 +108,43 @@ Five files under `src/features/marcaje/`, in the shape the rest of the screen al
 **The button is not disabled in the out-of-range state, and that is deliberate.** `useLocation.punchAllowed` exists and this ticket does not read it. KMO-18 #1 and #3 disable the primary action *and* add the two escape hatches beneath it, and they have to arrive together: disabling now, with no override, would leave an employee standing outside a geofence unable to record attendance at all — which is the one thing docs/design-decisions.md D-F1-c forbids. `PunchAction` takes a `disabled` prop for KMO-18 to wire.
 
 **The success panel's subtitle is drawn at full strength**, not at the design's `opacity:.8`. Success foreground on the success tint is already close to the contrast floor, and this panel is read outdoors.
+
+## Which criteria are checked, and why the rest are not
+
+Checked:
+
+- **#1** — `punch-action.test.tsx` asserts full width, `minHeight >= 64`, `colors.accentCoral`, the display family, and the spinner appearing in the loading state with the label kept. On the device the button measured **975 × 168 px at density 2.625 = 372 × 64 dp**, read off the view hierarchy — full width inside the screen's own padding. Screenshot `.artifacts/kmo-17-button.png`.
+- **#2** — all three rows read on screen. `before` on the live app (`kmo-17-button.png`); `working` and `done` by writing the marks straight into the register, since no punch can complete against `ams` yet: `En jornada` over `Marcar salida`, then `Jornada finalizada`. `flows/kmo-17-punch-button.yaml` asserts the `before` row and its pairing in the suite; `home-screen.test.tsx` walks all three, which is where the *transitions* are proven.
+- **#3** — `.artifacts/kmo-17-jornada-finalizada.png`: the panel on the success tint reading `Jornada finalizada` over `Nos vemos en tu próximo turno`, and `punch-button` absent from the hierarchy rather than disabled in it. Jest covers the same in isolation.
+- **#5** — `punch-api.test.ts` asserts the request body exactly: the five keys in order, the fix and its accuracy in `ams`' spelling, and — for a phone with no fix — `lat`, `lng` and `accuracy_m` all present and explicitly `null`, checked with `Object.hasOwn`. Jest is the honest tier here and stays the honest tier after KOL-34: no device tier can see a request body.
+- **#6** — `use-punch.test.ts` with a deferred promise, which is exactly what "a slow network" is: three taps inside one act scope make one request; a second tap after the `submitting` state has landed still makes one; the latch reopens once the first settles, and reopens after a failure. `punch-action.test.tsx` proves the button independently blocks the second *press*. The ref rather than a read of state is the whole point — `setAttempt` lands a render later, so on a slow link the second tap arrives while the button still believes it is idle.
+- **#8** — on the device, against the live `ams`. The punch was refused; the state stayed `Aún no marcas entrada`, the button kept `Marcar entrada` and stayed pressable, and the refusal rendered as a Spanish line beneath it with no dialog anywhere (`.artifacts/kmo-17-punch-refused.png`). Jest covers the state being untouched, no receipt being recorded, and the latch reopening.
+
+Left unchecked:
+
+- **#4** — the first clause is proven twice over: `punch-api.test.ts` asserts the body has no `datetime` key at all, and the live `ams` answered `El campo datetime es obligatorio.`, which is the server itself confirming the app sent none. The second clause — that the server-assigned time is what the **receipt displays** — has no surface: no punch has ever succeeded against any server, and the sheet that would display it is KMO-19. Checking it would be signing off on a time nobody has seen.
+- **#7** — the client half is built and proven (`DuplicateMarkError` off 409, a calm line, `/me/today` reloaded so the screen ends up showing the register). But the criterion is about *a server rejection*, and no server rejects that way: `MarkManager::createMark` has no one-per-day guard. KOL-34 is what produces it.
+- **#9** — physical-device tier by definition. Sunlight and gloves cannot be reproduced on an emulator, and a run that "passed" it would mean nothing. Owed on a mid-range Android.
+- **#10** — the seam is built and tested: `usePunch` holds the receipt and calls `onPunched(receipt)`. The sheet it opens is KMO-19, which depends on this ticket, so nothing here can open it yet.
+- **#11** — half proven on the device, and the half that matters most for it: with the permission refused for good (`bin/device perm deny-forever`), the card reads `Sin permiso de ubicación` and the button is still there, still pressable, and the request goes — it is refused by the server for the missing `datetime`, not blocked by the app (`.artifacts/kmo-17-no-permission.png`). Jest proves the wire half — `{lat: null, lng: null, accuracy_m: null, geo_status: 'unknown'}`. What is missing is *recorded*, which is KOL-34 again.
+
+## Validation
+
+`npm run check` green: typecheck, ESLint, Prettier, **912 Jest tests across 57 suites**, up from 827/54.
+
+**Maestro: `flows/kmo-17-punch-button.yaml` passes, in the suite.** `flows/kmo-17-punch.yaml` walks the whole day and is tagged `requires-punch-endpoint`, excluded until KOL-34 lands; it is also single-use per seed, since the register keeps one `in` and one `out` per day.
+
+**The full suite reported 11/15, and none of the four failures is this branch's.** KMO-8, KMO-9 and KMO-15 all pass on their own runs here; KMO-14 was already red before this branch (recorded on KMO-16). The suite failure mode is the one KMO-16 documented — the dev client degrades with each `clearState` cold start — and this time it ended in a native `SIGSEGV` in `libreactnative.so` on the JS thread, with the app gone and the flow looking at the launcher. Checked properly rather than assumed: KMO-8 was run on `master` (passed, 56s) and then again on this branch (passed, 56s), so the branch is not the cause.
+
+**Two probe marks were written into the local `ams` demo data** to reach the `working` and `done` states, and both were force-deleted afterwards. `employee@example.com` is back to an unpunched day, which is what `kmo-17-punch-button.yaml` needs.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Built the punch — `punch-api.ts`, `use-punch.ts` and `punch-action.tsx` under `src/features/marcaje/`, wired into the home screen under the clock. The request carries no timestamp and never can (the server assigns the legal time, Art. 11 / design-decisions §2) and sends the fix, its accuracy and the client's advisory geofence verdict with explicit nulls where there is nothing to report. Two taps make one punch, the state advances off the receipt rather than off the tap, a refusal leaves the day untouched with the button as its own retry, and a punch the register already holds is a calm Spanish line plus a reload rather than an error. `shadows.accent` was added to the theme for the design's coral glow, approved beforehand.
+
+Verified with `npm run check` green (912 tests, 57 suites), `flows/kmo-17-punch-button.yaml` passing in the Maestro suite, and the app driven by hand on the emulator against a live `ams`: the button measured 372 × 64 dp, all three state rows read on screen, and a real punch attempt refused with the server's own Spanish while the state, the label and the retry all held.
+
+**Not done, and deliberately not claimed.** #4, #7 and #11 wait on `ams` KOL-34 — `POST /api/v1/marks` still requires the client `datetime` this app will never send, has no accuracy or geo-status columns and no one-per-day guard — so no punch has ever succeeded against any server. #10 waits on KMO-19, whose sheet this ticket only builds the seam for. #9 is physical-device tier. Six of eleven criteria are checked.
+<!-- SECTION:FINAL_SUMMARY:END -->
