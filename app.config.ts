@@ -81,6 +81,32 @@ const config: ExpoConfig = {
         faceIDPermission: es.security.faceIdUsage,
       },
     ],
+    [
+      // Geolocation for the punch (KMO-16). Every flag here is off, and that is
+      // the feature: the app reads the phone's position while an employee is
+      // looking at the Marcaje tab and at no other time, so `ACCESS_BACKGROUND_
+      // LOCATION`, the foreground service and the iOS background mode would each
+      // be a permission the app asks for and never uses. Leaving them false is
+      // what makes "never tracks in the background" (#10) checkable in the
+      // generated manifest rather than a claim in a comment.
+      //
+      // iOS shows `locationWhenInUsePermission` in its own dialog, so it comes
+      // from the catalogue for the same reason `faceIDPermission` does — Res. 38
+      // Art. 5 has no exception for a sentence the OS happens to draw. The two
+      // "always" keys are omitted outright: a usage description for a permission
+      // the app never requests is a review question with no answer behind it.
+      'expo-location',
+      {
+        locationWhenInUsePermission: es.permissions.location.whenInUseUsage,
+        locationAlwaysAndWhenInUsePermission: false,
+        locationAlwaysPermission: false,
+        motionUsagePermission: false,
+        isIosBackgroundLocationEnabled: false,
+        isAndroidBackgroundLocationEnabled: false,
+        isAndroidForegroundServiceEnabled: false,
+        isAndroidMotionActivityEnabled: false,
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,

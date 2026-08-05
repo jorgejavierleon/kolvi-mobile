@@ -12,6 +12,7 @@ function payload(overrides: Record<string, unknown> = {}): Record<string, unknow
       end_time: '17:00:00',
       lunch_start_time: '13:00:00',
       lunch_end_time: '14:00:00',
+      geofence: { lat: -33.4569, lng: -70.5975, radius_meters: 150 },
     },
     punch: { state: 'before' },
     week: { worked_hours: 32.5, contracted_hours: 44 },
@@ -35,6 +36,7 @@ describe('parseTodaySummary', () => {
         startTime: '08:00:00',
         endTime: '17:00:00',
         lunch: { startTime: '13:00:00', endTime: '14:00:00' },
+        geofence: { latitude: -33.4569, longitude: -70.5975, radiusMeters: 150 },
       },
       punchState: 'before',
       week: { workedHours: 32.5, contractedHours: 44 },
@@ -97,6 +99,65 @@ describe('parseTodaySummary', () => {
       );
 
       expect(summary.shift?.lunch).toBeNull();
+    });
+  });
+
+  describe('the geofence (KMO-16)', () => {
+    /** A shift with whatever geofence the case is about, and nothing else new. */
+    function shiftWith(geofence: unknown): Record<string, unknown> {
+      return payload({
+        shift: {
+          premise: 'Sucursal Ñuñoa',
+          start_time: '08:00:00',
+          end_time: '17:00:00',
+          ...(geofence === undefined ? {} : { geofence }),
+        },
+      });
+    }
+
+    // The ordinary case until `ams` KOL-33 ships, and a defined state rather
+    // than a degraded one: no geofence is a premise nobody configured one for.
+    it('is null when the shift carries none', () => {
+      expect(parseTodaySummary(shiftWith(undefined)).shift?.geofence).toBeNull();
+      expect(parseTodaySummary(shiftWith(null)).shift?.geofence).toBeNull();
+    });
+
+    // #6. The premise is on the map but has no radius, which is not the same
+    // thing as having no geofence — the card still names the distance.
+    it('keeps the coordinates when no radius is configured', () => {
+      expect(
+        parseTodaySummary(shiftWith({ lat: -33.4569, lng: -70.5975, radius_meters: null })).shift
+          ?.geofence,
+      ).toEqual({ latitude: -33.4569, longitude: -70.5975, radiusMeters: null });
+    });
+
+    // Latitude and longitude are both plausible numbers, so a server that sends
+    // them the other way round renders every state on the card correctly while
+    // measuring against a premise in the wrong ocean.
+    it('refuses a latitude outside its own hemisphere range', () => {
+      expect(() => parseTodaySummary(shiftWith({ lat: -70.5975, lng: -33.4569 }))).not.toThrow();
+      expect(() => parseTodaySummary(shiftWith({ lat: -100, lng: -70.5975 }))).toThrow(
+        TodayResponseError,
+      );
+      expect(() => parseTodaySummary(shiftWith({ lat: -33.4569, lng: 200 }))).toThrow(
+        TodayResponseError,
+      );
+    });
+
+    it.each([
+      ['a string, which is what a decimal cast emits', { lat: '-33.4569', lng: '-70.5975' }],
+      ['half a pair', { lat: -33.4569 }],
+      ['not an object at all', 'Sucursal Ñuñoa'],
+    ])('refuses a geofence that is %s', (_case, geofence) => {
+      expect(() => parseTodaySummary(shiftWith(geofence))).toThrow(TodayResponseError);
+    });
+
+    // A radius nobody can stand inside puts every employee out of range at a
+    // premise they are standing in.
+    it.each([0, -150])('refuses a radius of %s metres', (radius) => {
+      expect(() =>
+        parseTodaySummary(shiftWith({ lat: -33.4569, lng: -70.5975, radius_meters: radius })),
+      ).toThrow(TodayResponseError);
     });
   });
 

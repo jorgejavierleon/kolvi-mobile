@@ -2,6 +2,8 @@ import type { ApiErrorKind } from '@/api';
 
 import {
   es,
+  locationConfirmed,
+  locationOutOfRange,
   pendingSyncSummary,
   sectionEnd,
   tabWithPendingCount,
@@ -182,6 +184,29 @@ describe('phrases assembled around a server value', () => {
 
   it('marks the end of a scaffolded section by name', () => {
     expect(sectionEnd(es.tabs.jornada)).toBe('Fin de Jornada');
+  });
+
+  // KMO-16 #2. Verbatim from the design's `geoSub`, down to the middle dot.
+  it('names the premise and the distance on the confirmed location card', () => {
+    expect(locationConfirmed('Sucursal Ñuñoa', 12)).toBe('Sucursal Ñuñoa · a 12 m de la marca');
+  });
+
+  // A fix good to ±20 m rendered as `a 12,4 m` claims a precision nobody measured.
+  it('rounds the distance to whole metres', () => {
+    expect(locationConfirmed('Bodega Sur', 12.4)).toBe('Bodega Sur · a 12 m de la marca');
+    expect(locationConfirmed('Bodega Sur', 12.6)).toBe('Bodega Sur · a 13 m de la marca');
+  });
+
+  // #6. A premise the server sent no coordinates for is confirmed with no
+  // distance on it — `a 0 m` would be a measurement nobody took.
+  it('drops the distance clause when there is no distance to name', () => {
+    expect(locationConfirmed('Sucursal Ñuñoa', null)).toBe('Sucursal Ñuñoa');
+  });
+
+  it('names the premise the employee has to be inside of', () => {
+    expect(locationOutOfRange('Sucursal Ñuñoa')).toBe(
+      'Debes estar dentro de Sucursal Ñuñoa para marcar',
+    );
   });
 });
 

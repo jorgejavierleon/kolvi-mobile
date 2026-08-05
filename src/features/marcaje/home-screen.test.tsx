@@ -1,7 +1,9 @@
 import { act, render, screen, userEvent, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import { SafeAreaProvider, type Metrics } from 'react-native-safe-area-context';
 
 import type { NaiveDate, NaiveTime } from '@/api';
+import { es } from '@/i18n';
 
 import type { AuthApi } from '../auth/auth-api';
 import { employeePermissions, parsePermissions, type Permission } from '../auth/permissions';
@@ -10,7 +12,20 @@ import type { SessionUser } from '../auth/session-user';
 import { createMemoryTokenStore } from '../auth/token-store';
 import { HomeScreen } from './home-screen';
 import { CLOCK_TICK_MS } from './now-clock';
+import type { LocationFix } from './geofence';
+import type { LocationPermission, LocationSource } from './location';
 import type { TodayApi, TodaySummary } from './today-api';
+
+/**
+ * The screen reads the phone's location from a focus effect (KMO-16 #10), and a
+ * hook test cannot supply a navigator. Mount stands in for focus here; the
+ * criterion's own coverage is in `use-location.test.ts`.
+ */
+jest.mock('expo-router', () => {
+  const { useEffect } = jest.requireActual<typeof import('react')>('react');
+
+  return { useFocusEffect: (effect: () => void | (() => void)) => useEffect(effect, [effect]) };
+});
 
 const summary: TodaySummary = {
   date: '2026-08-04' as NaiveDate,
@@ -19,10 +34,25 @@ const summary: TodaySummary = {
     startTime: '08:00:00' as NaiveTime,
     endTime: '17:00:00' as NaiveTime,
     lunch: { startTime: '13:00:00' as NaiveTime, endTime: '14:00:00' as NaiveTime },
+    geofence: { latitude: -33.4569, longitude: -70.5975, radiusMeters: 150 },
   },
   punchState: 'before',
   week: { workedHours: 32.5, contractedHours: 44 },
 };
+
+const fix: LocationFix = { latitude: -33.4569, longitude: -70.5975, accuracyMeters: 5 };
+
+/** A phone that has the permission and knows where it is. */
+function fakeLocation(overrides: Partial<LocationSource> = {}): LocationSource {
+  return {
+    getPermission: async (): Promise<LocationPermission> => 'granted',
+    requestPermission: async (): Promise<LocationPermission> => 'granted',
+    hasServicesEnabled: async () => true,
+    getFix: async (): Promise<LocationFix | null> => fix,
+    openSettings: async () => {},
+    ...overrides,
+  };
+}
 
 function user(overrides: Partial<SessionUser> = {}): SessionUser {
   return {
@@ -49,18 +79,27 @@ function sessionWrapper(sessionUser: SessionUser) {
 
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <SessionProvider authApi={authApi} tokenStore={store} deviceName={async () => 'Kolvi test'}>
-        {children}
-      </SessionProvider>
+      <SafeAreaProvider initialMetrics={metrics}>
+        <SessionProvider authApi={authApi} tokenStore={store} deviceName={async () => 'Kolvi test'}>
+          {children}
+        </SessionProvider>
+      </SafeAreaProvider>
     );
   };
 }
+
+/** The rationale sheet is pinned to the safe area, so the tree needs one. */
+const metrics: Metrics = {
+  frame: { x: 0, y: 0, width: 412, height: 892 },
+  insets: { top: 24, left: 0, right: 0, bottom: 48 },
+};
 
 type MountOptions = {
   api?: TodayApi;
   permissions?: readonly Permission[];
   firstName?: string | null;
   at?: string;
+  location?: LocationSource;
 };
 
 async function mount(options: MountOptions = {}) {
@@ -72,9 +111,15 @@ async function mount(options: MountOptions = {}) {
 
   const clock = () => new Date(options.at ?? '2026-08-04T14:07:22');
 
-  const rendered = await render(<HomeScreen onOpenProfile={() => {}} api={api} clock={clock} />, {
-    wrapper: sessionWrapper(sessionUser),
-  });
+  const rendered = await render(
+    <HomeScreen
+      onOpenProfile={() => {}}
+      api={api}
+      clock={clock}
+      locationSource={options.location ?? fakeLocation()}
+    />,
+    { wrapper: sessionWrapper(sessionUser) },
+  );
 
   return rendered;
 }
@@ -260,6 +305,106 @@ describe('the ClockOwn:Mark gate (#8)', () => {
     expect(screen.getByText('Turno de hoy')).toBeOnTheScreen();
     expect(screen.getByTestId('clock-status')).toBeOnTheScreen();
     expect(screen.getByTestId('week-summary')).toBeOnTheScreen();
+  });
+});
+
+/** The two cards this criterion is about, in the order they are drawn. */
+function testIdsInOrder(): string[] {
+  const wanted = new Set(['location-card', 'shift-card']);
+  const found: string[] = [];
+
+  const walk = (node: unknown): void => {
+    if (node === null || typeof node !== 'object') {
+      return;
+    }
+
+    const element = node as { props?: { testID?: string }; children?: unknown[] };
+    const testID = element.props?.testID;
+
+    if (testID !== undefined && wanted.has(testID)) {
+      found.push(testID);
+    }
+
+    for (const child of element.children ?? []) {
+      walk(child);
+    }
+  };
+
+  walk(screen.toJSON());
+
+  return found;
+}
+
+/**
+ * KMO-16, composed. The card's own states are `location-card.test.tsx` and the
+ * machine behind them is `use-location.test.ts`; what is asserted here is only
+ * what this screen decides — where the card sits, who sees it, and that the
+ * premise it names is the one the shift arrived with.
+ */
+describe('the geolocation card (KMO-16)', () => {
+  it('sits above the shift card, naming the premise from the response', async () => {
+    await mountLoaded();
+
+    await waitFor(() =>
+      expect(screen.getByText('Sucursal Ñuñoa · a 0 m de la marca')).toBeOnTheScreen(),
+    );
+
+    expect(testIdsInOrder()).toEqual(['location-card', 'shift-card']);
+  });
+
+  // The card is about the phone, not about `/me/today`, so it has something true
+  // to say while the request is still going.
+  it('is on screen before the request lands', async () => {
+    await mount({ api: { fetchToday: () => new Promise<TodaySummary>(() => {}) } });
+
+    expect(screen.getByTestId('location-card')).toBeOnTheScreen();
+  });
+
+  // #8's reasoning applied to a permission the app asks the OS for: a user with
+  // no punch surface is not shown this card, and their phone is never asked.
+  it('is absent for a user who cannot punch, and their location is never read', async () => {
+    const getPermission = jest.fn(async (): Promise<LocationPermission> => 'granted');
+    const getFix = jest.fn(async (): Promise<LocationFix | null> => fix);
+
+    await mountLoaded({
+      permissions: ['ViewOwn:Workday'],
+      location: fakeLocation({ getPermission, getFix }),
+    });
+
+    expect(screen.queryByTestId('location-card')).not.toBeOnTheScreen();
+    expect(getPermission).not.toHaveBeenCalled();
+    expect(getFix).not.toHaveBeenCalled();
+  });
+
+  // #1, composed: the sheet is what an employee meets first, and the OS prompt
+  // is not raised behind it.
+  it('offers the rationale before the OS prompt when the permission was never asked', async () => {
+    const requestPermission = jest.fn(async (): Promise<LocationPermission> => 'granted');
+
+    await mountLoaded({
+      location: fakeLocation({ getPermission: async () => 'undetermined', requestPermission }),
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText(es.permissions.location.rationale.title)).toBeOnTheScreen(),
+    );
+
+    expect(requestPermission).not.toHaveBeenCalled();
+
+    await userEvent.press(screen.getByTestId('location-rationale-accept'));
+
+    await waitFor(() => expect(requestPermission).toHaveBeenCalledTimes(1));
+  });
+
+  // #7, composed. The card says what happened and offers the way out; nothing on
+  // this screen treats it as a reason to stop.
+  it('shows the settings route when the permission is refused for good', async () => {
+    await mountLoaded({ location: fakeLocation({ getPermission: async () => 'deniedForever' }) });
+
+    await waitFor(() => expect(screen.getByText(es.marcaje.location.denied)).toBeOnTheScreen());
+
+    expect(screen.getByText(es.actions.openSettings)).toBeOnTheScreen();
+    expect(screen.getByTestId('shift-card')).toBeOnTheScreen();
   });
 });
 

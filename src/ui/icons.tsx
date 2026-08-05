@@ -148,3 +148,63 @@ export function EyeOffIcon(props: IconProps) {
     </Glyph>
   );
 }
+
+/**
+ * `map-pin` — the confirmed state of the geolocation card (KMO-16 #5).
+ *
+ * The design draws the card's three icons at 18 with a 2.2 stroke rather than
+ * the 22/2 the rest of the app uses: they sit in a 36px well and are read at a
+ * glance beside the title, not tapped.
+ */
+export function MapPinIcon(props: IconProps) {
+  return (
+    <Glyph {...props} strokeWidth={2.2}>
+      <Path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+      <Circle cx={12} cy={10} r={3} />
+    </Glyph>
+  );
+}
+
+/** `triangle-alert` — out of the permitted range. */
+export function TriangleAlertIcon(props: IconProps) {
+  return (
+    <Glyph {...props} strokeWidth={2.2}>
+      <Path d="M12 9v4" />
+      <Path d="M12 17h.01" />
+      <Path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L14.71 3.86a2 2 0 0 0-3.42 0Z" />
+    </Glyph>
+  );
+}
+
+/** `wifi-off` — no GPS signal. */
+export function WifiOffIcon(props: IconProps) {
+  return (
+    <Glyph {...props} strokeWidth={2.2}>
+      <Path d="m2 2 20 20" />
+      <Path d="M8.5 16.5a5 5 0 0 1 7 0" />
+      <Path d="M12 20h.01" />
+      <Path d="M16.8 13.2A9 9 0 0 0 5.3 8.6" />
+      <Path d="M20 10a9 9 0 0 0-2.3-3.5" />
+    </Glyph>
+  );
+}
+
+/**
+ * A struck-through map pin — the permission the employee refused.
+ *
+ * The one icon on this card the design does not draw, because it does not draw
+ * that state either. It is assembled from two shapes the design does draw — the
+ * pin above and the slash out of `wifi-off` — rather than transcribed from a
+ * glyph nobody has seen: the pin is what the card means (a location) and the
+ * slash is what happened to it. Approximating a Lucide `map-pin-off` from memory
+ * would put path data in this file that no source can be checked against.
+ */
+export function MapPinOffIcon(props: IconProps) {
+  return (
+    <Glyph {...props} strokeWidth={2.2}>
+      <Path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+      <Circle cx={12} cy={10} r={3} />
+      <Path d="m2 2 20 20" />
+    </Glyph>
+  );
+}

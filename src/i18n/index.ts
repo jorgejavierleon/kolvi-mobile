@@ -14,6 +14,8 @@
 export {
   es,
   greeting,
+  locationConfirmed,
+  locationOutOfRange,
   passwordResetSent,
   pendingSyncSummary,
   sectionEnd,

@@ -331,6 +331,36 @@ export const es = {
     },
 
     /**
+     * The titles on the geolocation card, above the shift card (KMO-16).
+     *
+     * The first three are transcribed from the design's own `geoTitle`, and each
+     * is paired with a tint — success, warning, danger — that never carries the
+     * state on its own (#5). The subtitles live in `es.permissions.location` and
+     * in the two formatters below, because two of the three are sentences about
+     * a permission rather than about a place.
+     *
+     * `denied` is the state the design does not draw. Its three assume a phone
+     * that answered; an employee who refused the permission permanently is in
+     * none of them, and showing them `Sin señal de GPS` would send them waiting
+     * for a signal that is not coming. It is a distinct title for a distinct
+     * cause, and unlike the other two failures it does **not** stop them
+     * punching — an unrecordable attendance is a legal problem (§2), so the
+     * punch goes with no fix on it instead.
+     *
+     * `acquiring` is the state before any of them. The design has no frame for
+     * the seconds a fix takes indoors, and a card that renders nothing for those
+     * seconds is one an employee taps through on the assumption it is broken.
+     */
+    location: {
+      acquiring: 'Buscando tu ubicación',
+      acquiringBody: 'Dentro de un edificio puede tardar unos segundos.',
+      confirmed: 'Ubicación confirmada',
+      outside: 'Fuera del rango permitido',
+      noSignal: 'Sin señal de GPS',
+      denied: 'Sin permiso de ubicación',
+    },
+
+    /**
      * The whole screen failed to load (#9). Distinct from `es.states.failed`,
      * which is a list that came back empty-handed: this one is the screen an
      * employee opened *in order to punch*, so it names the consequence rather
@@ -396,8 +426,51 @@ export const es = {
       denied: 'Kolvi necesita tu ubicación para registrar una marca.',
       deniedForever:
         'Activa el permiso de ubicación en los ajustes del teléfono para poder marcar.',
-      /** Location services off at the OS level, not a permission the app was refused. */
-      servicesOff: 'Activa tu ubicación para poder marcar.',
+      /**
+       * Location services off at the OS level, not a permission the app was
+       * refused — and, since KMO-16, the subtitle under `Sin señal de GPS`,
+       * which is why it lost its full stop: the design writes the line without
+       * one, and a second spelling of the same sentence is how a catalogue
+       * starts drifting.
+       */
+      servicesOff: 'Activa tu ubicación para poder marcar',
+
+      /**
+       * The rationale shown *before* the OS prompt (KMO-16 #1).
+       *
+       * Android gives one prompt and then, on a second refusal, stops asking
+       * forever — so the sentence that explains why has to come before it, not
+       * after. It says what the permission is for and what happens without it,
+       * because an employee who refuses this one is not blocked from punching;
+       * their marks simply carry no location, and that is a worse record for
+       * them than for anyone else if a shift is ever disputed.
+       *
+       * `Ahora no` is a real answer. The prompt is not raised again on the next
+       * launch — the way back is the card, which keeps offering the OS settings.
+       */
+      rationale: {
+        title: 'Kolvi usa tu ubicación al marcar',
+        body: 'Al marcar entrada o salida, Kolvi registra dónde estás para confirmar que estás en tu lugar de trabajo. Solo la lee mientras tienes la app abierta en Marcaje, nunca en segundo plano. Si no la activas igual puedes marcar, pero tu marca quedará sin ubicación.',
+        allow: 'Continuar',
+        dismiss: 'Ahora no',
+        close: 'Cerrar el aviso de ubicación',
+      },
+
+      /**
+       * The action on a card whose permission was refused but can still be asked
+       * about again — it reopens the rationale, and the OS prompt behind it.
+       * `es.actions.openSettings` is what the same slot says once Android has
+       * stopped offering the prompt (#8).
+       */
+      enable: 'Activar ubicación',
+
+      /**
+       * `NSLocationWhenInUseUsageDescription`, which iOS draws in its own dialog.
+       * Here rather than in `app.config.ts` for the same reason as
+       * `es.security.faceIdUsage`: the plugin's default is an English sentence,
+       * and Res. 38 Art. 5 has no exception for text the OS happens to show.
+       */
+      whenInUseUsage: 'Kolvi usa tu ubicación para registrar dónde marcas tu entrada y salida.',
     },
     notifications: {
       denied: 'Activa las notificaciones para enterarte de tus solicitudes y documentos.',
@@ -495,6 +568,29 @@ export function timeRange(start: string, end: string): string {
  */
 export function weekSummary(worked: number, contracted: number): string {
   return `${formatDecimalHours(worked)} / ${formatDecimalHours(contracted)} hrs esta semana`;
+}
+
+/**
+ * `Sucursal Ñuñoa · a 12 m de la marca` — the subtitle of the confirmed
+ * location card (KMO-16 #2).
+ *
+ * The distance is `null` for a premise the server sent no coordinates for. The
+ * card still confirms — a premise with no geofence configured is not a premise
+ * an employee is out of range of (#6) — and the subtitle is then the premise
+ * alone, because `a 0 m` would be a measurement nobody took.
+ *
+ * Rounded to whole metres. A fix good to ±20 m rendered as `a 12,4 m` claims a
+ * precision the phone does not have.
+ */
+export function locationConfirmed(premise: string, distanceMeters: number | null): string {
+  return distanceMeters === null
+    ? premise
+    : `${premise} · a ${Math.round(distanceMeters)} m de la marca`;
+}
+
+/** `Debes estar dentro de Sucursal Ñuñoa para marcar` — the out-of-range subtitle (#3). */
+export function locationOutOfRange(premise: string): string {
+  return `Debes estar dentro de ${premise} para marcar`;
 }
 
 /** `2 marcas esperando sincronizar` — the offline queue banner on the home screen. */

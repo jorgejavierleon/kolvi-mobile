@@ -21,8 +21,19 @@ flows:
 # `requires-revoked-token` is the same shape of problem one step further out: the
 # condition is on the *server*, and it has to be arranged between two runs rather
 # than before one. The flow's own header carries the three commands.
+# The three location conditions are the same shape again, and mutually exclusive
+# with each other by definition — one needs the permission never asked, one needs
+# it refused for good, and the third needs the OS location switch off:
+#
+#   bin/device perm reset        && bin/e2e kmo-16-permission
+#   bin/device perm deny-forever && bin/e2e kmo-16-settings-route
+#   bin/device perm grant && bin/device gps off && bin/e2e kmo-16-no-signal
+#   bin/device gps on && bin/device perm grant
 excludeTags:
   - requires-offline
   - requires-biometric
   - requires-no-biometric
   - requires-revoked-token
+  - requires-gps-off
+  - requires-location-prompt
+  - requires-location-denied

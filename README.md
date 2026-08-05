@@ -85,7 +85,7 @@ criterion can be verified by command rather than by eye:
 | `bin/device gps on\|off`               | location services master switch              |
 | `bin/device net on\|off`               | connectivity, for the offline queue          |
 | `bin/device slow\|fast`                | degrade the network to GSM/GPRS              |
-| `bin/device perm grant\|revoke\|reset` | location permission                          |
+| `bin/device perm grant\|revoke\|reset` | location permission (`deny-forever` too)     |
 | `bin/device font max\|reset\|<scale>`  | OS font scale, for the type-scaling criteria |
 | `bin/device finger`                    | present an enrolled fingerprint              |
 | `bin/device link <url>`                | open a `kolvi://` deep link                  |
@@ -273,11 +273,16 @@ than dropping them there unannounced.
 Inicio is the first tab with a real body (`src/features/marcaje/`): the long date and
 `Hola, {nombre}` over the shift card, the live clock and its status line, and the week
 summary — all of it drawn from one `GET /api/v1/me/today`, with skeletons on the way and a
-Spanish retry when it does not arrive. **That endpoint does not exist in `ams` yet**, so on a
-device the screen paints its header and then the failed state; `src/features/marcaje/today-api.ts`
-is currently the contract's only written form rather than a reader of one. The geolocation
-card (KMO-16), the punch button (KMO-17) and the pending-sync banner (KMO-22) land in the
-slots the design puts them in. Jornada, Permisos and Documentos are still empty — run
+Spanish retry when it does not arrive. Above the shift card sits the geolocation card
+(KMO-16): the employee's own position, read from the phone while the Marcaje tab is in view
+and never otherwise, as one of `Ubicación confirmada`, `Fuera del rango permitido`, `Sin
+señal de GPS` or the permission the design has no state for. The permission is asked for
+behind a Spanish rationale, and refusing it never blocks a punch — an unrecordable
+attendance is a legal problem, so the mark simply travels with no fix on it. The client's
+distance is advisory throughout; the server decides. **The wire carries no geofence yet**
+(`ams` KOL-33), so every premise currently reads as one with no radius configured, which is
+its own defined state rather than a degraded one. The punch button (KMO-17) and the pending-sync banner
+(KMO-22) land in the slots the design puts them in. Jornada, Permisos and Documentos are still empty — run
 `backlog task list --plain` to see the backlog.
 
 One thing the session still cannot do, and it is the backend's: a deactivated employee keeps a

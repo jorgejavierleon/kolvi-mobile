@@ -1,0 +1,54 @@
+# KMO-16 — the no-signal state, with location services off at the OS level.
+#
+# Covers #4 (the danger-tinted card, its title and its subtitle) and #9's
+# observable half: the screen resolves to a state rather than sitting on
+# `Buscando tu ubicación` for the length of the shift.
+#
+# Tagged out of the suite for the same reason `requires-offline` is: the switch
+# is the whole device's, so a run that turned it off would take every other flow
+# with it. On its own, and put back afterwards:
+#
+#   bin/device perm grant && bin/device gps off && bin/e2e kmo-16-no-signal
+#   bin/device gps on
+appId: cl.kolvi.empleados
+name: KMO-16 no GPS signal
+tags:
+  - marcaje
+  - geo
+  - requires-gps-off
+---
+- runFlow: shared/sign-in.yaml
+
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 30000
+    label: 'On the tab shell'
+
+# #4 and #9 together. The wait is generous because the app's own timeout is 12s
+# and this is the path that has to hit it on a phone that never answers; what is
+# being asserted is that it *ends*, in a state with words on it.
+- extendedWaitUntil:
+    visible: 'Sin señal de GPS'
+    timeout: 45000
+    label: '#4 — the no-signal title, and #9 — it resolved rather than hanging'
+
+- assertVisible:
+    text: 'Activa tu ubicación para poder marcar'
+    label: '#4 — the subtitle, telling them which switch to turn on'
+
+- assertNotVisible:
+    text: 'Buscando tu ubicación'
+    label: '#9 — the acquiring state is not where it stopped'
+
+- assertNotVisible:
+    text: 'Ubicación confirmada'
+    label: '#4 — nothing was confirmed from a phone with no location services'
+
+# The rest of the screen is untouched by the state of the GPS. This is the half
+# of #7 a no-signal run can show: nothing about the tab is blocked or missing.
+- extendedWaitUntil:
+    visible: 'Turno de hoy'
+    timeout: 30000
+    label: 'The shift card is still there'
+
+- takeScreenshot: kmo-16-no-signal

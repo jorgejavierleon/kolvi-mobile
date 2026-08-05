@@ -10,9 +10,13 @@ import { Skeleton } from '@/ui/skeleton';
 
 import { useSession } from '../auth/session';
 import { Clock } from './clock';
+import type { LocationSource } from './location';
+import { LocationCard } from './location-card';
+import { LocationRationale } from './location-rationale';
 import { useNow } from './now-clock';
 import { ShiftCard, ShiftCardSkeleton } from './shift-card';
 import type { TodayApi, TodaySummary } from './today-api';
+import { useLocation } from './use-location';
 import { useToday } from './use-today';
 
 export type HomeScreenProps = {
@@ -22,6 +26,8 @@ export type HomeScreenProps = {
   api?: TodayApi;
   /** Injected in tests; the app reads the phone. */
   clock?: () => Date;
+  /** Injected in tests; the app reads the phone's location. */
+  locationSource?: LocationSource;
 };
 
 /**
@@ -38,14 +44,23 @@ export type HomeScreenProps = {
  * app sees their own name while the request is still going, rather than a
  * screenful of grey blocks.
  *
- * What is not here yet: the geolocation card (KMO-16), the punch button and its
- * success panel (KMO-17), the out-of-range and GPS-retry actions (KMO-18) and the
- * pending-sync banner (KMO-22). Each lands in the slot the design puts it in.
+ * The geolocation card (KMO-16) is the exception to the one-request rule in the
+ * other direction: it reads the phone rather than the server, and it starts
+ * doing so while `/me/today` is still in flight. The two are independent, and
+ * serialising them would add a fix's twelve seconds to the slowest path to a
+ * punch. What it needs from the response — the premise and its geofence —
+ * arrives later and simply re-evaluates the card.
+ *
+ * What is not here yet: the punch button and its success panel (KMO-17), the
+ * out-of-range and GPS-retry actions (KMO-18) and the pending-sync banner
+ * (KMO-22). Each lands in the slot the design puts it in.
  */
-export function HomeScreen({ onOpenProfile, api, clock }: HomeScreenProps) {
+export function HomeScreen({ onOpenProfile, api, clock, locationSource }: HomeScreenProps) {
   const session = useSession();
   const today = useToday(api);
   const now = useNow(clock);
+
+  const shift = today.status === 'loaded' ? today.summary.shift : null;
 
   /**
    * #8. `ClockOwn:Mark` is what makes this a punch screen rather than a view of
@@ -62,6 +77,12 @@ export function HomeScreen({ onOpenProfile, api, clock }: HomeScreenProps) {
    */
   const canPunch = session.can('ClockOwn:Mark');
 
+  const location = useLocation({
+    geofence: shift?.geofence ?? null,
+    enabled: canPunch,
+    source: locationSource,
+  });
+
   // `first_name` is nullable in `ams`, so the greeting falls back to the full
   // name rather than to `Hola, ` with nothing after the comma.
   const name = session.user?.firstName ?? session.user?.name ?? null;
@@ -73,6 +94,27 @@ export function HomeScreen({ onOpenProfile, api, clock }: HomeScreenProps) {
         eyebrow={formatLongDate(now.date)}
         avatarLabel={es.profile.open}
         onPressAvatar={onOpenProfile}
+      />
+
+      {/* Above the shift card, where the design puts it, and above the three
+          load states rather than inside the loaded one: this card is about the
+          phone and not about the response, so it has something true to say
+          while `/me/today` is still in flight and if it never arrives. */}
+      {canPunch ? (
+        <LocationCard
+          state={location.state}
+          premise={shift?.premise ?? null}
+          onEnable={location.offerRationale}
+          onOpenSettings={location.openSettings}
+          testID="location-card"
+        />
+      ) : null}
+
+      <LocationRationale
+        visible={location.rationaleVisible}
+        onAccept={location.acceptRationale}
+        onDismiss={location.dismissRationale}
+        testID="location-rationale"
       />
 
       {today.status === 'loading' ? <HomeSkeleton /> : null}

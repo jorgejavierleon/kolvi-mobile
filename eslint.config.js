@@ -97,6 +97,24 @@ const insecureStorageImports = [
   },
 ];
 
+// An attendance app reads where an employee is at the moment they punch, and at no
+// other moment (KMO-16 #10). The criterion asks for something stronger than "we did
+// not call that": these are the five `expo-location` entry points that would make
+// background or continuous tracking possible, and none of them has a legitimate use
+// in this app. Banning them here means adding one is a deliberate act with an
+// argument attached, and the app.config.ts flags that keep `ACCESS_BACKGROUND_
+// LOCATION` out of the manifest cannot drift away from the code on their own.
+const backgroundLocationSelectors = [
+  'requestBackgroundPermissionsAsync',
+  'getBackgroundPermissionsAsync',
+  'startLocationUpdatesAsync',
+  'startGeofencingAsync',
+  'watchPositionAsync',
+].map((api) => ({
+  selector: `MemberExpression[property.name='${api}']`,
+  message: `${api} tracks location beyond the moment of a punch. See src/features/marcaje/location.ts.`,
+}));
+
 // `no-restricted-syntax` takes one array of selectors, and a later config block
 // replaces that array rather than adding to it. So a block that wants two sets has
 // to spread both — the composition below is what keeps the theme rules applying
@@ -111,7 +129,7 @@ module.exports = defineConfig([
     files: ['src/**/*.{ts,tsx}', 'app.config.ts'],
     ignores: ['src/theme/**'],
     rules: {
-      'no-restricted-syntax': ['error', ...themeSelectors],
+      'no-restricted-syntax': ['error', ...themeSelectors, ...backgroundLocationSelectors],
     },
   },
   {
@@ -135,7 +153,12 @@ module.exports = defineConfig([
     files: ['src/app/**/*.{ts,tsx}', 'src/ui/**/*.{ts,tsx}', 'src/features/**/*.{ts,tsx}'],
     ignores: ['**/*.test.{ts,tsx}', 'src/ui/gallery.tsx'],
     rules: {
-      'no-restricted-syntax': ['error', ...themeSelectors, ...i18nSelectors],
+      'no-restricted-syntax': [
+        'error',
+        ...themeSelectors,
+        ...i18nSelectors,
+        ...backgroundLocationSelectors,
+      ],
     },
   },
   {

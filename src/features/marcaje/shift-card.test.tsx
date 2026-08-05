@@ -12,6 +12,7 @@ function shift(overrides: Partial<TodayShift> = {}): TodayShift {
     startTime: '08:00:00' as NaiveTime,
     endTime: '17:00:00' as NaiveTime,
     lunch: { startTime: '13:00:00' as NaiveTime, endTime: '14:00:00' as NaiveTime },
+    geofence: null,
     ...overrides,
   };
 }

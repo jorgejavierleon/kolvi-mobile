@@ -5,7 +5,7 @@
 #   bin/device gps on|off          location services master switch
 #   bin/device net on|off          connectivity, via airplane mode
 #   bin/device slow|fast           degrade/restore the mobile network
-#   bin/device perm grant|revoke|reset   location permission for the app
+#   bin/device perm grant|revoke|deny-forever|reset   location permission for the app
 #   bin/device font <scale>|max|reset    OS font scale (Settings > Display)
 #   bin/device finger              present an enrolled fingerprint
 #   bin/device finger enroll|clear|status   the enrolment behind it
@@ -163,7 +163,19 @@ case "${1:-}" in
         done
         ;;
       reset)  "$ADB" shell pm reset-permissions "$PACKAGE" >/dev/null; echo "permissions reset to first-launch state" ;;
-      *) die "usage: bin/device perm grant|revoke|reset" ;;
+      # The state a second refusal leaves Android in: revoked *and* USER_FIXED,
+      # after which the OS never shows the prompt again and the only way back is
+      # system settings. `revoke` alone does not reach it — the permission comes
+      # back as merely denied, which the app answers with the prompt rather than
+      # with the settings route — so KMO-16 #8 has no other way to be driven.
+      deny-forever)
+        for p in "${LOCATION_PERMS[@]}"; do
+          "$ADB" shell pm revoke "$PACKAGE" "$p" >/dev/null 2>&1
+          "$ADB" shell pm set-permission-flags "$PACKAGE" "$p" user-fixed >/dev/null 2>&1
+          echo "  ${p##*.}: denied, and the prompt will not return"
+        done
+        ;;
+      *) die "usage: bin/device perm grant|revoke|deny-forever|reset" ;;
     esac
     ;;
   font)

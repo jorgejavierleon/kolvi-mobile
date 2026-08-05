@@ -1,0 +1,62 @@
+# KMO-16 — the permission refused for good, and the way out of it.
+#
+# Covers #8 (the card offers a route to the OS settings) and #7 on the state the
+# criterion is actually about: a permission Android will no longer prompt for.
+#
+# `bin/device perm revoke` does not reach this state — it leaves the permission
+# merely denied, which the app answers with `Activar ubicación` and the prompt.
+# `deny-forever` sets the USER_FIXED flag a second refusal would, after which the
+# system dialog never returns:
+#
+#   bin/device perm deny-forever && bin/e2e kmo-16-settings-route
+#   bin/device perm reset
+#
+# The flow stops at the Ajustes button rather than pressing it. Pressing it hands
+# the screen to the Settings app, and a flow that ends inside another package
+# cannot assert its way back — what is being verified is that the route exists
+# and is reachable, which is what #8 asks for.
+appId: cl.kolvi.empleados
+name: KMO-16 settings route
+tags:
+  - marcaje
+  - geo
+  - requires-location-denied
+---
+- runFlow: shared/sign-in.yaml
+
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 30000
+    label: 'On the tab shell'
+
+- extendedWaitUntil:
+    visible: 'Sin permiso de ubicación'
+    timeout: 30000
+    label: '#8 — the refusal has a title of its own, not the GPS one'
+
+# The distinction the whole state exists for. `Sin señal de GPS` here would send
+# an employee waiting for a signal that is not the problem.
+- assertNotVisible:
+    text: 'Sin señal de GPS'
+    label: '#8 — a permission is not a missing signal'
+
+- assertVisible:
+    text: 'Activa el permiso de ubicación en los ajustes del teléfono para poder marcar'
+    label: '#8 — the subtitle names where the setting is'
+
+- assertVisible:
+    text: 'Abrir ajustes'
+    label: '#8 — and the route is a button, not a sentence to act on by hand'
+
+# There is no prompt left to raise, so the app must not offer one.
+- assertNotVisible:
+    text: 'Activar ubicación'
+    label: '#8 — no prompt is offered when Android has stopped showing it'
+
+# #7. The tab still works, and the employee can still reach everything on it.
+- extendedWaitUntil:
+    visible: 'Turno de hoy'
+    timeout: 30000
+    label: '#7 — the tab is whole for an employee who refused the permission'
+
+- takeScreenshot: kmo-16-settings-route

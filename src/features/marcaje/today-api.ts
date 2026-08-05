@@ -27,6 +27,25 @@ import { parsePunchState, type PunchState } from './punch-state';
 const TODAY_PATH = '/me/today';
 
 /**
+ * Where the premise is and how far from it still counts, for the location card
+ * (KMO-16). `null` for a premise the server has no coordinates for.
+ *
+ * `radiusMeters` is separately nullable, and the two absences mean different
+ * things: no coordinates is a premise the app cannot measure against at all, and
+ * a null radius is a premise nobody has configured a geofence for. Neither one
+ * produces an out-of-range state and neither blocks a punch (KMO-16 #6).
+ *
+ * Whatever this says, the client's reading of it is **advisory only** — the
+ * server evaluates the geofence authoritatively when the punch arrives
+ * (docs/design-decisions.md §2).
+ */
+export type Geofence = {
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly radiusMeters: number | null;
+};
+
+/**
  * Today's scheduled shift. `null` on the whole `TodaySummary` when nothing is
  * scheduled — a day off, or an employee between assignments.
  */
@@ -41,6 +60,8 @@ export type TodayShift = {
    * half a range in it.
    */
   readonly lunch: { readonly startTime: NaiveTime; readonly endTime: NaiveTime } | null;
+  /** The premise's geofence, when it has one. See `Geofence`. */
+  readonly geofence: Geofence | null;
 };
 
 /**
@@ -144,7 +165,74 @@ function parseShift(value: unknown): TodayShift | null {
     startTime: shiftTime(shift.start_time, 'start_time'),
     endTime: shiftTime(shift.end_time, 'end_time'),
     lunch: parseLunch(shift),
+    geofence: parseGeofence(shift.geofence),
   };
+}
+
+/**
+ * The premise's geofence, or `null` when it has none (KMO-16 #6).
+ *
+ * Absent is the ordinary case today: `ams` KOL-33 adds the block, and until it
+ * ships every premise reads as one with no geofence — which is a defined state
+ * and not a degraded one.
+ *
+ * A block that is *present but unreadable* fails the load, like every other
+ * field here. It is tempting to drop it to `null` instead, since the geofence is
+ * advisory and the server decides anyway — but `null` is not "we could not read
+ * this", it is "this premise has no geofence", and the card renders that as
+ * `Ubicación confirmada`. Confirming a location the app could not evaluate is
+ * precisely the plausible-looking screen this parser exists to refuse.
+ */
+function parseGeofence(value: unknown): Geofence | null {
+  if (nothing(value)) {
+    return null;
+  }
+
+  const geofence = recordOf(value);
+  if (geofence === undefined) {
+    throw new TodayResponseError('`shift.geofence` is neither an object nor null');
+  }
+
+  return {
+    latitude: coordinate(geofence.lat, 'lat', 90),
+    longitude: coordinate(geofence.lng, 'lng', 180),
+    radiusMeters: parseRadius(geofence.radius_meters),
+  };
+}
+
+/**
+ * A degree value inside its own hemisphere's range.
+ *
+ * Bounds-checked rather than merely typed, because the failure this catches is a
+ * server sending them the other way round: latitude and longitude are both
+ * plausible numbers, and a swapped pair puts the premise in the wrong ocean
+ * while every state on the card still renders.
+ */
+function coordinate(value: unknown, field: string, limit: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || Math.abs(value) > limit) {
+    throw new TodayResponseError(
+      `\`shift.geofence.${field}\` is not a coordinate in degrees, received ${JSON.stringify(value)}`,
+    );
+  }
+
+  return value;
+}
+
+/** The geofence radius in metres, or `null` for a premise with none configured. */
+function parseRadius(value: unknown): number | null {
+  if (nothing(value)) {
+    return null;
+  }
+
+  // Zero is rejected along with the negatives: a radius nobody can stand inside
+  // would put every employee out of range at a premise they are standing in.
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    throw new TodayResponseError(
+      `\`shift.geofence.radius_meters\` is not a positive distance in metres, received ${JSON.stringify(value)}`,
+    );
+  }
+
+  return value;
 }
 
 /**

@@ -12,6 +12,7 @@ const summary: TodaySummary = {
     startTime: '08:00:00' as NaiveTime,
     endTime: '17:00:00' as NaiveTime,
     lunch: { startTime: '13:00:00' as NaiveTime, endTime: '14:00:00' as NaiveTime },
+    geofence: { latitude: -33.4569, longitude: -70.5975, radiusMeters: 150 },
   },
   punchState: 'before',
   week: { workedHours: 32.5, contractedHours: 44 },

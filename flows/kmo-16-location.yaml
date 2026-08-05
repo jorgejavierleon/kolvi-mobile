@@ -1,0 +1,77 @@
+# KMO-16 — the geolocation card above the shift card, with the permission granted.
+#
+# Covers #2's placement and copy, #5 (the state's title, not its tint alone) and
+# #6 (a premise with no geofence configured confirms and blocks nothing).
+#
+# **#6 is what this run actually proves today.** `ams` has no radius column and
+# `GET /me/today` sends no geofence — that is `ams` KOL-33 — so every premise is
+# a premise with no geofence, and the card confirms with the premise named and no
+# distance on it. That is the criterion's own state, not a degraded one. The
+# distance clause and the out-of-range state (#3) need KOL-33 and are asserted by
+# `geofence.test.ts` and `location-card.test.tsx` until then.
+#
+# Run the condition first, because the app reads the permission on focus:
+#
+#   bin/device perm grant && bin/device gps on && bin/e2e kmo-16-location
+#
+# Needs a reachable `ams` carrying KOL-31, like every flow behind the session.
+appId: cl.kolvi.empleados
+name: KMO-16 location confirmed
+tags:
+  - marcaje
+  - geo
+---
+- runFlow: shared/sign-in.yaml
+
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 30000
+    label: 'On the tab shell'
+
+# The card is drawn from the phone rather than from `/me/today`, so it is on
+# screen before the shift is — but a fix takes a moment, and the assertion is
+# about the state it settles into.
+- extendedWaitUntil:
+    visible: 'Ubicación confirmada'
+    timeout: 30000
+    label: '#2 — the confirmed state, on the card the phone drives'
+
+- assertVisible:
+    id: 'location-card'
+    label: '#2 — and it is the card, not a stray string'
+
+# #6. No geofence on the wire means the subtitle is the premise alone: the app
+# has nothing to measure against and says nothing about a distance. The premise
+# is server vocabulary, so the assertion is that it is there rather than which
+# branch the seeder picked.
+- assertVisible:
+    text: '.+'
+    label: '#6 — the premise, with no distance claimed for it'
+
+# The two states this one is not. A card that showed either would mean the app
+# had decided an employee was out of range of a premise with no radius, or had
+# reported a signal it has.
+- assertNotVisible:
+    text: 'Fuera del rango permitido'
+    label: '#6 — a premise with no radius is never out of range'
+- assertNotVisible:
+    text: 'Sin señal de GPS'
+    label: '#2 — the phone answered'
+- assertNotVisible:
+    text: 'Sin permiso de ubicación'
+    label: '#2 — with the permission granted'
+
+# #5, the half a device can show: the state is named in words, so the tint is
+# not carrying it alone. The design's own copy, character for character.
+- assertVisible:
+    text: 'Ubicación confirmada'
+    label: '#5 — colour paired with text'
+
+# The design's order — the location card above the shift card — which is what
+# an employee reads on the way down to the punch button.
+- extendedWaitUntil:
+    visible: 'Turno de hoy'
+    timeout: 30000
+    label: 'The shift card loaded below it'
+
+- takeScreenshot: kmo-16-confirmed

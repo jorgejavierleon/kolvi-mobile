@@ -1,9 +1,11 @@
 ---
 id: KMO-16
 title: Geolocation permission and the three location states
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-07-30 20:59'
+updated_date: '2026-08-05 11:29'
 labels:
   - mobile
   - marcaje
@@ -34,14 +36,70 @@ An employee who permanently denies location permission must still be able to pun
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Location permission is requested with a Spanish rationale explaining why attendance needs it, before the system prompt
+- [x] #1 Location permission is requested with a Spanish rationale explaining why attendance needs it, before the system prompt
 - [ ] #2 Confirmed state renders on the success tint with Ubicación confirmada and the subtitle naming the premise and the distance in metres
 - [ ] #3 Out-of-range state renders on the warning tint with Fuera del rango permitido and the subtitle Debes estar dentro de {premise} para marcar
-- [ ] #4 No-signal state renders on the danger tint with Sin señal de GPS and the subtitle Activa tu ubicación para poder marcar
-- [ ] #5 Each state shows its own icon from the design and pairs colour with text, never colour alone
-- [ ] #6 A premise with no geofence radius configured does not show an out-of-range state and does not block punching
+- [x] #4 No-signal state renders on the danger tint with Sin señal de GPS and the subtitle Activa tu ubicación para poder marcar
+- [x] #5 Each state shows its own icon from the design and pairs colour with text, never colour alone
+- [x] #6 A premise with no geofence radius configured does not show an out-of-range state and does not block punching
 - [ ] #7 Permission permanently denied still allows punching, with the punch reported as having no location fix rather than being blocked
-- [ ] #8 Permission permanently denied offers a route to the OS settings
-- [ ] #9 Location acquisition has a timeout that resolves to the no-signal state rather than hanging the screen
-- [ ] #10 Location is requested only while the Marcaje tab is in view; the app never tracks location in the background
+- [x] #8 Permission permanently denied offers a route to the OS settings
+- [x] #9 Location acquisition has a timeout that resolves to the no-signal state rather than hanging the screen
+- [x] #10 Location is requested only while the Marcaje tab is in view; the app never tracks location in the background
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. package.json + app.config.ts — add `expo-location` (~57.0.7) through `npx expo install`, configured foreground-only: `isAndroidBackgroundLocationEnabled: false`, `isIosBackgroundLocationEnabled: false`, `isAndroidForegroundServiceEnabled: false`, and `locationWhenInUsePermission` read from `es` the way KMO-10 reads `faceIdUsage` — the iOS string is copy an employee reads. Needs prebuild + a native rebuild. (#1, #10)
+2. src/i18n/strings.ts — `es.marcaje.location`: the three titles and subtitles verbatim from the design, the permission-denied title the design has no state for, and the rationale sheet's copy. Plus `locationDistance(premise, metres)` -> `{premise} · a {n} m de la marca`, exported from @/i18n. Reuses `es.actions.openSettings` and `es.permissions.location.*`, which already exist. (#2, #3, #4, #8)
+3. src/features/marcaje/today-api.ts — parse an optional `shift.geofence` block: `{lat, lng, radius_meters|null}`, per PRD §6's list of what /me/today carries. Absent or radius-null is legitimate and is #6's 'no geofence configured'. Covered in today-api.test.ts. **The endpoint does not send this yet** — see the note below.
+4. src/features/marcaje/geofence.ts (+ test) — haversine metres and `evaluateGeofence(fix, geofence)` -> confirmed | outside. No radius, or a premise with no coordinates, yields confirmed-without-distance and never outside (#6). Pure; advisory only, per §2 — the server's result is the authoritative one.
+5. src/features/marcaje/location.ts (+ test) — the only file importing `expo-location`, shaped like `auth/biometrics.ts`: an injectable module slice with `getPermission`, `requestPermission`, `hasServicesEnabled`, and `getFix({timeoutMs})` racing a timer so a hanging acquisition resolves to no-fix instead of hanging the screen (#9). Foreground only — `requestBackgroundPermissionsAsync` is never called and the test asserts it (#10). `openSettings()` via react-native `Linking` (#8).
+6. src/features/marcaje/use-location.ts (+ test) — the state machine: checking | confirmed | outside | noSignal | denied, with `retry()`. Acquires only while Inicio is focused and aborts on blur, through `useFocusEffect` from expo-router (#10). Exposes `punchAllowed` and `geoStatus: inside|outside|unknown` so a permanently denied permission still permits a punch that reports no fix — KMO-17 #5 consumes it (#7).
+7. src/features/marcaje/location-rationale.tsx (+ test) — the Spanish rationale sheet shown before the OS prompt, a `BottomSheet` in the shape of `auth/biometric-offer.tsx` (#1).
+8. src/ui/icons.tsx — three Lucide glyphs transcribed path-for-path from the design's location card: map-pin, triangle-alert, wifi-off (#5).
+9. src/features/marcaje/location-card.tsx (+ test) — tone background, the design's 36px round icon well, title over subtitle, and the `Abrir ajustes` button in the denied state (#8). Colour never carries a state alone: every tone change moves the title text too (#5).
+10. src/features/marcaje/home-screen.tsx — the card above the shift card, the order the design draws it in.
+11. flows/kmo-16-location.yaml — the device tier: `bin/device perm reset` for the rationale preceding the OS prompt (#1), `bin/device gps off` for the no-signal copy (#4), `bin/device perm revoke` for the denied state and its settings route (#8). `bin/device geo` in and out of the seeded premise covers #2/#3 once the wire carries a geofence.
+
+Tiers: Jest carries #5, #6, #7, #9, #10 (a permission state, a distance and a timeout are logic, and the compositional half is an isolated render). Maestro carries #1, #4 and #8, which are Spanish copy under a device condition only an emulator produces. #2 and #3 are blocked device-side until /me/today carries the geofence.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**`expo-location` (~57.0.7), foreground-only.** `app.config.ts` sets every background flag false — no `ACCESS_BACKGROUND_LOCATION`, no foreground service, no iOS background mode — and the generated `android/app/src/main/AndroidManifest.xml` was read after `npm run prebuild` to confirm it: the manifest carries only ACCESS_FINE/COARSE_LOCATION. That is #10's other half; the first half is an ESLint rule in `eslint.config.js` banning the five expo-location entry points that could track continuously, so adding one is a build failure rather than a review catch.
+
+**A fourth card state the design does not draw.** The design's three assume a phone that answered. An employee who refused the permission is in none of them, and `Sin señal de GPS` would send them waiting for a signal that is not the problem — so `denied` has its own title (`Sin permiso de ubicación`), the danger tint it shares with no-signal, and, uniquely, **does not block the punch** (#7). Approved by the user before implementation.
+
+**The card leans toward `confirmed` whenever it cannot show otherwise.** A fix's own accuracy is spent in the employee's favour — a ±60 m fix measured at 130 m from a 100 m radius reads as confirmed, not out of range. The client is advisory and the server decides (§2), so the cost of a wrong `confirmed` is a mark the server flags, while the cost of a wrong `outside` is someone at their own gate being told they are not there.
+
+**The verdict is derived, not stored.** The geofence arrives from `/me/today` seconds after the fix does. `use-location.ts` holds a *phase* and re-evaluates the geofence in render, so a response landing late re-reads a fix the app already has instead of asking the phone again.
+
+**The card is not drawn for a user without `ClockOwn:Mark`, and their phone is never asked.** Same reasoning as KMO-15 #8: reading someone's location for a card they are not shown is the collection this feature is otherwise careful not to do.
+
+**A geofence block that is present but unreadable fails the load** rather than degrading to `null`. `null` means 'this premise has no geofence' and renders as `Ubicación confirmada`; confirming a location the app could not evaluate is the plausible-looking screen `today-api.ts` exists to refuse.
+
+**`bin/device perm deny-forever` added.** `revoke` leaves the permission merely denied, which the app answers with the prompt; #8 needs the USER_FIXED flag a second refusal sets. Observed on device: `expo-location` reports `canAskAgain: true` from the *read* path even with USER_FIXED set, and only reports `false` once a request is actually attempted — so the card offers `Activar ubicación` first and switches to `Abrir ajustes` after one tap that raises no dialog. Self-correcting, and the employee reaches the settings route either way.
+
+## Which criteria are checked, and why the rest are not
+
+Checked:
+
+- **#1** — on device, end to end: signed in on a phone with the permission never asked, the Spanish sheet came up *before* anything the OS drew (`.artifacts/kmo-16-rationale.png`), and `Continuar` then raised Android's own `Allow Kolvi to access this device's location?`. Jest covers the same order in `use-location.test.ts` and the copy in `location-rationale.test.tsx`.
+- **#4** — on device: `bin/device gps off`, then back into the tab — `Sin señal de GPS` over `Activa tu ubicación para poder marcar`, on the danger tint (`.artifacts/kmo-16-no-signal.png`).
+- **#5** — `location-card.test.tsx` proves every state has a title of its own and an icon of its own, so no tint ever carries a state alone; three of the four were read on the device.
+- **#6** — on device and in Jest. No geofence on the wire means every premise is this case today: the card confirmed with `Sucursal Centro` and no distance clause, showed no out-of-range state, and blocked nothing (`.artifacts/kmo-16-confirmed.png`). `geofence.test.ts` covers both halves — no radius and no coordinates.
+- **#8** — on device: `bin/device perm deny-forever`, and the card reached `Sin permiso de ubicación` over `Activa el permiso de ubicación en los ajustes del teléfono para poder marcar` with an `Abrir ajustes` button (`.artifacts/kmo-16-settings-route.png`).
+- **#9** — `location.test.ts` with fake timers: a `getCurrentPositionAsync` that never settles resolves to no fix at 12s and is still pending at 12s − 1ms. Jest is the honest tier for a timeout; the device half — that the screen reaches a state rather than sitting on `Buscando tu ubicación` — was observed on the gps-off run.
+- **#10** — three independent proofs. `use-location.test.ts`: the read happens inside `useFocusEffect`, does not repeat while the screen sits there, and a fix arriving after the screen is gone changes nothing. The generated AndroidManifest.xml carries no `ACCESS_BACKGROUND_LOCATION`. The ESLint rule fails the build on the five APIs that could track continuously. On the device the card only changed state when the tab was re-entered.
+
+Left unchecked:
+
+- **#2** — the state, the success tint and the premise are all verified on device, but the criterion also asks for **the distance in metres**, and there is no geofence on the wire to measure against (`ams` KOL-33). `locationConfirmed()` and `evaluateGeofence` are covered in Jest against a fixture; the on-screen distance is owed.
+- **#3** — out of range cannot be reached at all without a premise radius. Same blocker, same Jest coverage (`geofence.test.ts`, `location-card.test.tsx`).
+- **#7** — the app-side contract is built and proven: `punchAllowed` stays true and `geoStatus` is `unknown` for a permanently denied permission, and on the device the tab was whole with the refusal on the card. But the criterion is about a **punch**, and there is no punch button until KMO-17 — the wire half is KMO-17 #5. Checking it here would be signing off on a button that does not exist.
+
+Blocked, and not this ticket's to fix: **the Maestro flows cannot get past the login screen on this AVD.** `shared/enter-credentials.yaml`'s `hideKeyboard` closes the app instead of dismissing the keyboard — the AVD is created with `hw.keyboard=yes` (bin/emu, so `adb shell input text` works) and a BACK press with a hardware keyboard present goes to the activity rather than to the IME. Reproduced by hand with `input keyevent 4`, and `flows/kmo-15-home-screen.yaml` — merged, untouched by this branch — fails identically at the same step. The four KMO-16 flows are written and committed; every criterion above was driven by hand with `bin/device` and `bin/ui` instead, and re-running them needs that shared subflow or the AVD fixed first.
+<!-- SECTION:NOTES:END -->
