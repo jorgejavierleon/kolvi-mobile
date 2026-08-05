@@ -1,11 +1,11 @@
 ---
 id: KMO-16
 title: Geolocation permission and the three location states
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-05 20:51'
+updated_date: '2026-08-05 21:07'
 labels:
   - mobile
   - marcaje
@@ -150,10 +150,16 @@ Both are tagged out of the suite and mutually exclusive by definition: one asser
 **#7 is the only criterion still open, and it is not blocked on `ams`.** It is about a punch, and KMO-17 has not built one. The state machine already reports `punchAllowed: true` and `geoStatus: 'unknown'` for a permanently denied permission, proven in `use-location.test.ts`, and `flows/kmo-16-settings-route.yaml` shows the tab whole with the refusal on the card.
 
 Also worth opening when KMO-17 starts: the **server-side** geofence evaluation on `POST /api/v1/marks` (PRD §6 item 2 — haversine at punch time, persisting `inside|outside|unknown` with the reported accuracy). KOL-33 deliberately excluded it, so nothing tracks it yet.
+
+## #7 handed to KMO-17
+
+Every criterion here is now closed except #7, and #7 is about a punch this ticket does not build. Carried to **KMO-17 as its #11**, with a note there naming what is already done — `punchAllowed`, `geoStatus: 'unknown'` and `fix: null` for a permanently denied permission, proven in `use-location.test.ts` and visible on a device in `flows/kmo-16-settings-route.yaml`. What is owed is the half only a punch can show: that the request goes and carries `geo_status`, which is the same wire as KMO-17 #5.
+
+Left unchecked here rather than checked, because nothing in this ticket proves it.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Added the geolocation card above the shift card on Inicio, with its permission flow: a Spanish rationale before the OS prompt, the design's three states plus a fourth for a refused permission, an advisory haversine evaluation that never blocks a punch, a 12s acquisition timeout, and acquisition scoped to the Marcaje tab being in view. New foreground-only `expo-location`; `today-api.ts` now parses the geofence block `ams` KOL-33 will send. Verified with 827 Jest tests, the generated AndroidManifest carrying no background-location permission, an ESLint rule that fails the build on the five tracking APIs, and hand-driven device runs for #1, #4, #6 and #8. #2's distance clause and #3 wait on KOL-33; #7's punch waits on KMO-17.
+Added the geolocation card above the shift card on Inicio, with its permission flow: a Spanish rationale before the OS prompt, the design's three states plus a fourth for a refused permission, an advisory haversine evaluation that never blocks a punch, a 12s acquisition timeout, and acquisition scoped to the Marcaje tab being in view. New foreground-only `expo-location`; `today-api.ts` reads the geofence `ams` KOL-33 now sends. Verified with 829 Jest tests, an AndroidManifest carrying no background-location permission, an ESLint rule that fails the build on the five tracking APIs, and five Maestro flows covering the confirmed, out-of-range, no-signal, rationale and settings-route states on a device. #7 is carried to KMO-17 #11: it is about a punch, and there is no punch button until that ticket.
 <!-- SECTION:FINAL_SUMMARY:END -->
