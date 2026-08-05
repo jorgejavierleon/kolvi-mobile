@@ -1,0 +1,134 @@
+# KMO-15 — Inicio for the admin who also punches, on a day with no shift.
+#
+# Covers #7 (an explicit Spanish empty state instead of a blank or zeroed shift
+# card) and the second half of #8 (an admin who also punches gets a working tab).
+#
+# It signs in as `admin@example.com` rather than the seeded employee, because
+# that account is the only one that reaches either state: `ams`'s seeder gives it
+# `ClockOwn:Mark` and `ViewOwn:Mark` and nothing else — which is precisely the
+# user #8 names — and schedules it no shift, so `GET /me/today` answers
+# `shift: null` with `contracted_hours: 0`.
+#
+# **The first half of #8 is not here**, and cannot be: it needs an account
+# *without* `ClockOwn:Mark`, and the seeder has none. That half is covered in
+# `home-screen.test.tsx` and is called out as unproven on the device tier on the
+# task. Granting and revoking the permission against the local `ams` database
+# would prove it, at the cost of a flow that mutates another repository's state
+# to run — which is not a trade this suite makes anywhere else.
+#
+# It signs in inline rather than through shared/sign-in.yaml, which is hardcoded
+# to the seeded employee. Parameterising that subflow was tried and reverted: a
+# Maestro subflow's own `env:` block wins over what the caller passes, so the
+# override silently did nothing and every flow depending on it would have carried
+# the risk for one caller's benefit. Ten lines here are cheaper than that.
+#
+# Needs a reachable `ams` carrying KOL-31.
+appId: cl.kolvi.empleados
+name: KMO-15 home screen with no shift
+tags:
+  - marcaje
+---
+- runFlow: shared/launch.yaml
+
+- extendedWaitUntil:
+    visible: 'Ingresar'
+    timeout: 60000
+    label: 'The login screen is up'
+
+- tapOn:
+    id: 'login-email'
+- inputText: 'admin@example.com'
+- tapOn:
+    id: 'login-password'
+- inputText: 'admin'
+- hideKeyboard
+- tapOn: 'Ingresar'
+
+# Declined for the reason shared/sign-in.yaml declines it: on an AVD with a
+# fingerprint enrolled the offer is a modal, and nothing behind it is in the
+# hierarchy. Optional in both directions, since most AVDs have none enrolled.
+- extendedWaitUntil:
+    visible: 'Ahora no'
+    timeout: 10000
+    optional: true
+    label: 'The biometric offer, if this phone can do it'
+
+- runFlow:
+    when:
+      visible: 'Ahora no'
+    commands:
+      - tapOn: 'Ahora no'
+    label: 'Decline it, so the shell is what comes next'
+
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 30000
+    label: 'On the tab shell'
+
+# #7. The card says which day it is talking about rather than going blank — the
+# eyebrow stays, so the answer to "what is my turno today" is where the answer
+# always is, and today it is that there isn't one.
+- extendedWaitUntil:
+    visible: 'Hoy no tienes turno programado'
+    timeout: 30000
+    label: '#7 — the empty state says so explicitly, in Spanish'
+
+- assertVisible:
+    text: 'Si esto no es correcto, avísale a tu jefatura.'
+    label: '#7 — and says what to do about it'
+
+- assertVisible:
+    text: 'Turno de hoy'
+    label: '#7 — the eyebrow stays, so the card is recognisably the same card'
+
+# Not zeroed. A `00:00 – 00:00` window is the failure this criterion is written
+# against: it reads as a real shift starting at midnight.
+- assertNotVisible:
+    text: '00:00 – 00:00'
+    label: '#7 — no zeroed window an employee could read as a real shift'
+
+- assertNotVisible:
+    text: 'Colación (informativo)'
+    label: '#7 — and no colación row hanging off a shift that does not exist'
+
+# The week summary is absent too: `contracted_hours` is 0 for this account, and
+# `0 / 0 hrs esta semana` reads as a week nobody worked rather than as a week
+# with nothing contracted.
+- assertNotVisible:
+    id: 'week-summary'
+    label: '#7 — no 0 / 0 week against a contract that does not exist'
+
+- takeScreenshot: kmo-15-no-shift
+
+# #8, second half. This account punches, so the punch surface is there — the
+# status line is the part of it KMO-15 builds, and KMO-17's button joins it under
+# the same gate.
+- assertVisible:
+    id: 'clock-status'
+    text: 'Aún no marcas entrada'
+    label: '#8 — an admin who also punches sees the punch surface'
+
+# And the tab is a working tab rather than a screen of empty states: the clock is
+# up, the header names them, and the rest of the shell is reachable.
+- assertVisible:
+    id: 'clock-time'
+    text: '\d{2}:\d{2}'
+    label: '#8 — the clock is up'
+
+- assertVisible:
+    text: 'Hola, .+'
+    label: '#8 — greeted by name like anyone else'
+
+- tapOn:
+    id: 'tab-jornada'
+- extendedWaitUntil:
+    visible: 'Mi jornada'
+    timeout: 15000
+    label: '#8 — and the rest of the shell works'
+
+- tapOn:
+    id: 'tab-inicio'
+- extendedWaitUntil:
+    visible: 'Hoy no tienes turno programado'
+    timeout: 15000
+    label: '#8 — Inicio is still Inicio on the way back'

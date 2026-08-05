@@ -1,11 +1,11 @@
 ---
 id: KMO-15
 title: 'Home screen shell — greeting, shift card, clock and week summary'
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-04 22:08'
+updated_date: '2026-08-05 01:10'
 labels:
   - mobile
   - marcaje
@@ -38,13 +38,13 @@ Layout from the design, top to bottom: date and Hola {first_name} with the avata
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 The header shows the capitalised long date and Hola, {first_name} with the avatar button opening the profile
-- [ ] #2 The shift card shows the eyebrow Turno de hoy, the premise name, the scheduled window as start – end, and a divided row reading Colación (informativo) with the scheduled lunch window
-- [ ] #3 The clock renders the current time as hh:mm and updates at least every 30 seconds without re-rendering the whole screen
-- [ ] #4 The status line under the clock reads the state text for the current punch state, per the state machine in KMO-17
-- [ ] #5 The week summary renders as {worked} / {total} hrs esta semana using the contracted weekly hours as the denominator
+- [x] #2 The shift card shows the eyebrow Turno de hoy, the premise name, the scheduled window as start – end, and a divided row reading Colación (informativo) with the scheduled lunch window
+- [x] #3 The clock renders the current time as hh:mm and updates at least every 30 seconds without re-rendering the whole screen
+- [x] #4 The status line under the clock reads the state text for the current punch state, per the state machine in KMO-17
+- [x] #5 The week summary renders as {worked} / {total} hrs esta semana using the contracted weekly hours as the denominator
 - [x] #6 The whole screen renders from one GET /api/v1/me/today response
-- [ ] #7 An employee with no shift scheduled today sees an explicit Spanish empty state instead of a blank or zeroed shift card
-- [ ] #8 A user without the ClockOwn:Mark permission does not see the punch surface, and an admin who also punches sees a working tab
+- [x] #7 An employee with no shift scheduled today sees an explicit Spanish empty state instead of a blank or zeroed shift card
+- [x] #8 A user without the ClockOwn:Mark permission does not see the punch surface, and an admin who also punches sees a working tab
 - [x] #9 Loading shows skeletons rather than a spinner over an empty screen, and a failed load offers retry without losing the tab
 <!-- AC:END -->
 
@@ -116,4 +116,58 @@ Validation: `npm run check` green — typecheck, lint, format, 747 Jest tests ac
 The backend prerequisite is now tracked: **`ams` KOL-31 — Aggregate the mobile home screen on GET /api/v1/me/today**, HIGH, 10 acceptance criteria. It names `src/features/marcaje/today-api.ts` as the authoritative reading of the contract, carries the naive-datetime requirement explicitly (a resource copied from `MarkResource` would stamp an offset and fail this parser), and asks the demo seeder to give `employee@example.com` a shift today with a colación window so this ticket's Maestro flow has something to assert against.
 
 KOL-31 shipping is what unblocks #2, #3, #4, #5, #7 and #8 here.
+
+## After KOL-31 shipped
+
+The endpoint is live and answers the contract exactly — naive `YYYY-MM-DD` and `HH:mm:ss` throughout, no offsets, so the parser needed no change:
+
+    {"date":"2026-08-04","shift":{"premise":"Sucursal Centro","start_time":"06:00:00",
+     "end_time":"15:00:00","lunch_start_time":"11:00:00","lunch_end_time":"12:00:00"},
+     "punch":{"state":"before"},"week":{"worked_hours":0,"contracted_hours":40}}
+
+The seeder also made #7 and #8 reachable on a device: `admin@example.com` carries `ClockOwn:Mark` and `ViewOwn:Mark` and nothing else, and has no shift today — so it drives both the empty state and the admin-who-also-punches case from one login.
+
+**Two flows now, both passing.**
+
+- `flows/kmo-15-home-screen.yaml` (58s) — #1, #2, #3, #4, #5 against the seeded employee.
+- `flows/kmo-15-no-shift.yaml` (41s) — #7 and #8's second half, signed in as the admin.
+
+**#3's device half is the one that mattered and it is now proven.** The flow copies the clock's text, waits, and asserts the same value is no longer on screen. A render-derived clock would have frozen on the minute the screen opened and failed that wait — which is the React Compiler failure Jest structurally cannot see, and the reason `now-clock.ts` holds its reading in state.
+
+### Two things that did not work, and were not left in
+
+**Parameterising `shared/sign-in.yaml` by env was tried and reverted.** A Maestro subflow's own `env:` block wins over what the caller passes, so the override silently typed the default credentials and the flow signed in as the wrong user. Rather than carry that risk in a file ten flows depend on, `kmo-15-no-shift.yaml` spells out its own login inline.
+
+**`flows/kmo-15-load-failed.yaml` was written, run, failed, and deleted rather than shipped.** With the radio off, a cold start signs the employee out during session restore — `session.tsx` clears the token on any restore failure, not just a 401 — so the home screen never mounts and there is nothing to fail. That is KMO-49's gap, not this ticket's. A re-runnable device flow for #9's failure path needs KMO-49 first.
+
+#9 stays checked on the evidence actually gathered: full Jest coverage, plus direct device observation earlier in this ticket when the endpoint was still absent and the failed state was what the app genuinely did (screenshot `.artifacts/kmo-15-after.png`).
+
+## Verification, final
+
+`npm run check` green: typecheck, lint, format, 747 Jest tests across 49 suites.
+
+Device tier, each flow re-run in isolation and passing:
+
+- `bin/e2e flows/kmo-15-home-screen.yaml` — 1m 28s — #1, #2, #3, #4, #5
+- `bin/e2e flows/kmo-15-no-shift.yaml` — 41s — #7, #8 (admin half)
+
+All nine criteria are now checked. #8 is the only split one: the *admin who also punches* half is proven on a device against real server permissions, and the *user without `ClockOwn:Mark`* half is Jest-only, because `ams`'s seeder has no account lacking that permission. The gate is one boolean over the same code path, and the payload-to-gate mechanism is what the device run proves, so the negative branch is not separately at risk.
+
+### The full suite is not green, and it predates this branch
+
+`bin/e2e` with no argument failed 3 of 12: KMO-9, KMO-12 and KMO-15 home screen. **All three failed on the Android launcher — the app never launched** — and all three pass when run on their own (KMO-9 40s, KMO-12 52s, KMO-15 1m 28s, KMO-15 no-shift 41s).
+
+It is the dev-client launch under repeated `clearState`: `shared/launch.yaml` notes that clearing state throws away the dev client's server selection, so every flow re-opens the app through `openLink` and waits for a bundle load, and somewhere in a twelve-flow run that stops arriving. Two of the three affected flows belong to tickets closed weeks ago, so this is not a regression from this work — but it does mean `npm run test:e2e` cannot currently be trusted as a gate, and that is worth its own ticket. Not raised as one here, per the workflow's rule about follow-ups.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Built Inicio, the first tab with a real body: the long date and Hola, {nombre} over the shift card, the live clock and its status line, and the week summary — the whole screen drawn from one GET /api/v1/me/today, with skeletons on the way in and a Spanish retry when it does not arrive.
+
+New in src/features/marcaje/: today-api.ts (the wire contract and its parser), use-today.ts (load, retry, cancel-on-unmount), punch-state.ts (the before/working/done machine KMO-17 builds on), now-clock.ts (the device wall clock, held in state so React Compiler cannot freeze it), clock.tsx, shift-card.tsx and home-screen.tsx. src/app/(tabs)/index.tsx collapses to a three-line route. Shared additions: a Skeleton primitive in src/ui/ and an optional eyebrow on ScreenHeader.
+
+Written before the backend existed, against a contract this repo specified and ams then implemented as KOL-31; the parser needed no change when the endpoint shipped.
+
+Verified: npm run check green (747 Jest tests, 49 suites), plus two Maestro flows passing on the emulator — kmo-15-home-screen.yaml for #1-#5 and kmo-15-no-shift.yaml for #7 and #8. #3's device half is the one that mattered: the flow copies the clock, waits, and asserts the value is gone, which is the React Compiler freeze that Jest structurally cannot see. All nine criteria checked; #8's negative branch is Jest-only because ams seeds no account lacking ClockOwn:Mark.
+<!-- SECTION:FINAL_SUMMARY:END -->

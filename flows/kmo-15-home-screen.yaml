@@ -1,28 +1,29 @@
-# KMO-15 — Inicio opens with the date and the employee's own name, and says so in
-# Spanish when it cannot load the rest.
+# KMO-15 — Inicio, loaded from one `GET /api/v1/me/today`.
 #
-# Covers #1 (the capitalised long date, `Hola, {first_name}`, and the avatar
-# opening Mi perfil) and the second half of #9 (a failed load offers retry
-# without losing the tab).
+# Covers #1 (the capitalised long date, `Hola, {first_name}`, the avatar opening
+# Mi perfil), #2 (the shift card), #3 (the clock reads hh:mm and advances), #4
+# (the status line for the punch state) and #5 (the week summary).
 #
-# **It deliberately covers no more than that, and the reason is the endpoint.**
-# `GET /api/v1/me/today` does not exist in `ams` yet — it is tracked there as
-# KOL-31 — so on a device the shift card, the clock's status
-# line and the week summary have nothing to render from. The failed state below
-# is not a contrived condition: it is what the app honestly does today, and it is
-# the one part of #9 a device can prove right now.
+# **#3 is the reason this flow is worth its runtime.** Jest proves the interval
+# fires and that a tick re-renders the clock and not its siblings, but it cannot
+# prove the clock is not frozen: this app builds with React Compiler, which
+# memoises render-time computation against its tracked inputs, and the system
+# clock is not one of them. A time derived during render is computed once and
+# cached forever — the screen sits on the minute it opened for the whole shift.
+# Jest does not run the compiler, so only a device can show it. `now-clock.ts`
+# holds the reading in state for exactly this reason; the wait below is the proof.
+# Same shape as kmo-50-login-throttled.yaml, and for the same reason.
 #
-# The rest of the device tier waits on that endpoint. When it lands, this flow
-# grows the assertions for #2, #4, #5 and #7 — and in particular for the half of
-# #3 that Jest cannot see, since a clock derived during render freezes under React
-# Compiler and Jest does not run the compiler (see kmo-50-login-throttled.yaml).
+# The values are asserted by *form* rather than by literal, apart from the copy
+# the catalogue owns. The seeded shift, the premise and the week totals belong to
+# `ams`'s demo seeder (KOL-31 #10) and a flow pinned to today's numbers would fail
+# the first time someone reseeds — while the strings that are a compliance
+# requirement, `Turno de hoy` and `Colación (informativo)` and `hrs esta semana`,
+# are pinned character for character.
 #
-# Needs a reachable `ams`, because it signs in. Against one that has since shipped
-# /me/today the failed-load assertions below will fail, which is the correct
-# answer: this flow is then out of date and the shift-card assertions are what
-# belong here.
+# Needs a reachable `ams` carrying KOL-31.
 appId: cl.kolvi.empleados
-name: KMO-15 home screen shell
+name: KMO-15 home screen
 tags:
   - marcaje
 ---
@@ -33,13 +34,13 @@ tags:
     timeout: 30000
     label: 'On the tab shell'
 
-# #1. The date is the phone's and the name is the session's, so both are up
-# before the request settles. The weekday and month cannot be pinned to a literal
-# — the flow runs on whatever day it runs — so the assertion is on the *form*:
-# a capitalised Spanish weekday, a day number, and a lowercase month.
+# #1. The date is the phone's and the name is the session's. The weekday and
+# month cannot be pinned to a literal — the flow runs on whatever day it runs —
+# so the assertion is on the form: a capitalised Spanish weekday, a day number,
+# and a month in lowercase.
 #
-# Lowercase months are the point of the second half. The design's mockup applies
-# a CSS `text-transform:capitalize` over the whole line, which would render
+# The lowercase month is the point of the second half. The design's mockup puts a
+# CSS `text-transform:capitalize` over the whole line, which would render
 # `5 De Agosto`; KMO-6 #4 read that as an artefact of the prototype. A regex that
 # accepted either would pass on the wrong one.
 - assertVisible:
@@ -48,74 +49,103 @@ tags:
 
 # The seeded employee is `Empleado Demo`, so `first_name` is `Empleado`. Not the
 # full name: the greeting is a first name, and matching `Hola, Empleado Demo`
-# would pass on the fallback that exists for an employee `ams` has no first name
-# for.
+# would also pass on the fallback that exists for an employee `ams` has no first
+# name for.
 - assertVisible:
     text: 'Hola, Empleado'
     label: '#1 — greeted by name'
 
-- takeScreenshot: kmo-15-header
-
-# #9. `/me/today` is not routed in `ams`, so the request 404s and this is the
-# state an employee actually lands in today.
+# #2. Every element the criterion names, on a card drawn from the live endpoint.
 - extendedWaitUntil:
-    visible: 'No pudimos cargar tu turno de hoy.'
+    visible: 'Turno de hoy'
     timeout: 30000
-    label: '#9 — the failure is announced in Spanish rather than left blank'
+    label: '#2 — the shift card loaded'
 
 - assertVisible:
-    text: 'Reintentar'
-    label: '#9 — and a retry is offered'
+    id: 'shift-card'
+    label: '#2 — and it is the card, not the skeleton'
 
-# Res. 38 Art. 5. Laravel answers a missing route with an English sentence and a
-# stack trace; none of it may reach an employee.
+# The premise is server vocabulary and is shown verbatim, so the assertion is
+# that *something* is there rather than which branch the seeder picked.
+- assertVisible:
+    text: '.+'
+    label: '#2 — the premise name'
+
+# An en dash with spaces, which is how the design writes a range. A hyphen would
+# be the thing that gets typed when a range is spelled out per screen instead of
+# coming from `timeRange` in the catalogue.
+- assertVisible:
+    text: '\d{2}:\d{2} – \d{2}:\d{2}'
+    label: '#2 — the scheduled window as start – end'
+
+- assertVisible:
+    text: 'Colación (informativo)'
+    label: '#2 — the colación row, labelled informativo'
+
+# D-F1-a dropped colación as a punch type. These are the controls the rejected
+# option would have put on this card.
 - assertNotVisible:
-    text: '.*could not be found.*'
-    label: 'None of the server English reached the screen'
+    text: 'Iniciar colación'
+    label: '#2 — colación is read-only'
+- assertNotVisible:
+    text: 'Terminar colación'
+    label: '#2 — read-only in both directions'
 
-- takeScreenshot: kmo-15-load-failed
+- takeScreenshot: kmo-15-loaded
 
-# "without losing the tab" is the half of #9 that is easy to satisfy on paper and
-# easy to break in practice. The header the employee was looking at is still
-# there, and so is the way out of the tab.
+# #4. The seeded employee has not punched today, so `punch.state` is `before`.
 - assertVisible:
-    text: 'Hola, Empleado'
-    label: '#9 — the header survived the failure'
+    id: 'clock-status'
+    text: 'Aún no marcas entrada'
+    label: '#4 — the status line for the current punch state'
 
+# #5. `{worked} / {total} hrs esta semana`, with the es-CL decimal comma. The
+# numbers are the seeder's; the shape and the wording are ours. A whole number
+# keeps no trailing `,0` — hence the optional group.
 - assertVisible:
-    id: 'tab-jornada'
-    label: '#9 — and the tab bar, so the employee has not lost their place'
+    id: 'week-summary'
+    text: '\d+(,\d)? / \d+ hrs esta semana'
+    label: '#5 — the week summary against the contracted total'
 
-# The retry is a real control and not a decoration. It fails again — the route is
-# still missing — and the screen has to come back to the same offer rather than
-# to a blank body or a crash.
-- tapOn:
-    id: 'home-retry'
+# The dot is what the design's mockup writes (`32.5 / 44`). The comma is the
+# es-CL form and the mockup's own leave wizard uses it, so KMO-6 read the dot as
+# a slip rather than a house style.
+- assertNotVisible:
+    text: '\d+\.\d / \d+ hrs esta semana'
+    label: '#5 — the decimal mark is a comma, not a dot'
+
+# #3. The clock reads hh:mm, with no seconds — those belong to the comprobante
+# under Art. 13, not to a clock a worker glances at.
+- assertVisible:
+    id: 'clock-time'
+    text: '\d{2}:\d{2}'
+    label: '#3 — the current time as hh:mm'
+
+- assertNotVisible:
+    id: 'clock-time'
+    text: '\d{2}:\d{2}:\d{2}'
+    label: '#3 — and no seconds on it'
+
+# And it moves. Copied rather than pinned, because the flow cannot know what time
+# it is; matched on the clock's own id as well as the text, because the shift
+# window on the card above can hold the same `06:00` the clock does and a bare
+# text match would then never go not-visible.
+#
+# 90s rather than 30s: the tick is every 30 seconds but the displayed minute only
+# changes on the minute, so a run that starts just after one has to wait out the
+# rest of it plus a tick.
+- copyTextFrom:
+    id: 'clock-time'
+- evalScript: ${output.openedAt = maestro.copiedText}
 
 - extendedWaitUntil:
-    visible: 'No pudimos cargar tu turno de hoy.'
-    timeout: 30000
-    label: '#9 — a retry that fails leaves the employee where they were'
+    notVisible:
+      id: 'clock-time'
+      text: ${output.openedAt}
+    timeout: 90000
+    label: '#3 — the clock advanced rather than freezing on the minute it opened'
 
-- assertVisible:
-    id: 'home-retry'
-    label: '#9 — and offers again'
-
-# The tab is still navigable after all of it, which is what "without losing the
-# tab" is finally about.
-- tapOn:
-    id: 'tab-jornada'
-- extendedWaitUntil:
-    visible: 'Mi jornada'
-    timeout: 15000
-    label: 'The shell still works after a failed load'
-
-- tapOn:
-    id: 'tab-inicio'
-- extendedWaitUntil:
-    visible: 'Hola, Empleado'
-    timeout: 15000
-    label: 'And Inicio is still Inicio on the way back'
+- takeScreenshot: kmo-15-clock-advanced
 
 # #1's last clause: the avatar is the way to Mi perfil.
 - tapOn:
@@ -125,5 +155,3 @@ tags:
     visible: 'Mi perfil'
     timeout: 15000
     label: '#1 — the avatar opens the profile'
-
-- takeScreenshot: kmo-15-perfil
