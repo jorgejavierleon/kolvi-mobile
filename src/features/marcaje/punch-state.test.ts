@@ -1,6 +1,14 @@
 import { es } from '@/i18n';
 
-import { parsePunchState, punchStates, punchStatusLine } from './punch-state';
+import {
+  parsePunchState,
+  punchActionLabel,
+  punchStates,
+  punchStatusLine,
+  punchTypeFor,
+  punchTypes,
+  stateAfterPunch,
+} from './punch-state';
 
 describe('parsePunchState', () => {
   it('reads the three states the decision record settled on', () => {
@@ -43,5 +51,60 @@ describe('punchStatusLine', () => {
     for (const state of punchStates) {
       expect(punchStatusLine(state)).toBe(es.marcaje.status[state]);
     }
+  });
+});
+
+// KMO-17 #2. The button and the status line read from the same three values, so
+// the pair on screen cannot say `En jornada` over `Marcar entrada`.
+describe('punchTypeFor', () => {
+  it('marks entrada before the day has started and salida during it', () => {
+    expect(punchTypeFor('before')).toBe('in');
+    expect(punchTypeFor('working')).toBe('out');
+  });
+
+  it('has nothing left to record on a day that is already closed', () => {
+    // D-F1-b: one `in` and one `out` per day. `null` is what puts the success
+    // panel where the button was (#3), rather than a third label.
+    expect(punchTypeFor('done')).toBeNull();
+  });
+
+  it('knows only the two types ams records, so colación is not one', () => {
+    expect(punchTypes).toEqual(['in', 'out']);
+  });
+});
+
+describe('punchActionLabel', () => {
+  it('is the design’s own wording for each type', () => {
+    expect(punchActionLabel('in')).toBe('Marcar entrada');
+    expect(punchActionLabel('out')).toBe('Marcar salida');
+  });
+
+  it('comes from the catalogue, like the status line above it', () => {
+    for (const type of punchTypes) {
+      expect(punchActionLabel(type)).toBe(es.marcaje.punch[type]);
+    }
+  });
+});
+
+describe('stateAfterPunch', () => {
+  it('walks the machine forward one step per recorded punch', () => {
+    expect(stateAfterPunch('in')).toBe('working');
+    expect(stateAfterPunch('out')).toBe('done');
+  });
+
+  // The whole machine, in the order an employee walks it. `done` is terminal:
+  // there is no punch that leaves it, which is the same rule `punchTypeFor`
+  // states from the other end.
+  it('ends the day at done, with no punch that leaves it', () => {
+    let state: (typeof punchStates)[number] = 'before';
+
+    for (const expected of ['working', 'done'] as const) {
+      const type = punchTypeFor(state);
+      expect(type).not.toBeNull();
+      state = stateAfterPunch(type!);
+      expect(state).toBe(expected);
+    }
+
+    expect(punchTypeFor(state)).toBeNull();
   });
 });

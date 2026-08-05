@@ -25,6 +25,24 @@ export type LocationFix = {
 };
 
 /**
+ * What the punch reports about where it was made, mirroring the server's own
+ * column (PRD §6): inside the geofence, outside it, or no fix at all.
+ *
+ * `unknown` is a first-class answer and not a missing one. A punch made with a
+ * permission the employee refused travels as `unknown` and is recorded —
+ * blocking it would make attendance unrecordable, which is a legal problem
+ * rather than a product one (KMO-16 #7). KMO-17 #5 and #11 put it on the wire.
+ *
+ * It lives here rather than beside the hook that produces it because it is also
+ * what comes *back*: the server evaluates the geofence again at punch time and
+ * its verdict is the one on the record (docs/design-decisions.md §2), so both
+ * ends of `punch-api.ts` read this union.
+ */
+export const geoStatuses = ['inside', 'outside', 'unknown'] as const;
+
+export type GeoStatus = (typeof geoStatuses)[number];
+
+/**
  * What the card says. `distanceMeters` is `null` only when there was nothing to
  * measure against — a premise the server sent no coordinates for.
  */

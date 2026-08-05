@@ -1,0 +1,80 @@
+# KMO-17 — the whole day on a device: entrada, then salida, then the panel.
+#
+# Covers #2 in full — all three rows of the state table, with the status line and
+# the button label agreeing at every step — and #3, that a finished day replaces
+# the button rather than disabling it.
+#
+# Tagged out of the suite, and the condition is on the *server* rather than on the
+# device. `POST /api/v1/marks` still requires the client `datetime` this app will
+# never send (docs/design-decisions.md §2), so every punch here is refused until
+# `ams` KOL-34 ships. Once it has:
+#
+#   bin/e2e flows/kmo-17-punch.yaml
+#
+# And it is single-use per seed: it leaves `employee@example.com` with both marks
+# recorded, and the register keeps exactly one of each per day (D-F1-b). A second
+# run needs the demo data reseeded, or it is asserting `Marcar entrada` at an
+# employee whose day is already closed.
+appId: cl.kolvi.empleados
+name: KMO-17 punch through the day
+tags:
+  - marcaje
+  - requires-punch-endpoint
+---
+- runFlow: shared/sign-in.yaml
+
+- extendedWaitUntil:
+    visible: 'Turno de hoy'
+    timeout: 30000
+    label: 'The shift card loaded, so /me/today has answered'
+
+# `before` — the row the day starts on.
+- extendedWaitUntil:
+    visible: 'Marcar entrada'
+    timeout: 30000
+    label: '#2 — before: Aún no marcas entrada / Marcar entrada'
+- assertVisible: 'Aún no marcas entrada'
+
+- tapOn:
+    id: 'punch-button'
+
+# `working`. The wait is what the round trip needs; the state moves on the
+# receipt, so this assertion is also #4's device half — the screen advanced
+# because the server recorded the mark, not because a button was pressed.
+- extendedWaitUntil:
+    visible: 'Marcar salida'
+    timeout: 30000
+    label: '#2 — working: the button became the salida'
+
+- assertVisible:
+    text: 'En jornada'
+    label: '#2 — and the status line moved with it'
+
+- assertNotVisible:
+    text: 'Aún no marcas entrada'
+    label: '#2 — the previous row is gone, not merely covered'
+
+- takeScreenshot: kmo-17-en-jornada
+
+- tapOn:
+    id: 'punch-button'
+
+# `done`. The button does not go grey — it is not there at all.
+- extendedWaitUntil:
+    visible: 'Nos vemos en tu próximo turno'
+    timeout: 30000
+    label: '#3 — the success panel stands where the button was'
+
+- assertVisible:
+    text: 'Jornada finalizada'
+    label: '#3 — the panel is titled with the day’s own state'
+
+- assertNotVisible:
+    id: 'punch-button'
+    label: '#3 — replaced, not disabled'
+
+- assertNotVisible:
+    text: 'Marcar salida'
+    label: '#3 — a finished day offers nothing to punch'
+
+- takeScreenshot: kmo-17-jornada-finalizada

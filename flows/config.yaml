@@ -37,6 +37,15 @@ flows:
 #
 #   bin/device geo -33.4489 -70.6693 && bin/e2e flows/kmo-16-location.yaml
 #   bin/device geo -33.4372 -70.6506 && bin/e2e flows/kmo-16-out-of-range.yaml
+#
+# `requires-punch-endpoint` is not a device condition at all: `POST /api/v1/marks`
+# still requires the client `datetime` the app will never send, so a punch cannot
+# complete until `ams` KOL-34 ships. It is also single-use per seed — the register
+# keeps one `in` and one `out` per day, so the flow's second run finds a day it
+# already closed. `kmo-17-punch-button.yaml` is the part of KMO-17 that runs in
+# the suite today.
+#
+#   bin/e2e flows/kmo-17-punch.yaml
 excludeTags:
   - requires-offline
   - requires-biometric
@@ -45,3 +54,4 @@ excludeTags:
   - requires-gps-off
   - requires-geo-at-premise
   - requires-geo-off-premise
+  - requires-punch-endpoint

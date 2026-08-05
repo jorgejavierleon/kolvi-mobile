@@ -2,7 +2,7 @@ import { act, render, screen, userEvent, waitFor } from '@testing-library/react-
 import type { ReactNode } from 'react';
 import { SafeAreaProvider, type Metrics } from 'react-native-safe-area-context';
 
-import type { NaiveDate, NaiveTime } from '@/api';
+import { ApiError, type NaiveDate, type NaiveDateTime, type NaiveTime } from '@/api';
 import { es } from '@/i18n';
 
 import type { AuthApi } from '../auth/auth-api';
@@ -14,6 +14,7 @@ import { HomeScreen } from './home-screen';
 import { CLOCK_TICK_MS } from './now-clock';
 import type { LocationFix } from './geofence';
 import type { LocationPermission, LocationSource } from './location';
+import { DuplicateMarkError, type PunchApi, type PunchReceipt } from './punch-api';
 import type { TodayApi, TodaySummary } from './today-api';
 
 /**
@@ -96,11 +97,33 @@ const metrics: Metrics = {
 
 type MountOptions = {
   api?: TodayApi;
+  punchApi?: PunchApi;
   permissions?: readonly Permission[];
   firstName?: string | null;
   at?: string;
   location?: LocationSource;
 };
+
+/** A server that records whatever it is handed (KMO-17). */
+function fakePunchApi(overrides: Partial<PunchReceipt> = {}): PunchApi & { calls: unknown[] } {
+  const calls: unknown[] = [];
+
+  return {
+    calls,
+    punch: async (request) => {
+      calls.push(request);
+
+      return {
+        markId: 1841,
+        type: request.type,
+        datetime: '2026-08-04 14:07:22' as NaiveDateTime,
+        hash: '9f2c1b0e5d4a',
+        geoStatus: 'inside',
+        ...overrides,
+      };
+    },
+  };
+}
 
 async function mount(options: MountOptions = {}) {
   const api: TodayApi = options.api ?? { fetchToday: async () => summary };
@@ -115,6 +138,7 @@ async function mount(options: MountOptions = {}) {
     <HomeScreen
       onOpenProfile={() => {}}
       api={api}
+      punchApi={options.punchApi ?? fakePunchApi()}
       clock={clock}
       locationSource={options.location ?? fakeLocation()}
     />,
@@ -286,6 +310,9 @@ describe('the ClockOwn:Mark gate (#8)', () => {
 
     expect(screen.queryByTestId('clock-status')).not.toBeOnTheScreen();
     expect(screen.queryByText('Aún no marcas entrada')).not.toBeOnTheScreen();
+    // The button is the other half of that surface, and the more important half:
+    // an admin who does not punch must not be offered a punch (KMO-17 #2).
+    expect(screen.queryByTestId('punch-button')).not.toBeOnTheScreen();
   });
 
   it('still gives that user a working tab rather than a screenful of nothing', async () => {
@@ -486,5 +513,122 @@ describe('loading and failing (#9)', () => {
 
     await waitFor(() => expect(screen.getByTestId('home-load-failed')).toBeOnTheScreen());
     expect(screen.queryByText(/Server Error/)).not.toBeOnTheScreen();
+  });
+});
+
+// KMO-17. The screen composes the punch; `use-punch.test.ts` and
+// `punch-action.test.tsx` carry the pieces. What is only true here is that the
+// two agree — the line under the clock and the label on the button are the same
+// state, before and after a punch.
+describe('the punch (KMO-17)', () => {
+  it('walks the whole day: entrada, then salida, then the success panel', async () => {
+    await mountLoaded();
+
+    expect(screen.getByTestId('clock-status')).toHaveTextContent('Aún no marcas entrada');
+    expect(screen.getByText('Marcar entrada')).toBeOnTheScreen();
+
+    await userEvent.press(screen.getByTestId('punch-button'));
+
+    await waitFor(() => expect(screen.getByText('Marcar salida')).toBeOnTheScreen());
+    expect(screen.getByTestId('clock-status')).toHaveTextContent('En jornada');
+
+    await userEvent.press(screen.getByTestId('punch-button'));
+
+    await waitFor(() => expect(screen.getByTestId('punch-action-done')).toBeOnTheScreen());
+    expect(screen.getByTestId('clock-status')).toHaveTextContent('Jornada finalizada');
+    expect(screen.getByText('Nos vemos en tu próximo turno')).toBeOnTheScreen();
+    expect(screen.queryByTestId('punch-button')).not.toBeOnTheScreen();
+  });
+
+  // #5 and #11. The card above has already read the phone by the time the button
+  // is pressed, and what it read is what the mark travels with.
+  it('sends the fix the location card is showing', async () => {
+    const punchApi = fakePunchApi();
+    await mountLoaded({ punchApi });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location-card-title')).toHaveTextContent('Ubicación confirmada'),
+    );
+    await userEvent.press(screen.getByTestId('punch-button'));
+
+    await waitFor(() => expect(punchApi.calls).toHaveLength(1));
+    expect(punchApi.calls[0]).toEqual({ type: 'in', fix, geoStatus: 'inside' });
+  });
+
+  // #11's whole point. The employee who refused the permission for good is the
+  // one an app most easily locks out of their own attendance record.
+  it('punches for an employee who refused the location permission', async () => {
+    const punchApi = fakePunchApi({ geoStatus: 'unknown' });
+    await mountLoaded({
+      punchApi,
+      location: fakeLocation({
+        getPermission: async () => 'deniedForever',
+        requestPermission: async () => 'deniedForever',
+        getFix: async () => null,
+      }),
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location-card-title')).toHaveTextContent(
+        'Sin permiso de ubicación',
+      ),
+    );
+
+    await userEvent.press(screen.getByTestId('punch-button'));
+
+    await waitFor(() => expect(punchApi.calls).toHaveLength(1));
+    expect(punchApi.calls[0]).toEqual({ type: 'in', fix: null, geoStatus: 'unknown' });
+    await waitFor(() => expect(screen.getByText('Marcar salida')).toBeOnTheScreen());
+  });
+
+  // #8. The failure is a line under a button that still says what it said.
+  it('leaves the employee where they were when the punch fails', async () => {
+    await mountLoaded({
+      punchApi: {
+        punch: async () => {
+          throw new ApiError({ kind: 'network' });
+        },
+      },
+    });
+
+    await userEvent.press(screen.getByTestId('punch-button'));
+
+    await waitFor(() => expect(screen.getByTestId('punch-failed')).toBeOnTheScreen());
+    expect(screen.getByText('Marcar entrada')).toBeOnTheScreen();
+    expect(screen.getByTestId('clock-status')).toHaveTextContent('Aún no marcas entrada');
+  });
+
+  // #7. The register already holds the punch, so the screen catches up with it —
+  // in Spanish, in place, with no dialog anywhere.
+  it('reconciles with the server when the punch was already recorded', async () => {
+    // The day the screen loaded with, and the day the register actually holds:
+    // the punch went in on an earlier attempt whose answer this phone lost.
+    let asked = 0;
+    const fetchToday = jest.fn(async () => {
+      asked += 1;
+
+      return asked === 1 ? summary : { ...summary, punchState: 'working' as const };
+    });
+
+    await mountLoaded({
+      api: { fetchToday },
+      punchApi: {
+        punch: async () => {
+          throw new DuplicateMarkError(
+            new ApiError({ kind: 'client', status: 409, serverMessage: 'Ya marcaste entrada.' }),
+          );
+        },
+      },
+    });
+
+    await userEvent.press(screen.getByTestId('punch-button'));
+
+    await waitFor(() => expect(screen.getByTestId('punch-duplicate')).toBeOnTheScreen());
+    expect(screen.getByText(es.marcaje.punch.alreadyMarked)).toBeOnTheScreen();
+    expect(screen.getByText('Marcar salida')).toBeOnTheScreen();
+    expect(screen.getByTestId('clock-status')).toHaveTextContent('En jornada');
+    // It asked the register what the day actually looks like rather than
+    // trusting the step it inferred.
+    expect(fetchToday).toHaveBeenCalledTimes(2);
   });
 });

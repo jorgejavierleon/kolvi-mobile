@@ -42,3 +42,50 @@ export function parsePunchState(value: unknown): PunchState | null {
 export function punchStatusLine(state: PunchState): string {
   return es.marcaje.status[state];
 }
+
+/**
+ * The two punch types, as `ams` spells them on `Mark.type`.
+ *
+ * There is no third. Colación was dropped as a punch type (D-F1-a), so a break
+ * is a window drawn on the shift card and never a row in the attendance book.
+ */
+export const punchTypes = ['in', 'out'] as const;
+
+export type PunchType = (typeof punchTypes)[number];
+
+/**
+ * What pressing the button would record, or `null` when there is nothing left to
+ * record today (KMO-17 #2).
+ *
+ * The `done` case is what makes this return a nullable rather than a type: a day
+ * with both marks on it has no next punch, and the caller draws the success
+ * panel instead of a button. Deriving that here rather than in the component is
+ * what keeps the one-`in`-one-`out` rule (D-F1-b) in the same file as the states
+ * it is a rule about.
+ */
+export function punchTypeFor(state: PunchState): PunchType | null {
+  switch (state) {
+    case 'before':
+      return 'in';
+    case 'working':
+      return 'out';
+    case 'done':
+      return null;
+  }
+}
+
+/** The primary button's label (#2). Verbatim from the design's `primaryLabel`. */
+export function punchActionLabel(type: PunchType): string {
+  return es.marcaje.punch[type];
+}
+
+/**
+ * Where the employee is once that punch is recorded (#2).
+ *
+ * Applied only to a punch the **server** accepted. The screen advances off the
+ * receipt and never off the tap: a state that moved because someone pressed a
+ * button would be an app claiming an attendance record that may not exist.
+ */
+export function stateAfterPunch(type: PunchType): PunchState {
+  return type === 'in' ? 'working' : 'done';
+}

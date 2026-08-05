@@ -16,7 +16,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { evaluateGeofence, type LocationFix } from './geofence';
+import { evaluateGeofence, type GeoStatus, type LocationFix } from './geofence';
 import { createLocationSource, type LocationSource } from './location';
 import type { Geofence } from './today-api';
 
@@ -49,15 +49,11 @@ type LocationPhase =
   | { readonly kind: 'denied'; readonly canAskAgain: boolean };
 
 /**
- * What the punch reports about where it was made, mirroring the server's own
- * column (PRD §6): inside the geofence, outside it, or no fix at all.
- *
- * `unknown` is a first-class answer and not a missing one. A punch made with a
- * permission the employee refused travels as `unknown` and is recorded —
- * blocking it would make attendance unrecordable, which is a legal problem
- * rather than a product one (#7). KMO-17 #5 sends this.
+ * Re-exported so a caller reading the card's state reads its `geoStatus` from
+ * the same module. It is declared in `geofence.ts`, which is also where the
+ * server's own verdict is read back from — see the note there.
  */
-export type GeoStatus = 'inside' | 'outside' | 'unknown';
+export type { GeoStatus };
 
 export type LocationReading = {
   readonly state: LocationState;

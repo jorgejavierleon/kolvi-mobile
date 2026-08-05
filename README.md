@@ -280,9 +280,21 @@ señal de GPS` or the permission the design has no state for. The permission is 
 behind a Spanish rationale, and refusing it never blocks a punch — an unrecordable
 attendance is a legal problem, so the mark simply travels with no fix on it. The client's
 distance is advisory throughout; the server decides, and a premise with no radius configured
-is never out of range. The punch button (KMO-17) and the pending-sync banner
-(KMO-22) land in the slots the design puts them in. Jornada, Permisos and Documentos are still empty — run
-`backlog task list --plain` to see the backlog.
+is never out of range.
+
+Under the clock is the button the app exists for (KMO-17): `Marcar entrada`, then `Marcar
+salida`, then a success panel where the button was, walking the three states
+`before → working → done`. The punch carries **no timestamp** — the server assigns the legal
+time, and the receipt it answers with is the only time the app will ever show for a mark —
+and it carries the fix, its accuracy and the client's advisory geofence verdict explicitly,
+with `null` where there is nothing to report. Two taps make one punch, a refusal leaves the
+day exactly as it was with the button as its own retry, and a punch the register already
+holds is a calm Spanish line rather than an error. The endpoint that serves all of this is
+`ams` KOL-34; against `POST /api/v1/marks` as it stands the punch is refused, which is what
+the app shows. The out-of-range override (KMO-18), the comprobante sheet the receipt opens
+(KMO-19) and the pending-sync banner (KMO-22) land in the slots the design puts them in.
+Jornada, Permisos and Documentos are still empty — run `backlog task list --plain` to see
+the backlog.
 
 One thing the session still cannot do, and it is the backend's: a deactivated employee keeps a
 working token, because `ams` checks `is_active` only when issuing one (PRD A7/A8) — the app ends

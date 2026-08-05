@@ -1,0 +1,56 @@
+# KMO-17 — the punch button on the device, under the status line it belongs to.
+#
+# Covers #1's device half — the control is on screen, full width, in the display
+# font, with the design's own label — and #2's `before` row: the line under the
+# clock and the label on the button say the same thing about the same day.
+#
+# It does not press it. Completing a punch needs `ams` KOL-34, which is what makes
+# `POST /api/v1/marks` stamp its own timestamp; against the endpoint as it stands
+# the request is refused for the `datetime` this app will never send. The walk
+# through all three states is `kmo-17-punch.yaml`, tagged out of the suite until
+# that ticket lands.
+#
+# Assumes the seeded `employee@example.com` has not punched today, which is what
+# a fresh `db:seed` leaves. After KOL-34 makes punches stick, a run that has
+# already walked kmo-17-punch.yaml needs a reseed before this one is true again.
+appId: cl.kolvi.empleados
+name: KMO-17 punch button
+tags:
+  - marcaje
+---
+- runFlow: shared/sign-in.yaml
+
+- extendedWaitUntil:
+    visible: 'Turno de hoy'
+    timeout: 30000
+    label: 'The shift card loaded, so /me/today has answered'
+
+# #2. The design's own `primaryLabel`, character for character — the wording is
+# the compliance requirement, not an approximation of it.
+- extendedWaitUntil:
+    visible: 'Marcar entrada'
+    timeout: 30000
+    label: '#2 — the label for the `before` state'
+
+- assertVisible:
+    id: 'punch-button'
+    label: '#1 — and it is the button, not a stray string'
+
+# #2's pairing. These two are rendered from one state, and the failure this
+# guards against is the screen contradicting itself about the one fact it exists
+# to state: `Aún no marcas entrada` over `Marcar salida`.
+- assertVisible:
+    text: 'Aún no marcas entrada'
+    label: '#2 — the status line agrees with the button'
+
+- assertNotVisible:
+    text: 'Marcar salida'
+    label: '#2 — one action offered, not two'
+
+# #3, from the other side: the success panel belongs to a day that is over, and
+# this one has not started.
+- assertNotVisible:
+    text: 'Nos vemos en tu próximo turno'
+    label: '#3 — no success panel on a day with a punch still to make'
+
+- takeScreenshot: kmo-17-punch-button

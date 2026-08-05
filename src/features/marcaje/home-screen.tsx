@@ -14,9 +14,12 @@ import type { LocationSource } from './location';
 import { LocationCard } from './location-card';
 import { LocationRationale } from './location-rationale';
 import { useNow } from './now-clock';
+import { PunchAction } from './punch-action';
+import type { PunchApi } from './punch-api';
 import { ShiftCard, ShiftCardSkeleton } from './shift-card';
 import type { TodayApi, TodaySummary } from './today-api';
 import { useLocation } from './use-location';
+import { usePunch, type Punch } from './use-punch';
 import { useToday } from './use-today';
 
 export type HomeScreenProps = {
@@ -24,6 +27,8 @@ export type HomeScreenProps = {
   onOpenProfile: () => void;
   /** Injected in tests; the app uses the configured client. */
   api?: TodayApi;
+  /** Injected in tests; the app uses the configured client. */
+  punchApi?: PunchApi;
   /** Injected in tests; the app reads the phone. */
   clock?: () => Date;
   /** Injected in tests; the app reads the phone's location. */
@@ -51,11 +56,24 @@ export type HomeScreenProps = {
  * punch. What it needs from the response — the premise and its geofence —
  * arrives later and simply re-evaluates the card.
  *
- * What is not here yet: the punch button and its success panel (KMO-17), the
- * out-of-range and GPS-retry actions (KMO-18) and the pending-sync banner
- * (KMO-22). Each lands in the slot the design puts it in.
+ * The punch itself (KMO-17) is composed here rather than owned here, like
+ * everything else on this screen: `usePunch` decides, `PunchAction` draws, and
+ * the route below only hands the one to the other. What it does own is the
+ * reconciliation — a punch the server says it already has reloads `/me/today`,
+ * so what an employee ends up looking at is the register and not this screen's
+ * idea of it.
+ *
+ * What is not here yet: the out-of-range and GPS-retry actions (KMO-18), the
+ * comprobante sheet a punch opens (KMO-19) and the pending-sync banner (KMO-22).
+ * Each lands in the slot the design puts it in.
  */
-export function HomeScreen({ onOpenProfile, api, clock, locationSource }: HomeScreenProps) {
+export function HomeScreen({
+  onOpenProfile,
+  api,
+  punchApi,
+  clock,
+  locationSource,
+}: HomeScreenProps) {
   const session = useSession();
   const today = useToday(api);
   const now = useNow(clock);
@@ -81,6 +99,23 @@ export function HomeScreen({ onOpenProfile, api, clock, locationSource }: HomeSc
     geofence: shift?.geofence ?? null,
     enabled: canPunch,
     source: locationSource,
+  });
+
+  /**
+   * The punch (KMO-17).
+   *
+   * The state it is handed is the server's; what it hands back is that state
+   * advanced by any punch it has since recorded, which is what the clock's
+   * status line and the button both read. `onAlreadyMarked` is the reconcile:
+   * the register already holds the mark, so the screen asks for the day again
+   * rather than trusting the step it just inferred (#7).
+   */
+  const punch = usePunch({
+    state: today.status === 'loaded' ? today.summary.punchState : null,
+    fix: location.fix,
+    geoStatus: location.geoStatus,
+    onAlreadyMarked: today.reload,
+    api: punchApi,
   });
 
   // `first_name` is nullable in `ams`, so the greeting falls back to the full
@@ -124,7 +159,7 @@ export function HomeScreen({ onOpenProfile, api, clock, locationSource }: HomeSc
       ) : null}
 
       {today.status === 'loaded' ? (
-        <HomeBody summary={today.summary} canPunch={canPunch} clock={clock} />
+        <HomeBody summary={today.summary} canPunch={canPunch} clock={clock} punch={punch} />
       ) : null}
     </Screen>
   );
@@ -134,19 +169,35 @@ function HomeBody({
   summary,
   canPunch,
   clock,
+  punch,
 }: {
   summary: TodaySummary;
   canPunch: boolean;
   clock?: () => Date;
+  punch: Punch;
 }) {
   return (
     <View style={styles.body}>
       <ShiftCard shift={summary.shift} testID="shift-card" />
 
       {/* The clock is always drawn; only the status line under it is gated,
-          because only that line is about punching. KMO-17's primary button and
-          KMO-18's recovery actions land directly below, under the same gate. */}
-      <Clock punchState={canPunch ? summary.punchState : null} clock={clock} testID="clock" />
+          because only that line is about punching. KMO-18's recovery actions
+          land directly below the button, under the same gate.
+
+          Both the line and the button read `punch.state` and not the summary:
+          they have to agree, and after a punch the summary is a request behind
+          — a clock reading `Aún no marcas entrada` over `Marcar salida` is the
+          screen contradicting itself about the one fact it exists to state. */}
+      <Clock punchState={canPunch ? punch.state : null} clock={clock} testID="clock" />
+
+      {canPunch ? (
+        <PunchAction
+          state={punch.state}
+          attempt={punch}
+          onPunch={punch.punch}
+          testID="punch-action"
+        />
+      ) : null}
 
       {summary.week === null ? null : (
         <Text style={styles.week} testID="week-summary">

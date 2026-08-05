@@ -331,6 +331,55 @@ export const es = {
     },
 
     /**
+     * The punch button and what happens after it is pressed (KMO-17).
+     *
+     * The two labels are transcribed from the design's own `primaryLabel`, and
+     * they hang off the same three states as the status line above them — one
+     * state machine, in `punch-state.ts`, rather than a second table that can
+     * drift from the first.
+     *
+     * There is no third label. The `done` state has no button at all: the design
+     * replaces it with `panel` below, which is a state and not an action.
+     */
+    punch: {
+      in: 'Marcar entrada',
+      out: 'Marcar salida',
+
+      /**
+       * The success panel that stands where the button was (#3).
+       *
+       * The title is `es.marcaje.status.done` — the same `Jornada finalizada`
+       * that is already under the clock. It is not restated here: the design
+       * draws one sentence twice on purpose, and two entries with the same words
+       * in them is how the two start disagreeing.
+       */
+      panelBody: 'Nos vemos en tu próximo turno',
+
+      /**
+       * The punch was already recorded today (#7).
+       *
+       * This is a *state*, not an error, which is why it reads as news rather
+       * than as a refusal: one `in` and one `out` per day is the design's own
+       * rule (docs/design-decisions.md D-F1-b), so an employee who arrives here
+       * has not done anything wrong — usually they tapped on a phone that had
+       * already sent the punch and lost the answer. The screen corrects itself
+       * to what the server has, and this line explains why the button moved.
+       */
+      alreadyMarked: 'Esta marca ya estaba registrada. Actualizamos tu jornada.',
+
+      /**
+       * The punch did not go through (#8).
+       *
+       * The fallback only. A server that said why — in Spanish, out of `ams`
+       * `lang/` — is quoted verbatim instead, the same as everywhere else in the
+       * app. What this sentence has to carry is the one thing the employee needs
+       * to know and cannot see: that nothing was recorded, so the button below
+       * it is still worth pressing.
+       */
+      failed: 'No pudimos registrar tu marca. No quedó guardada — inténtalo de nuevo.',
+    },
+
+    /**
      * The titles on the geolocation card, above the shift card (KMO-16).
      *
      * The first three are transcribed from the design's own `geoTitle`, and each

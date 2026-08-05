@@ -128,7 +128,15 @@ describe('shadows', () => {
       level1: { boxShadow: '0 1px 3px #0B253014' },
       level2: { boxShadow: '0 4px 16px #0B25301A' },
       modal: { boxShadow: '0 4px 20px #0B25301A' },
+      accent: { boxShadow: '0 8px 24px #FF4F5E59' },
     });
+  });
+
+  it('throws the punch button its own colour rather than ink', () => {
+    // The design's `rgba(255,79,94,.35)`, which is `colors.accentCoral` — the
+    // one glow in the app, and the reason it is a token rather than an inline
+    // style in `src/ui/button.tsx`.
+    expect(shadows.accent.boxShadow).toContain(colors.accentCoral);
   });
 });
 
