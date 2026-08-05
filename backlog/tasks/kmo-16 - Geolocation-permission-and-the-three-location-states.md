@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-05 11:29'
+updated_date: '2026-08-05 11:30'
 labels:
   - mobile
   - marcaje
@@ -102,4 +102,12 @@ Left unchecked:
 - **#7** — the app-side contract is built and proven: `punchAllowed` stays true and `geoStatus` is `unknown` for a permanently denied permission, and on the device the tab was whole with the refusal on the card. But the criterion is about a **punch**, and there is no punch button until KMO-17 — the wire half is KMO-17 #5. Checking it here would be signing off on a button that does not exist.
 
 Blocked, and not this ticket's to fix: **the Maestro flows cannot get past the login screen on this AVD.** `shared/enter-credentials.yaml`'s `hideKeyboard` closes the app instead of dismissing the keyboard — the AVD is created with `hw.keyboard=yes` (bin/emu, so `adb shell input text` works) and a BACK press with a hardware keyboard present goes to the activity rather than to the IME. Reproduced by hand with `input keyevent 4`, and `flows/kmo-15-home-screen.yaml` — merged, untouched by this branch — fails identically at the same step. The four KMO-16 flows are written and committed; every criterion above was driven by hand with `bin/device` and `bin/ui` instead, and re-running them needs that shared subflow or the AVD fixed first.
+
+Validation: `npm run check` green — typecheck, ESLint (including the new background-location rule), Prettier, 827 Jest tests across 54 suites, up from 747/49. Device verification was driven by hand with `bin/device` and `bin/ui` against a real `ams`; screenshots in `.artifacts/`: kmo-16-rationale.png, kmo-16-confirmed.png, kmo-16-no-signal.png, kmo-16-settings-route.png, kmo-16-after.png.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Added the geolocation card above the shift card on Inicio, with its permission flow: a Spanish rationale before the OS prompt, the design's three states plus a fourth for a refused permission, an advisory haversine evaluation that never blocks a punch, a 12s acquisition timeout, and acquisition scoped to the Marcaje tab being in view. New foreground-only `expo-location`; `today-api.ts` now parses the geofence block `ams` KOL-33 will send. Verified with 827 Jest tests, the generated AndroidManifest carrying no background-location permission, an ESLint rule that fails the build on the five tracking APIs, and hand-driven device runs for #1, #4, #6 and #8. #2's distance clause and #3 wait on KOL-33; #7's punch waits on KMO-17.
+<!-- SECTION:FINAL_SUMMARY:END -->
