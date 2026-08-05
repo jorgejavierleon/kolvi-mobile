@@ -30,9 +30,18 @@ flows:
 # permissions, so each of them starts from a phone that has given none and drives
 # the rationale and the OS prompt itself — including the two refusals that make a
 # permission permanent.
+# The two geofence flows are the same shape once more, and mutually exclusive by
+# definition: one asserts the device is at the premise and the other that it is
+# not, and where the device stands is the emulator's state rather than something
+# a flow can set. `Sucursal Centro`'s own coordinates, and a point ~2km west:
+#
+#   bin/device geo -33.4489 -70.6693 && bin/e2e flows/kmo-16-location.yaml
+#   bin/device geo -33.4372 -70.6506 && bin/e2e flows/kmo-16-out-of-range.yaml
 excludeTags:
   - requires-offline
   - requires-biometric
   - requires-no-biometric
   - requires-revoked-token
   - requires-gps-off
+  - requires-geo-at-premise
+  - requires-geo-off-premise

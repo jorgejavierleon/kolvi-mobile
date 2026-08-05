@@ -1,0 +1,95 @@
+# KMO-16 — the card when the employee is not where the shift is worked.
+#
+# Covers #3: the warning tint, `Fuera del rango permitido`, and a subtitle that
+# names the premise they have to be inside of.
+#
+# The device's position is the emulator's state and not something a flow can set,
+# so this one is run on its own with the phone put somewhere outside the seeded
+# `Sucursal Centro`'s 150 m radius — Estación Central, about two kilometres west:
+#
+#   bin/device geo -33.4372 -70.6506 && bin/e2e flows/kmo-16-out-of-range.yaml
+#   bin/device geo -33.4489 -70.6693        # back inside, for the confirmed flow
+#
+# What this flow deliberately does **not** assert is any consequence for the
+# punch. Out of range is recorded and flagged, never blocked (decision D-F1-c),
+# and the escape hatch that says so — `Marcar de todas formas (queda pendiente de
+# revisión)` — is KMO-18's, under a button KMO-17 has not built yet.
+appId: cl.kolvi.empleados
+name: KMO-16 out of range
+tags:
+  - marcaje
+  - geo
+  - requires-geo-off-premise
+---
+- runFlow: shared/sign-in.yaml
+
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 30000
+    label: 'On the tab shell'
+
+- extendedWaitUntil:
+    visible: 'Activar ubicación'
+    timeout: 30000
+    label: 'The card offers the way in'
+
+- tapOn: 'Activar ubicación'
+
+- extendedWaitUntil:
+    visible: 'Kolvi usa tu ubicación al marcar'
+    timeout: 20000
+    label: 'The rationale, before the OS prompt'
+
+- tapOn: 'Continuar'
+
+- extendedWaitUntil:
+    visible:
+      id: 'com.android.permissioncontroller:id/permission_allow_foreground_only_button'
+    timeout: 20000
+    label: "Android's own prompt"
+
+- tapOn:
+    id: 'com.android.permissioncontroller:id/permission_allow_foreground_only_button'
+
+# #3. The permission was given and the fix arrived — this is a statement about
+# where the employee is standing, not about anything having failed.
+- extendedWaitUntil:
+    visible: 'Fuera del rango permitido'
+    timeout: 30000
+    label: '#3 — the out-of-range title'
+
+# The premise is server vocabulary, so it is matched by form; the sentence around
+# it is the design's, character for character.
+- assertVisible:
+    text: 'Debes estar dentro de .+ para marcar'
+    label: '#3 — and the subtitle names the premise they have to be inside of'
+
+- assertVisible:
+    id: 'location-card'
+    label: '#3 — on the card, not as a stray string'
+
+# The states this one is not. `Ubicación confirmada` two kilometres out would be
+# the client trusting itself over the geofence it was given.
+- assertNotVisible:
+    text: 'Ubicación confirmada'
+    label: '#3 — nothing is confirmed from outside the radius'
+- assertNotVisible:
+    text: 'Sin señal de GPS'
+    label: '#3 — the phone answered; the answer is just not the premise'
+- assertNotVisible:
+    text: 'Sin permiso de ubicación'
+    label: '#3 — the permission was given'
+
+# #5 again, on the state where it matters most: an employee who cannot tell the
+# amber from the green still reads why the punch is about to be flagged.
+- assertVisible:
+    text: 'Fuera del rango permitido'
+    label: '#5 — colour paired with text'
+
+# The tab is whole. Being out of range is not a broken screen.
+- extendedWaitUntil:
+    visible: 'Turno de hoy'
+    timeout: 30000
+    label: 'The shift card is still there'
+
+- takeScreenshot: kmo-16-out-of-range

@@ -1,14 +1,22 @@
 # KMO-16 — the geolocation card above the shift card, once the permission is given.
 #
-# Covers #2's placement and copy, #5 (the state is named in words, not carried by
-# the tint alone) and #6 (a premise with no geofence confirms and blocks nothing).
+# Covers #2 in full — the success tint, the premise and the distance in metres —
+# and #5, that the state is named in words rather than carried by the tint alone.
 #
-# **#6 is what this run actually proves today.** `ams` has no radius column and
-# `GET /me/today` sends no geofence — that is `ams` KOL-33 — so every premise is
-# a premise with no geofence, and the card confirms with the premise named and no
-# distance on it. That is the criterion's own state, not a degraded one. The
-# distance clause and the out-of-range state (#3) need KOL-33, and are covered by
-# `geofence.test.ts` and `location-card.test.tsx` until then.
+# #6 is no longer reachable here: with a radius configured on the seeded premise,
+# "a premise with no geofence" is a case the device cannot be put into any more.
+# `geofence.test.ts` and `location-card.test.tsx` own it.
+#
+# Since `ams` KOL-33 the premise carries coordinates and a radius, so the card
+# names how far in the employee is. The out-of-range half is its own flow —
+# `kmo-16-out-of-range.yaml` — because the two differ only in where the device is
+# standing, and that is the emulator's state rather than something a flow can set.
+#
+# Tagged out of the suite for exactly that reason: this flow asserts a confirmed
+# location, which is only true if the device is at the premise. Put it there
+# first, with the seeded `Sucursal Centro`'s own coordinates:
+#
+#   bin/device geo -33.4489 -70.6693 && bin/e2e flows/kmo-16-location.yaml
 #
 # The permission is granted from inside the flow rather than with `bin/device`
 # beforehand: `clearState` in shared/launch.yaml resets the app's runtime
@@ -16,12 +24,12 @@
 # starts. That makes this flow self-contained — and it walks the path a new
 # employee actually walks, through the rationale and the OS prompt.
 #
-#   bin/device gps on && bin/e2e flows/kmo-16-location.yaml
 appId: cl.kolvi.empleados
 name: KMO-16 location confirmed
 tags:
   - marcaje
   - geo
+  - requires-geo-at-premise
 ---
 - runFlow: shared/sign-in.yaml
 
@@ -71,20 +79,25 @@ tags:
     id: 'location-card'
     label: '#2 — and it is the card, not a stray string'
 
-# #6. No geofence on the wire means the subtitle is the premise alone. The
-# premise itself is server vocabulary and is not pinned here — the shift card's
-# own flow already asserts it is rendered — so what is asserted is the half this
-# criterion owns: nothing is claimed about a distance the app never measured.
-# `a 12 m de la marca` is the clause that would appear if it were.
+# #2's second half: the subtitle names the premise and how far from the mark the
+# employee is, in whole metres. The premise is server vocabulary and the distance
+# is the emulator's, so both are matched by form — but the shape is the design's,
+# down to the middle dot and the `de la marca`.
+- assertVisible:
+    text: '.+ · a \d+ m de la marca'
+    label: '#2 — the premise and the distance in metres'
+
+# Whole metres, not the phone's own decimals: `a 12,4 m` would claim a precision
+# no fix has.
 - assertNotVisible:
-    text: '.*de la marca.*'
-    label: '#6 — no distance is claimed for a premise with no geofence'
+    text: '.*a \d+[.,]\d+ m de la marca.*'
+    label: '#2 — rounded, because the accuracy does not support more'
 
 # The three states this one is not. Any of them would mean the app had decided
 # something it has no grounds to decide.
 - assertNotVisible:
     text: 'Fuera del rango permitido'
-    label: '#6 — a premise with no radius is never out of range'
+    label: '#2 — inside the radius, so not out of range'
 - assertNotVisible:
     text: 'Sin señal de GPS'
     label: '#2 — the phone answered'

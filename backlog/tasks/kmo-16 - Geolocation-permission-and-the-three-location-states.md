@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-05 16:07'
+updated_date: '2026-08-05 20:51'
 labels:
   - mobile
   - marcaje
@@ -37,8 +37,8 @@ An employee who permanently denies location permission must still be able to pun
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 Location permission is requested with a Spanish rationale explaining why attendance needs it, before the system prompt
-- [ ] #2 Confirmed state renders on the success tint with Ubicación confirmada and the subtitle naming the premise and the distance in metres
-- [ ] #3 Out-of-range state renders on the warning tint with Fuera del rango permitido and the subtitle Debes estar dentro de {premise} para marcar
+- [x] #2 Confirmed state renders on the success tint with Ubicación confirmada and the subtitle naming the premise and the distance in metres
+- [x] #3 Out-of-range state renders on the warning tint with Fuera del rango permitido and the subtitle Debes estar dentro de {premise} para marcar
 - [x] #4 No-signal state renders on the danger tint with Sin señal de GPS and the subtitle Activa tu ubicación para poder marcar
 - [x] #5 Each state shows its own icon from the design and pairs colour with text, never colour alone
 - [x] #6 A premise with no geofence radius configured does not show an out-of-range state and does not block punching
@@ -129,6 +129,27 @@ None of them needs a permission arranged beforehand: `clearState` resets the app
 
 - **KMO-9** and **KMO-16 location confirmed** fail only inside a full 15-flow run, both after two minutes waiting for the app to appear at all — the dev client gets slower with each `clearState` cold start. Each passes on its own; re-run individually they are green.
 - **KMO-14 forgot password** was already red before this branch, and stays red. Its `hideKeyboard` pops the route back to the login screen rather than closing the keyboard, and removing it gets the flow to the submit button but the submission then does not reach `ams`. That is KMO-14's own defect on this AVD; my experimental edit to it was reverted rather than half-shipped.
+
+## After KOL-33 shipped
+
+`GET /api/v1/me/today` now carries the block this ticket's parser was written against, and it needed no change on this side:
+
+    "geofence": {"lat": -33.4489, "lng": -70.6693, "radius_meters": 150}
+
+One thing to know for a fresh checkout: the local `ams` database predated the seeder change, so `Sucursal Centro` still held a factory-made premise with no radius. Patched that one demo row to the seeder's own values rather than re-seeding, which would have wiped the rest of the local data.
+
+**#2 and #3 are now checked, both on device.**
+
+- **#2** — `flows/kmo-16-location.yaml`, run with the phone at the premise (`bin/device geo -33.4489 -70.6693`). The card reads `Ubicación confirmada` over `Sucursal Centro · a 0 m de la marca` on the success tint. The flow asserts the shape rather than the numbers — `.+ · a \d+ m de la marca` — because the premise is the seeder's and the distance is the emulator's, and separately asserts the distance carries no decimals, which would claim a precision no fix supports. Screenshot `.artifacts/kmo-16-confirmed.png`.
+- **#3** — `flows/kmo-16-out-of-range.yaml`, run about two kilometres west (`bin/device geo -33.4372 -70.6506`). `Fuera del rango permitido` over `Debes estar dentro de Sucursal Centro para marcar`, on the warning tint, with the triangle-alert icon. Screenshot `.artifacts/kmo-16-out-of-range.png`.
+
+Both are tagged out of the suite and mutually exclusive by definition: one asserts the device is at the premise and the other that it is not, and where the device stands is the emulator's state rather than something a flow can set. `flows/config.yaml` carries the two commands.
+
+**#6 is no longer reachable on a device**, now that the seeded premise has a radius. It stays checked on the evidence gathered before KOL-33 shipped — the card confirmed with the premise named and no distance clause, showed no out-of-range state and blocked nothing — plus `geofence.test.ts`, which covers both halves of it (no radius, and no coordinates at all).
+
+**#7 is the only criterion still open, and it is not blocked on `ams`.** It is about a punch, and KMO-17 has not built one. The state machine already reports `punchAllowed: true` and `geoStatus: 'unknown'` for a permanently denied permission, proven in `use-location.test.ts`, and `flows/kmo-16-settings-route.yaml` shows the tab whole with the refusal on the card.
+
+Also worth opening when KMO-17 starts: the **server-side** geofence evaluation on `POST /api/v1/marks` (PRD §6 item 2 — haversine at punch time, persisting `inside|outside|unknown` with the reported accuracy). KOL-33 deliberately excluded it, so nothing tracks it yet.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

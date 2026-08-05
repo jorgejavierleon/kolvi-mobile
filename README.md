@@ -279,9 +279,8 @@ and never otherwise, as one of `Ubicación confirmada`, `Fuera del rango permiti
 señal de GPS` or the permission the design has no state for. The permission is asked for
 behind a Spanish rationale, and refusing it never blocks a punch — an unrecordable
 attendance is a legal problem, so the mark simply travels with no fix on it. The client's
-distance is advisory throughout; the server decides. **The wire carries no geofence yet**
-(`ams` KOL-33), so every premise currently reads as one with no radius configured, which is
-its own defined state rather than a degraded one. The punch button (KMO-17) and the pending-sync banner
+distance is advisory throughout; the server decides, and a premise with no radius configured
+is never out of range. The punch button (KMO-17) and the pending-sync banner
 (KMO-22) land in the slots the design puts them in. Jornada, Permisos and Documentos are still empty — run
 `backlog task list --plain` to see the backlog.
 
