@@ -162,6 +162,32 @@ describe('the permission', () => {
     expect(result.current.state).toEqual({ kind: 'denied', canAskAgain: true });
   });
 
+  // Offered once and then never on its own. A modal that came back every time
+  // the employee returned to Marcaje would be in front of the punch button
+  // several times a shift, and a nag is how the OS prompt behind it gets refused
+  // for good — after which there is no prompt left to raise at all.
+  it('does not raise the rationale again on its own after it is dismissed', async () => {
+    const { result } = await render(sourceWith({ getPermission: async () => 'undetermined' }));
+
+    await settle(() => result.current.dismissRationale());
+    // The tab left and came back, which is what re-runs the whole read.
+    await settle(() => result.current.retry());
+
+    expect(result.current.rationaleVisible).toBe(false);
+    expect(result.current.state).toEqual({ kind: 'denied', canAskAgain: true });
+  });
+
+  // The card's own action is the way back, and it is a decision the employee
+  // makes rather than one made for them.
+  it('offers it again when the card asks for it', async () => {
+    const { result } = await render(sourceWith({ getPermission: async () => 'undetermined' }));
+
+    await settle(() => result.current.dismissRationale());
+    await settle(() => result.current.offerRationale());
+
+    expect(result.current.rationaleVisible).toBe(true);
+  });
+
   // #7. The whole reason `denied` is a state of its own rather than another way
   // of saying "no signal": there is no later moment at which this employee gets
   // a fix, and attendance that cannot be recorded is a legal problem.

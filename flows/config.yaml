@@ -21,19 +21,18 @@ flows:
 # `requires-revoked-token` is the same shape of problem one step further out: the
 # condition is on the *server*, and it has to be arranged between two runs rather
 # than before one. The flow's own header carries the three commands.
-# The three location conditions are the same shape again, and mutually exclusive
-# with each other by definition — one needs the permission never asked, one needs
-# it refused for good, and the third needs the OS location switch off:
+# `requires-gps-off` is the same shape: the OS location switch belongs to the
+# whole device, so a run that turned it off would take every other flow with it.
 #
-#   bin/device perm reset        && bin/e2e kmo-16-permission
-#   bin/device perm deny-forever && bin/e2e kmo-16-settings-route
-#   bin/device perm grant && bin/device gps off && bin/e2e kmo-16-no-signal
-#   bin/device gps on && bin/device perm grant
+#   bin/device gps off && bin/e2e flows/kmo-16-no-signal.yaml && bin/device gps on
+#
+# The other KMO-16 flows need no tag. `clearState` resets the app's runtime
+# permissions, so each of them starts from a phone that has given none and drives
+# the rationale and the OS prompt itself — including the two refusals that make a
+# permission permanent.
 excludeTags:
   - requires-offline
   - requires-biometric
   - requires-no-biometric
   - requires-revoked-token
   - requires-gps-off
-  - requires-location-prompt
-  - requires-location-denied

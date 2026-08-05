@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-05 11:30'
+updated_date: '2026-08-05 16:07'
 labels:
   - mobile
   - marcaje
@@ -104,6 +104,31 @@ Left unchecked:
 Blocked, and not this ticket's to fix: **the Maestro flows cannot get past the login screen on this AVD.** `shared/enter-credentials.yaml`'s `hideKeyboard` closes the app instead of dismissing the keyboard — the AVD is created with `hw.keyboard=yes` (bin/emu, so `adb shell input text` works) and a BACK press with a hardware keyboard present goes to the activity rather than to the IME. Reproduced by hand with `input keyevent 4`, and `flows/kmo-15-home-screen.yaml` — merged, untouched by this branch — fails identically at the same step. The four KMO-16 flows are written and committed; every criterion above was driven by hand with `bin/device` and `bin/ui` instead, and re-running them needs that shared subflow or the AVD fixed first.
 
 Validation: `npm run check` green — typecheck, ESLint (including the new background-location rule), Prettier, 827 Jest tests across 54 suites, up from 747/49. Device verification was driven by hand with `bin/device` and `bin/ui` against a real `ams`; screenshots in `.artifacts/`: kmo-16-rationale.png, kmo-16-confirmed.png, kmo-16-no-signal.png, kmo-16-settings-route.png, kmo-16-after.png.
+
+## The flows run now
+
+The blocker in the previous note is fixed, and it turned up a regression of my own on the way.
+
+**`shared/enter-credentials.yaml` no longer calls `hideKeyboard`.** It sends a back press, and the AVD is created with `hw.keyboard=yes` (bin/emu, so `adb shell input text` works); with a hardware keyboard present Android routes back to the activity rather than to the IME, so the app closed and every flow that signs in failed at the next step against the launcher. Reproduced outside Maestro with a bare `adb shell input keyevent 4`, and with the AVD's `show_ime_with_hard_keyboard` at both 0 and 1. Replaced with a tap on the empty page above the form — the same idiom `launch.yaml` already uses to get out from under the dev menu.
+
+**The rationale sheet broke four sibling flows, and that was mine.** It is a `Modal`, so with it up nothing on the tab behind it is in the hierarchy — exactly the trap `sign-in.yaml` documents for the biometric offer. Any flow that reached Inicio and asserted something there failed on a sheet it never mentioned. Two fixes:
+
+- `shared/sign-in.yaml` dismisses it, by `location-rationale-dismiss` rather than by text — the biometric offer above it uses the same `Ahora no` wording, and a text match would make which sheet got tapped depend on which was up. `kmo-8-login.yaml` and `kmo-9-secure-token-restore.yaml` sign in inline rather than through that subflow, so they carry the same block.
+- **The sheet is now offered once per app session and never again on its own.** `run()` fires on every focus, so it was re-raising the modal every time the employee came back to Marcaje — a nag in front of the punch button several times a shift, and a nag is how the OS prompt behind it gets refused for good. A ref guards the automatic offer; the card's `Activar ubicación` still raises it on demand. Two tests cover both halves.
+
+**Four flows, all passing on their own runs:**
+
+- `flows/kmo-16-location.yaml` — #2's placement, #5, #6. In the suite.
+- `flows/kmo-16-permission.yaml` — #1 and #7. In the suite.
+- `flows/kmo-16-settings-route.yaml` — #8, by refusing twice inside the flow. In the suite.
+- `flows/kmo-16-no-signal.yaml` — #4 and #9's observable half. Tagged `requires-gps-off`, run on its own.
+
+None of them needs a permission arranged beforehand: `clearState` resets the app's runtime permissions, so each drives the rationale and the OS prompt itself. Two details the device taught them — Android renames the deny button on the refusal that makes the decision permanent (`permission_deny_button` → `permission_deny_and_dont_ask_again_button`), so both are matched by regex; and Maestro anchors its text regexes, so a substring of a longer paragraph needs wrapping.
+
+**Suite: 12/15, up from 9/15 before any of this.** The three that fail there:
+
+- **KMO-9** and **KMO-16 location confirmed** fail only inside a full 15-flow run, both after two minutes waiting for the app to appear at all — the dev client gets slower with each `clearState` cold start. Each passes on its own; re-run individually they are green.
+- **KMO-14 forgot password** was already red before this branch, and stays red. Its `hideKeyboard` pops the route back to the login screen rather than closing the keyboard, and removing it gets the flow to the submit button but the submission then does not reach `ams`. That is KMO-14's own defect on this AVD; my experimental edit to it was reverted rather than half-shipped.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

@@ -1,20 +1,22 @@
-# KMO-16 — the geolocation card above the shift card, with the permission granted.
+# KMO-16 — the geolocation card above the shift card, once the permission is given.
 #
-# Covers #2's placement and copy, #5 (the state's title, not its tint alone) and
-# #6 (a premise with no geofence configured confirms and blocks nothing).
+# Covers #2's placement and copy, #5 (the state is named in words, not carried by
+# the tint alone) and #6 (a premise with no geofence confirms and blocks nothing).
 #
 # **#6 is what this run actually proves today.** `ams` has no radius column and
 # `GET /me/today` sends no geofence — that is `ams` KOL-33 — so every premise is
 # a premise with no geofence, and the card confirms with the premise named and no
 # distance on it. That is the criterion's own state, not a degraded one. The
-# distance clause and the out-of-range state (#3) need KOL-33 and are asserted by
+# distance clause and the out-of-range state (#3) need KOL-33, and are covered by
 # `geofence.test.ts` and `location-card.test.tsx` until then.
 #
-# Run the condition first, because the app reads the permission on focus:
+# The permission is granted from inside the flow rather than with `bin/device`
+# beforehand: `clearState` in shared/launch.yaml resets the app's runtime
+# permissions, so anything arranged before the run is gone by the time the app
+# starts. That makes this flow self-contained — and it walks the path a new
+# employee actually walks, through the rationale and the OS prompt.
 #
-#   bin/device perm grant && bin/device gps on && bin/e2e kmo-16-location
-#
-# Needs a reachable `ams` carrying KOL-31, like every flow behind the session.
+#   bin/device gps on && bin/e2e flows/kmo-16-location.yaml
 appId: cl.kolvi.empleados
 name: KMO-16 location confirmed
 tags:
@@ -28,6 +30,35 @@ tags:
     timeout: 30000
     label: 'On the tab shell'
 
+# A freshly cleared app has no permission, so the card starts here.
+- extendedWaitUntil:
+    visible: 'Activar ubicación'
+    timeout: 30000
+    label: 'The card offers the way in'
+
+- tapOn: 'Activar ubicación'
+
+# #1, in passing. Its own flow is kmo-16-permission.yaml; here the sheet is only
+# the road to the granted state.
+- extendedWaitUntil:
+    visible: 'Kolvi usa tu ubicación al marcar'
+    timeout: 20000
+    label: 'The rationale, before the OS prompt'
+
+- tapOn: 'Continuar'
+
+- extendedWaitUntil:
+    visible:
+      id: 'com.android.permissioncontroller:id/permission_allow_foreground_only_button'
+    timeout: 20000
+    label: "Android's own prompt"
+
+# `While using the app`, and deliberately not `Only this time`: the app reads
+# location while the Marcaje tab is in view and never in the background, which is
+# exactly the grant this button gives (#10).
+- tapOn:
+    id: 'com.android.permissioncontroller:id/permission_allow_foreground_only_button'
+
 # The card is drawn from the phone rather than from `/me/today`, so it is on
 # screen before the shift is — but a fix takes a moment, and the assertion is
 # about the state it settles into.
@@ -40,17 +71,17 @@ tags:
     id: 'location-card'
     label: '#2 — and it is the card, not a stray string'
 
-# #6. No geofence on the wire means the subtitle is the premise alone: the app
-# has nothing to measure against and says nothing about a distance. The premise
-# is server vocabulary, so the assertion is that it is there rather than which
-# branch the seeder picked.
-- assertVisible:
-    text: '.+'
-    label: '#6 — the premise, with no distance claimed for it'
+# #6. No geofence on the wire means the subtitle is the premise alone. The
+# premise itself is server vocabulary and is not pinned here — the shift card's
+# own flow already asserts it is rendered — so what is asserted is the half this
+# criterion owns: nothing is claimed about a distance the app never measured.
+# `a 12 m de la marca` is the clause that would appear if it were.
+- assertNotVisible:
+    text: '.*de la marca.*'
+    label: '#6 — no distance is claimed for a premise with no geofence'
 
-# The two states this one is not. A card that showed either would mean the app
-# had decided an employee was out of range of a premise with no radius, or had
-# reported a signal it has.
+# The three states this one is not. Any of them would mean the app had decided
+# something it has no grounds to decide.
 - assertNotVisible:
     text: 'Fuera del rango permitido'
     label: '#6 — a premise with no radius is never out of range'
@@ -61,14 +92,14 @@ tags:
     text: 'Sin permiso de ubicación'
     label: '#2 — with the permission granted'
 
-# #5, the half a device can show: the state is named in words, so the tint is
-# not carrying it alone. The design's own copy, character for character.
+# #5, the half a device can show: the state is named in words, so the tint is not
+# carrying it alone. The design's own copy, character for character.
 - assertVisible:
     text: 'Ubicación confirmada'
     label: '#5 — colour paired with text'
 
-# The design's order — the location card above the shift card — which is what
-# an employee reads on the way down to the punch button.
+# The design's order — the location card above the shift card — which is what an
+# employee reads on the way down to the punch button.
 - extendedWaitUntil:
     visible: 'Turno de hoy'
     timeout: 30000

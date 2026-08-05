@@ -3,24 +3,23 @@
 # Covers #8 (the card offers a route to the OS settings) and #7 on the state the
 # criterion is actually about: a permission Android will no longer prompt for.
 #
-# `bin/device perm revoke` does not reach this state — it leaves the permission
-# merely denied, which the app answers with `Activar ubicación` and the prompt.
-# `deny-forever` sets the USER_FIXED flag a second refusal would, after which the
-# system dialog never returns:
+# **The two refusals are driven here rather than arranged beforehand.** Android
+# reaches this state after a second denial, and `bin/device perm deny-forever`
+# sets the same USER_FIXED flag by hand — but `clearState` in shared/launch.yaml
+# resets the app's runtime permissions, so anything set before the run is gone.
+# Denying twice inside the flow is also the path a real employee takes:
 #
-#   bin/device perm deny-forever && bin/e2e kmo-16-settings-route
-#   bin/device perm reset
+#   bin/e2e flows/kmo-16-settings-route.yaml
 #
 # The flow stops at the Ajustes button rather than pressing it. Pressing it hands
 # the screen to the Settings app, and a flow that ends inside another package
-# cannot assert its way back — what is being verified is that the route exists
-# and is reachable, which is what #8 asks for.
+# cannot assert its way back — what is verified is that the route exists and is
+# reachable, which is what #8 asks for.
 appId: cl.kolvi.empleados
 name: KMO-16 settings route
 tags:
   - marcaje
   - geo
-  - requires-location-denied
 ---
 - runFlow: shared/sign-in.yaml
 
@@ -29,10 +28,74 @@ tags:
     timeout: 30000
     label: 'On the tab shell'
 
+# The first refusal. Android still has a prompt left after this one.
 - extendedWaitUntil:
-    visible: 'Sin permiso de ubicación'
+    visible: 'Activar ubicación'
     timeout: 30000
-    label: '#8 — the refusal has a title of its own, not the GPS one'
+    label: 'The card offers the prompt'
+
+- tapOn: 'Activar ubicación'
+
+- extendedWaitUntil:
+    visible: 'Kolvi usa tu ubicación al marcar'
+    timeout: 20000
+    label: 'The rationale, before the OS prompt'
+
+- tapOn: 'Continuar'
+
+# Waiting on the button that is about to be tapped rather than on its neighbour:
+# the dialog's buttons arrive together but become hittable a frame apart, and a
+# wait on `allow` followed by a tap on `deny` loses that race often enough to
+# matter.
+# Android renames this button on the refusal that makes the decision permanent —
+# `permission_deny_button` the first time, `permission_deny_and_dont_ask_again_button`
+# the second — so both flows match the pair by regex. Pinning one spelling makes
+# the flow depend on how many times the previous run happened to refuse.
+- extendedWaitUntil:
+    visible:
+      id: 'com.android.permissioncontroller:id/permission_deny.*'
+    timeout: 20000
+    label: "Android's own prompt, the first time"
+
+- tapOn:
+    id: 'com.android.permissioncontroller:id/permission_deny.*'
+
+# Still offering the prompt, because there is still one to raise. Sending someone
+# into system settings here would cost them a trip out of the app for nothing.
+- extendedWaitUntil:
+    visible: 'Activar ubicación'
+    timeout: 30000
+    label: '#8 — one refusal is not the permanent one'
+
+- tapOn: 'Activar ubicación'
+
+# #1 holds on the second approach as much as the first, and it matters more here:
+# this is the last time the employee is asked anything.
+- extendedWaitUntil:
+    visible: 'Kolvi usa tu ubicación al marcar'
+    timeout: 20000
+    label: '#1 — the rationale, on the way back in too'
+
+- tapOn: 'Continuar'
+
+- extendedWaitUntil:
+    visible:
+      id: 'com.android.permissioncontroller:id/permission_deny.*'
+    timeout: 20000
+    label: "Android's own prompt, the second and last time"
+
+# The second refusal. From here Android shows nothing, whatever the app asks.
+- tapOn:
+    id: 'com.android.permissioncontroller:id/permission_deny.*'
+
+- extendedWaitUntil:
+    visible: 'Abrir ajustes'
+    timeout: 30000
+    label: '#8 — the route to system settings, once there is no prompt left'
+
+- assertVisible:
+    text: 'Sin permiso de ubicación'
+    label: '#8 — the refusal has a title of its own'
 
 # The distinction the whole state exists for. `Sin señal de GPS` here would send
 # an employee waiting for a signal that is not the problem.
@@ -41,17 +104,12 @@ tags:
     label: '#8 — a permission is not a missing signal'
 
 - assertVisible:
-    text: 'Activa el permiso de ubicación en los ajustes del teléfono para poder marcar'
-    label: '#8 — the subtitle names where the setting is'
+    text: 'Activa el permiso de ubicación en los ajustes del teléfono para poder marcar.'
+    label: '#8 — and the subtitle names where the setting is'
 
-- assertVisible:
-    text: 'Abrir ajustes'
-    label: '#8 — and the route is a button, not a sentence to act on by hand'
-
-# There is no prompt left to raise, so the app must not offer one.
 - assertNotVisible:
     text: 'Activar ubicación'
-    label: '#8 — no prompt is offered when Android has stopped showing it'
+    label: '#8 — no prompt is offered any more, because there is none to raise'
 
 # #7. The tab still works, and the employee can still reach everything on it.
 - extendedWaitUntil:

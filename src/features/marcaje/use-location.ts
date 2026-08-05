@@ -146,6 +146,18 @@ export function useLocation({
    */
   const attempt = useRef(0);
 
+  /**
+   * Whether the rationale has already been offered without being asked for.
+   *
+   * The sheet is raised **once**, on the first focus that finds no permission,
+   * and never again on its own. The alternative — re-raising it every time the
+   * employee comes back to Marcaje — is a modal in front of the punch button
+   * several times a shift, and a nag is exactly how the OS prompt behind it gets
+   * refused for good. After that the card's own `Activar ubicación` is the way
+   * back, which is a decision the employee makes rather than one made for them.
+   */
+  const offered = useRef(false);
+
   const acquire = useCallback(
     async (generation: number): Promise<void> => {
       // Services can be off with the permission granted, which is #4's state and
@@ -186,7 +198,11 @@ export function useLocation({
       if (permission === 'undetermined') {
         setFix(null);
         setPhase({ kind: 'denied', canAskAgain: true });
-        setRationaleVisible(true);
+
+        if (!offered.current) {
+          offered.current = true;
+          setRationaleVisible(true);
+        }
 
         return;
       }

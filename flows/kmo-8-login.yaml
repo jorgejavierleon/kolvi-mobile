@@ -98,6 +98,25 @@ tags:
 # readable. Taken immediately, before the shell can replace the screen.
 - takeScreenshot: kmo-8-submitting
 
+# Since KMO-16 the tab shell offers the location rationale the first time it
+# finds no permission, and that sheet is a `Modal` — with it up, nothing behind
+# it is in the hierarchy, so the assertion below would fail on a sheet this flow
+# is not about. shared/sign-in.yaml dismisses it for the flows that use it; this
+# one signs in inline, so it has to do the same.
+- extendedWaitUntil:
+    visible: 'Kolvi usa tu ubicación al marcar'
+    timeout: 15000
+    optional: true
+    label: 'The location rationale, if this AVD has not answered the permission'
+
+- runFlow:
+    when:
+      visible: 'Kolvi usa tu ubicación al marcar'
+    commands:
+      - tapOn:
+          id: 'location-rationale-dismiss'
+    label: 'Dismiss it, so what follows is asserted against the tab shell'
+
 - extendedWaitUntil:
     visible: 'Inicio'
     timeout: 30000

@@ -1,24 +1,23 @@
 # KMO-16 — the Spanish rationale, and the OS prompt behind it.
 #
 # Covers #1 (the rationale is what an employee meets first, before the system
-# dialog) and #7's second half on a device: a phone that has not been given the
-# permission still shows the whole tab.
+# dialog) and #7's second half on a device: a phone that refused the permission
+# still shows the whole tab.
 #
-# Tagged out of the suite because the condition is a permission the app has never
-# been asked about — `perm reset` puts it back to first-launch — and any earlier
-# flow in a run would have already answered it:
+# No device condition to arrange — `clearState` in shared/launch.yaml resets the
+# app's runtime permissions, so every run starts from a phone that has not given
+# one:
 #
-#   bin/device perm reset && bin/e2e kmo-16-permission
+#   bin/e2e flows/kmo-16-permission.yaml
 #
-# The OS dialog itself is asserted by its Android resource id rather than by its
-# text: that string is the system's, in whatever language the AVD is set to, and
+# The OS dialog is asserted by its Android resource id rather than by its text:
+# that string is the system's, in whatever language the AVD is set to, and
 # pinning it would make this flow a test of the emulator's locale.
 appId: cl.kolvi.empleados
 name: KMO-16 location rationale
 tags:
   - marcaje
   - geo
-  - requires-location-prompt
 ---
 - runFlow: shared/sign-in.yaml
 
@@ -27,42 +26,64 @@ tags:
     timeout: 30000
     label: 'On the tab shell'
 
+# Without the permission the card says so, in a title of its own rather than the
+# GPS one, and carries the way back.
+- extendedWaitUntil:
+    visible: 'Sin permiso de ubicación'
+    timeout: 30000
+    label: 'The card names the missing permission'
+
+- assertVisible:
+    text: 'Activar ubicación'
+    label: 'And offers the prompt, which Android will still show'
+
+# Nothing has been raised yet. If the app asked the OS on its own, the dialog
+# would already be up and the employee would be deciding without being told why.
+- assertNotVisible:
+    id: 'com.android.permissioncontroller:id/permission_allow_foreground_only_button'
+    label: '#1 — the app does not reach for the OS prompt by itself'
+
+- tapOn: 'Activar ubicación'
+
 # #1. Kolvi's own sentence, in Spanish, before anything the OS draws.
 - extendedWaitUntil:
     visible: 'Kolvi usa tu ubicación al marcar'
-    timeout: 30000
+    timeout: 20000
     label: '#1 — the rationale, raised before the system prompt'
 
 - assertVisible:
-    text: 'Solo la lee mientras tienes la app abierta en Marcaje'
+    text: '.*Solo la lee mientras tienes la app abierta en Marcaje.*'
     label: '#1 — and it says when the app reads it (#10)'
 
 - assertVisible:
-    text: 'igual puedes marcar'
+    text: '.*igual puedes marcar.*'
     label: '#1 — and that refusing does not stop them punching (#7)'
 
-# The OS prompt is not up yet. If it were, it would be sitting over this sheet
-# and the two assertions above would have run against a dialog that had already
-# taken the decision out of the employee's hands.
+# Still nothing from the OS. This is the assertion the criterion turns on: the
+# explanation is not shown *alongside* the system dialog, it is shown before it.
 - assertNotVisible:
     id: 'com.android.permissioncontroller:id/permission_allow_foreground_only_button'
-    label: '#1 — the system dialog has not been raised yet'
+    label: '#1 — the system dialog is behind the rationale, not beside it'
 
 - takeScreenshot: kmo-16-rationale
 
 - tapOn: 'Continuar'
 
-# Now it is, and this is the OS's own dialog rather than anything the app drew.
+# Now it is up, and it is the OS's own dialog rather than anything the app drew.
+# Android renames this button on the refusal that makes the decision permanent —
+# `permission_deny_button` the first time, `permission_deny_and_dont_ask_again_button`
+# the second — so both flows match the pair by regex. Pinning one spelling makes
+# the flow depend on how many times the previous run happened to refuse.
 - extendedWaitUntil:
     visible:
-      id: 'com.android.permissioncontroller:id/permission_allow_foreground_only_button'
+      id: 'com.android.permissioncontroller:id/permission_deny.*'
     timeout: 20000
     label: '#1 — Continuar raises the system prompt'
 
 # Refused, which is the interesting direction: the app must come back with a
 # state and a way forward rather than with a screen that does nothing.
 - tapOn:
-    id: 'com.android.permissioncontroller:id/permission_deny_button'
+    id: 'com.android.permissioncontroller:id/permission_deny.*'
 
 - extendedWaitUntil:
     visible: 'Sin permiso de ubicación'
@@ -75,5 +96,14 @@ tags:
     visible: 'Turno de hoy'
     timeout: 30000
     label: '#7 — and the rest of the tab is untouched by the refusal'
+
+- assertVisible:
+    id: 'clock-time'
+    text: '\d{2}:\d{2}'
+    label: '#7 — including the clock'
+
+- assertVisible:
+    id: 'week-summary'
+    label: '#7 — and the week summary'
 
 - takeScreenshot: kmo-16-denied

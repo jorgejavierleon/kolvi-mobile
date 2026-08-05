@@ -40,6 +40,32 @@ appId: cl.kolvi.empleados
       - tapOn: 'Ahora no'
     label: 'Decline it, so the shell is what this subflow hands back'
 
+# And the same problem again, from the other side. Since KMO-16 Inicio offers the
+# location rationale the first time it finds no permission, and that sheet is a
+# `Modal` too — with it up, nothing on the tab behind it is in the hierarchy, so
+# a flow asserting `Inicio` or anything on it fails on a sheet it never mentioned.
+#
+# Dismissed by its own testID rather than by `Ahora no`: the biometric offer above
+# uses those same two words, and a text match would make which sheet got tapped
+# depend on which one happened to be up.
+#
+# Matched on the title rather than on the button, because the sheet animates up
+# and the wait is what makes this deterministic. Optional in both directions: it
+# is absent whenever the permission has already been answered on this AVD.
+- extendedWaitUntil:
+    visible: 'Kolvi usa tu ubicación al marcar'
+    timeout: 10000
+    optional: true
+    label: 'The location rationale, if this run is the first without a permission'
+
+- runFlow:
+    when:
+      visible: 'Kolvi usa tu ubicación al marcar'
+    commands:
+      - tapOn:
+          id: 'location-rationale-dismiss'
+    label: 'Dismiss it — flows that are about it raise it again themselves'
+
 - extendedWaitUntil:
     visible: 'Inicio'
     timeout: 30000

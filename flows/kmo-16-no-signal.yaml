@@ -5,11 +5,15 @@
 # `Buscando tu ubicación` for the length of the shift.
 #
 # Tagged out of the suite for the same reason `requires-offline` is: the switch
-# is the whole device's, so a run that turned it off would take every other flow
-# with it. On its own, and put back afterwards:
+# belongs to the whole device, so a run that turned it off would take every other
+# flow with it. On its own, and put back afterwards:
 #
-#   bin/device perm grant && bin/device gps off && bin/e2e kmo-16-no-signal
+#   bin/device gps off && bin/e2e flows/kmo-16-no-signal.yaml
 #   bin/device gps on
+#
+# The permission is granted from inside the flow: `clearState` resets it, so it
+# cannot be arranged beforehand. Granting it is the point — this state has to be
+# reachable by an employee who did everything right and still has no fix.
 appId: cl.kolvi.empleados
 name: KMO-16 no GPS signal
 tags:
@@ -24,9 +28,32 @@ tags:
     timeout: 30000
     label: 'On the tab shell'
 
+- extendedWaitUntil:
+    visible: 'Activar ubicación'
+    timeout: 30000
+    label: 'The card offers the way in'
+
+- tapOn: 'Activar ubicación'
+
+- extendedWaitUntil:
+    visible: 'Kolvi usa tu ubicación al marcar'
+    timeout: 20000
+    label: 'The rationale, before the OS prompt'
+
+- tapOn: 'Continuar'
+
+- extendedWaitUntil:
+    visible:
+      id: 'com.android.permissioncontroller:id/permission_allow_foreground_only_button'
+    timeout: 20000
+    label: "Android's own prompt"
+
+- tapOn:
+    id: 'com.android.permissioncontroller:id/permission_allow_foreground_only_button'
+
 # #4 and #9 together. The wait is generous because the app's own timeout is 12s
-# and this is the path that has to hit it on a phone that never answers; what is
-# being asserted is that it *ends*, in a state with words on it.
+# and this is the path that has to hit it on a phone that cannot answer; what is
+# asserted is that it *ends*, in a state with words on it.
 - extendedWaitUntil:
     visible: 'Sin señal de GPS'
     timeout: 45000
@@ -44,8 +71,13 @@ tags:
     text: 'Ubicación confirmada'
     label: '#4 — nothing was confirmed from a phone with no location services'
 
-# The rest of the screen is untouched by the state of the GPS. This is the half
-# of #7 a no-signal run can show: nothing about the tab is blocked or missing.
+# A granted permission that produced no fix is not a permission problem, and the
+# card must not say it is.
+- assertNotVisible:
+    text: 'Sin permiso de ubicación'
+    label: '#4 — the permission was given; the signal is what is missing'
+
+# The rest of the screen is untouched by the state of the GPS.
 - extendedWaitUntil:
     visible: 'Turno de hoy'
     timeout: 30000
