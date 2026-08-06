@@ -290,11 +290,24 @@ and it carries the fix, its accuracy and the client's advisory geofence verdict 
 with `null` where there is nothing to report. Two taps make one punch, a refusal leaves the
 day exactly as it was with the button as its own retry, and a punch the register already
 holds is a calm Spanish line rather than an error. The endpoint that serves all of this is
-`ams` KOL-34; against `POST /api/v1/marks` as it stands the punch is refused, which is what
-the app shows. The out-of-range override (KMO-18), the comprobante sheet the receipt opens
-(KMO-19) and the pending-sync banner (KMO-22) land in the slots the design puts them in.
-Jornada, Permisos and Documentos are still empty — run `backlog task list --plain` to see
-the backlog.
+`ams` KOL-34, which has shipped: `POST /api/v1/marks` assigns the legal time, evaluates the
+geofence itself and enforces one `in` and one `out` per day.
+
+Beneath the button are the two ways past it (KMO-18). Out of range the primary is held and
+`Marcar de todas formas (queda pendiente de revisión)` sits under it — out of range is
+recorded and flagged, **never blocked**, so the consequence is inside the label rather than
+in a dialog after it, and the server's own geofence verdict is what lands on the row. With
+no fix the primary is held and `Reintentar ubicación` asks the phone again, spinning in
+place rather than vanishing under the thumb that pressed it. Neither appears once the
+location is confirmed, and neither appears for a permission refused for good — no fix is
+ever coming for that employee, so the mark travels with `geo_status: unknown` instead of
+sitting behind a retry that cannot help. What holds the button is a `PunchHold`, and it
+carries the escape hatch with it: there is no way to express a disabled punch button with
+nothing beneath it.
+
+The comprobante sheet the receipt opens (KMO-19) and the pending-sync banner (KMO-22) land
+in the slots the design puts them in. Jornada, Permisos and Documentos are still empty — run
+`backlog task list --plain` to see the backlog.
 
 One thing the session still cannot do, and it is the backend's: a deactivated employee keeps a
 working token, because `ams` checks `is_active` only when issuing one (PRD A7/A8) — the app ends
