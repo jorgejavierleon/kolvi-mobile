@@ -1,11 +1,11 @@
 ---
 id: KMO-18
 title: Out-of-range override and GPS retry
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-06 10:41'
+updated_date: '2026-08-06 13:13'
 labels:
   - mobile
   - marcaje
@@ -161,6 +161,8 @@ Checked, each against evidence that can be re-run:
 **#2 is left unchecked, and it is half proven.** Its first clause is done to the same standard as everything above: the override recorded mark 213 and the server flagged it `geo_status="outside"` by its own evaluation. Its second clause — *and the resulting receipt shows the pending-review line* — has no surface to show it. The comprobante sheet is **KMO-19**, whose own #7 is that same line, `Marca fuera de rango — pendiente de revisión`. Checking #2 now would be signing off on a line nobody has seen.
 
 What KMO-19 inherits, beyond what KMO-17 already left it: `punch-api.ts` parses the server's `geo_status` back onto `PunchReceipt.geoStatus` and `usePunch` holds it, so the sheet has the flag it needs on the receipt itself — no second request, and not the client's own advisory verdict. Mark 213 is a real out-of-range row it can be built against.
+
+Merged to `master` as `4a21f47` (fast-forward, linear history kept) and pushed. `README.md`'s project status now describes the escape hatches and no longer claims KMO-18 is unbuilt — it also corrected a stale KMO-17 sentence saying the punch is refused, which stopped being true when `ams` KOL-34 shipped (`89049df`).
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
