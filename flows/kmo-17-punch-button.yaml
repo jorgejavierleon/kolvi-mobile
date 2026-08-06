@@ -4,15 +4,14 @@
 # font, with the design's own label — and #2's `before` row: the line under the
 # clock and the label on the button say the same thing about the same day.
 #
-# It does not press it. Completing a punch needs `ams` KOL-34, which is what makes
-# `POST /api/v1/marks` stamp its own timestamp; against the endpoint as it stands
-# the request is refused for the `datetime` this app will never send. The walk
-# through all three states is `kmo-17-punch.yaml`, tagged out of the suite until
-# that ticket lands.
+# It does not press it, and since `ams` KOL-34 that is the point: a punch now
+# succeeds and is recorded, so a flow in the suite that pressed the button would
+# close the employee's day and take the `before` state away from its own next run.
+# The walk through all three states is `kmo-17-punch.yaml`, kept out of the suite
+# for exactly that reason.
 #
-# Assumes the seeded `employee@example.com` has not punched today, which is what
-# a fresh `db:seed` leaves. After KOL-34 makes punches stick, a run that has
-# already walked kmo-17-punch.yaml needs a reseed before this one is true again.
+# Assumes the seeded `employee@example.com` has not punched today, which is what a
+# fresh `db:seed` leaves. Clear today's marks if a previous run spent them.
 appId: cl.kolvi.empleados
 name: KMO-17 punch button
 tags:

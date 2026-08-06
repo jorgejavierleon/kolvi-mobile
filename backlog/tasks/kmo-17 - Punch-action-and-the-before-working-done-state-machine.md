@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-05 22:59'
+updated_date: '2026-08-06 01:50'
 labels:
   - mobile
   - marcaje
@@ -43,14 +43,14 @@ Per docs/design-decisions.md §2 there are exactly three states and one entrada 
 - [x] #1 The primary button is at least 64pt tall, full width, coral, with the display font, and shows a spinner in its loading state
 - [x] #2 The three states drive the status line and the primary label exactly as tabulated in the description
 - [x] #3 The done state replaces the punch button with the success panel reading Jornada finalizada and Nos vemos en tu próximo turno
-- [ ] #4 The punch request carries no client-supplied timestamp; the server-assigned time is what the receipt displays
+- [x] #4 The punch request carries no client-supplied timestamp; the server-assigned time is what the receipt displays
 - [x] #5 The reported latitude, longitude and accuracy are sent when available, and their absence is sent explicitly rather than omitted
 - [x] #6 The button cannot be double-tapped into two punches, including on a slow network
-- [ ] #7 A server rejection because the punch already exists for today renders as a friendly Spanish state, never as an error dialog
+- [x] #7 A server rejection because the punch already exists for today renders as a friendly Spanish state, never as an error dialog
 - [x] #8 A failed punch leaves the state unchanged and offers retry without the employee losing their place
 - [ ] #9 The button remains legible and operable in direct sunlight and with gloves, verified on a physical mid-range Android
 - [ ] #10 A successful punch transitions the state and opens the comprobante sheet built in KMO-19
-- [ ] #11 A punch made without a location fix — permission permanently denied, or no signal — is recorded rather than blocked, and travels with geo_status unknown (carried over from KMO-16 #7)
+- [x] #11 A punch made without a location fix — permission permanently denied, or no signal — is recorded rather than blocked, and travels with geo_status unknown (carried over from KMO-16 #7)
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -137,6 +137,27 @@ Left unchecked:
 **The full suite reported 11/15, and none of the four failures is this branch's.** KMO-8, KMO-9 and KMO-15 all pass on their own runs here; KMO-14 was already red before this branch (recorded on KMO-16). The suite failure mode is the one KMO-16 documented — the dev client degrades with each `clearState` cold start — and this time it ended in a native `SIGSEGV` in `libreactnative.so` on the JS thread, with the app gone and the flow looking at the launcher. Checked properly rather than assumed: KMO-8 was run on `master` (passed, 56s) and then again on this branch (passed, 56s), so the branch is not the cause.
 
 **Two probe marks were written into the local `ams` demo data** to reach the `working` and `done` states, and both were force-deleted afterwards. `employee@example.com` is back to an unpunched day, which is what `kmo-17-punch-button.yaml` needs.
+
+## After KOL-34 shipped
+
+`POST /api/v1/marks` now serves the contract `punch-api.ts` was written against, and **it needed no change on this side.** Read against the client parser before running anything: `datetime` is `['prohibited']`, the four location keys are nullable, the duplicate answers `409` with a real Spanish sentence out of `lang/es/ui.php` (`ui.marks.api.already_marked.{in,out}`), `MarkResource` emits `date_time->format('Y-m-d H:i:s')`, and `geo_status` is nullable — which this parser already reads as `unknown`, and which `MarkResource`'s own comment says means the same thing.
+
+**#4, #7 and #11 are now checked, all three on the device against the live `ams`, with the register inspected afterwards rather than the screen taken at its word.**
+
+- **#4** — punched from the app; the row landed as `2026-08-05 21:40:28`, the server's own stamp in the employee's timezone, matching the clock on screen. The app sent nothing: `datetime` is `prohibited` server-side now, so a request carrying one would 422, and the punch succeeded. The receipt the app holds is parsed from that response and from nothing else.
+- **#5** — re-confirmed end to end rather than in Jest alone. The same row carried `lat=-33.448900 lng=-70.669300 accuracy_meters=5.00`, and the server's own verdict `geo_status='inside'` — measured by its haversine against the premise, not taken from what the client reported.
+- **#7** — arranged honestly: the `out` was recorded straight through the API (`201`, `mark_id=207`) so the register held it and the app did not know. Pressing `Marcar salida` then produced the real `409`, and the screen answered with `Esta marca ya estaba registrada. Actualizamos tu jornada.` on the neutral tint, reloaded `/me/today`, and settled on `Jornada finalizada` with the success panel. No dialog anywhere. Screenshot `.artifacts/kmo-17-duplicate.png`.
+- **#11** — the whole criterion, not half of it. With the permission refused for good (`bin/device perm deny-forever`) the punch went and **was recorded**: row 208, `lat=NULL lng=NULL accuracy_meters=NULL geo_status='unknown'`. The card read `Sin permiso de ubicación` throughout and the screen advanced to `En jornada`.
+
+**The app shows its own sentence for the duplicate, not the server's.** `ams` now sends `Ya registraste tu entrada de hoy.`, which is good Spanish and is kept on `DuplicateMarkError.cause`. The screen shows `es.marcaje.punch.alreadyMarked` instead — a deliberate exception to the server-message-wins rule, and the only one in this feature: our sentence also says *Actualizamos tu jornada*, which is the half the employee needs to explain why the button moved under their thumb. The server has no way to know the screen reconciled.
+
+**`flows/kmo-17-punch.yaml` now passes** — the whole day driven by Maestro in 50s, `before → working → done`, and the two marks were confirmed in the register afterwards. Its tag changed from `requires-punch-endpoint` to **`requires-unpunched-day`**, because the reason it stays out of the suite has changed rather than gone away: the punches are real now and the flow *spends* the day it needs, so a second run finds a day it already closed. `kmo-17-punch-button.yaml` needs the same unpunched day and stays in the suite because it does not press the button.
+
+One thing worth knowing when reading those rows: the flow's marks carry no fix. `clearState` in `shared/launch.yaml` resets the app's runtime permissions, so its punches are made by an employee who has not granted location and travel as `unknown`. The flow header now says so.
+
+`npm run check` still green — 912 tests, 57 suites; nothing in `src/` changed for KOL-34. `kmo-17-punch-button.yaml` failed once on a cold AVD with the same `Ingresar`-visible signature as the earlier flakiness and passed on the immediate re-run.
+
+All probe data was removed: marks 206–210 force-deleted and the `probe` token revoked. `employee@example.com` is back to an unpunched day.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
@@ -144,7 +165,7 @@ Left unchecked:
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
 Built the punch — `punch-api.ts`, `use-punch.ts` and `punch-action.tsx` under `src/features/marcaje/`, wired into the home screen under the clock. The request carries no timestamp and never can (the server assigns the legal time, Art. 11 / design-decisions §2) and sends the fix, its accuracy and the client's advisory geofence verdict with explicit nulls where there is nothing to report. Two taps make one punch, the state advances off the receipt rather than off the tap, a refusal leaves the day untouched with the button as its own retry, and a punch the register already holds is a calm Spanish line plus a reload rather than an error. `shadows.accent` was added to the theme for the design's coral glow, approved beforehand.
 
-Verified with `npm run check` green (912 tests, 57 suites), `flows/kmo-17-punch-button.yaml` passing in the Maestro suite, and the app driven by hand on the emulator against a live `ams`: the button measured 372 × 64 dp, all three state rows read on screen, and a real punch attempt refused with the server's own Spanish while the state, the label and the retry all held.
+Verified with `npm run check` green (912 tests, 57 suites), both Maestro flows passing, and — once `ams` KOL-34 shipped — the whole thing driven on the emulator against the live server with the register inspected afterwards: the server-stamped time, the fix and its accuracy and the server's own `inside` verdict on the row, a real 409 rendered as a calm state, and a permission-denied punch recorded with `geo_status='unknown'` rather than blocked. KOL-34 needed no change on this side; the parser was already written to it.
 
-**Not done, and deliberately not claimed.** #4, #7 and #11 wait on `ams` KOL-34 — `POST /api/v1/marks` still requires the client `datetime` this app will never send, has no accuracy or geo-status columns and no one-per-day guard — so no punch has ever succeeded against any server. #10 waits on KMO-19, whose sheet this ticket only builds the seam for. #9 is physical-device tier. Six of eleven criteria are checked.
+**Nine of eleven criteria are checked.** #9 needs a physical mid-range Android — sunlight and gloves are not reproducible on an emulator, and a run that passed them would mean nothing. #10 opens the comprobante sheet that KMO-19 builds; the `onPunched(receipt)` seam is built and tested, but KMO-19 depends on this ticket, so nothing here can open it yet.
 <!-- SECTION:FINAL_SUMMARY:END -->

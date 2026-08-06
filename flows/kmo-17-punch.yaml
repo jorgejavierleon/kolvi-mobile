@@ -4,22 +4,32 @@
 # the button label agreeing at every step — and #3, that a finished day replaces
 # the button rather than disabling it.
 #
-# Tagged out of the suite, and the condition is on the *server* rather than on the
-# device. `POST /api/v1/marks` still requires the client `datetime` this app will
-# never send (docs/design-decisions.md §2), so every punch here is refused until
-# `ams` KOL-34 ships. Once it has:
+# Tagged out of the suite, and the condition is neither the device's nor the
+# app's: **this flow spends the day it needs.** It leaves `employee@example.com`
+# with both marks recorded, and the register keeps exactly one `in` and one `out`
+# per day (D-F1-b) — so a second run finds a day it already closed and asserts
+# `Marcar entrada` at an employee who has none left to make. Since `ams` KOL-34
+# the punches are real and they stick.
+#
+# Clear today's marks for the demo employee first, then:
 #
 #   bin/e2e flows/kmo-17-punch.yaml
 #
-# And it is single-use per seed: it leaves `employee@example.com` with both marks
-# recorded, and the register keeps exactly one of each per day (D-F1-b). A second
-# run needs the demo data reseeded, or it is asserting `Marcar entrada` at an
-# employee whose day is already closed.
+# Same reason `kmo-17-punch-button.yaml` — which is in the suite — asserts the
+# `before` row: it needs an unpunched day too, and this flow is what takes it
+# away.
+#
+# The marks it leaves behind carry **no fix**, and that is not a defect: the
+# `clearState` in shared/launch.yaml resets the app's runtime permissions, so
+# these punches are made by an employee who has not granted location and travel
+# with `geo_status: unknown` (#11). Which is worth knowing when reading the rows
+# afterwards. The with-a-fix path is #5's, and is asserted in
+# `punch-api.test.ts` against the exact request body.
 appId: cl.kolvi.empleados
 name: KMO-17 punch through the day
 tags:
   - marcaje
-  - requires-punch-endpoint
+  - requires-unpunched-day
 ---
 - runFlow: shared/sign-in.yaml
 
