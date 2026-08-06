@@ -4,7 +4,7 @@ title: Comprobante bottom sheet
 status: To Do
 assignee: []
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-06 01:56'
+updated_date: '2026-08-06 02:44'
 labels:
   - mobile
   - marcaje
@@ -63,4 +63,10 @@ Two things to know before building the detail block:
 - **#7's out-of-range line reads `geoStatus`**, which the receipt already carries and the server already decides — `'outside'` is what puts `Marca fuera de rango — pendiente de revisión` on the sheet. That half needs no backend work.
 
 When this ships, verify KMO-17 #10 on the device — punch, and watch the sheet come up from the receipt — and check it on KMO-17 rather than here.
+
+**The `ams` side is tracked as KOL-35** — "Complete the mark receipt for Res. 38 Art. 13: a real folio and the worker identity on MarkResource", HIGH, depends on KOL-34. It adds `folio`, `employee_name` and `employee_rut` to the 201 body.
+
+Correcting one thing in the note above it: the Art. 13 identity is **not** missing from `ams`, only from the response. `MarkObserver::creating` already snapshots `employee_name`, `employee_rut`, `employer_name` and `employer_rut` onto every mark, so a receipt reprinted years later shows who the employee was at the time. `MarkResource` just does not send it. The only genuinely new data in KOL-35 is the folio, which has no column.
+
+**One thing for this ticket to settle, not KOL-35.** This task's description says the hash is copyable *"so the employee can verify it against the public validation endpoint"*. That endpoint — `marks/validate` in `ams` `routes/web.php` — is not public: it is inside the DT inspector portal, behind authentication and `password_expires`. So either #6's copy button is promising employees something they cannot do, or a public validation route is missing and nobody has scoped it. Worth deciding before writing the copy around the `Copiar` button.
 <!-- SECTION:NOTES:END -->
