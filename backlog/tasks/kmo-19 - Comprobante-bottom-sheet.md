@@ -4,7 +4,7 @@ title: Comprobante bottom sheet
 status: To Do
 assignee: []
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-06 02:44'
+updated_date: '2026-08-06 02:48'
 labels:
   - mobile
   - marcaje
@@ -30,7 +30,7 @@ The receipt the employee sees immediately after punching. Res. 38 Art. 13 sets t
 
 The receipt is generated from the API response, never from client-side state — the server recorded time is the truth. Per docs/design-decisions.md §3 the folio is real, formatted YYYYMMDD-NNNN.
 
-The hash is copyable so the employee can verify it against the public validation endpoint.
+The hash is copyable so the employee can keep or quote it — for HR, or against the emailed copy. It is deliberately **not** presented as something they can verify themselves: `ams` has a checksum validation tool but it lives in the DT inspector portal, behind authentication, and no public route exists. The button copies; the copy around it must not promise more than that.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
@@ -69,4 +69,6 @@ When this ships, verify KMO-17 #10 on the device — punch, and watch the sheet 
 Correcting one thing in the note above it: the Art. 13 identity is **not** missing from `ams`, only from the response. `MarkObserver::creating` already snapshots `employee_name`, `employee_rut`, `employer_name` and `employer_rut` onto every mark, so a receipt reprinted years later shows who the employee was at the time. `MarkResource` just does not send it. The only genuinely new data in KOL-35 is the folio, which has no column.
 
 **One thing for this ticket to settle, not KOL-35.** This task's description says the hash is copyable *"so the employee can verify it against the public validation endpoint"*. That endpoint — `marks/validate` in `ams` `routes/web.php` — is not public: it is inside the DT inspector portal, behind authentication and `password_expires`. So either #6's copy button is promising employees something they cannot do, or a public validation route is missing and nobody has scoped it. Worth deciding before writing the copy around the `Copiar` button.
+
+**Settled: no public hash validation.** The description's original claim — that the employee could verify the hash against a public validation endpoint — was wrong; `marks/validate` in `ams` is inspector-only. The user's call was to drop the promise rather than build a public route, so the description now says the hash is copyable for keeping or quoting, and #6 is unchanged: the button copies and confirms, and nothing in the copy around it may imply self-verification.
 <!-- SECTION:NOTES:END -->
