@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { es, formatLongDate, greeting, weekSummary } from '@/i18n';
@@ -14,7 +15,7 @@ import type { LocationSource } from './location';
 import { LocationCard } from './location-card';
 import { LocationRationale } from './location-rationale';
 import { useNow } from './now-clock';
-import { PunchAction } from './punch-action';
+import { PunchAction, type PunchHold } from './punch-action';
 import type { PunchApi } from './punch-api';
 import { ShiftCard, ShiftCardSkeleton } from './shift-card';
 import type { TodayApi, TodaySummary } from './today-api';
@@ -63,9 +64,13 @@ export type HomeScreenProps = {
  * so what an employee ends up looking at is the register and not this screen's
  * idea of it.
  *
- * What is not here yet: the out-of-range and GPS-retry actions (KMO-18), the
- * comprobante sheet a punch opens (KMO-19) and the pending-sync banner (KMO-22).
- * Each lands in the slot the design puts it in.
+ * The two escape hatches under the button (KMO-18) are composed here too, and
+ * they are the reason this screen reads the location card and the punch as one
+ * subject: what holds the button is a fact about the phone, and what releases it
+ * is an action about the punch.
+ *
+ * What is not here yet: the comprobante sheet a punch opens (KMO-19) and the
+ * pending-sync banner (KMO-22). Each lands in the slot the design puts it in.
  */
 export function HomeScreen({
   onOpenProfile,
@@ -118,6 +123,35 @@ export function HomeScreen({
     api: punchApi,
   });
 
+  /**
+   * What the geolocation card is holding the punch for, and the way out of it
+   * (KMO-18). Composed here, like everything else on this screen: the hook knows
+   * where the employee is, the component draws a button, and this is the one
+   * place that decides those are the same subject.
+   *
+   * The override calls `punch.punch` itself. An override is not a different
+   * request — `geoStatus` already travels as `outside` and the server runs its
+   * own haversine (`ams` KOL-34) — it is the same punch made deliberately, which
+   * is what the label above it warns about.
+   */
+  const hold = useMemo<PunchHold | null>(() => {
+    if (location.state.kind === 'outside') {
+      return { kind: 'outside', onOverride: punch.punch };
+    }
+
+    // `retrying` keeps the button on screen across the `acquiring` the retry
+    // itself causes; without it the control would vanish under the thumb that
+    // pressed it (#4).
+    if (location.state.kind === 'noSignal' || location.retrying) {
+      return { kind: 'noSignal', onRetry: location.retry, retrying: location.retrying };
+    }
+
+    // Everything else, including `denied`: no fix is ever coming for that
+    // employee, so the punch goes with `geo_status: unknown` rather than being
+    // held behind a retry that cannot help (KMO-17 #11).
+    return null;
+  }, [location.retry, location.retrying, location.state.kind, punch.punch]);
+
   // `first_name` is nullable in `ams`, so the greeting falls back to the full
   // name rather than to `Hola, ` with nothing after the comma.
   const name = session.user?.firstName ?? session.user?.name ?? null;
@@ -159,7 +193,13 @@ export function HomeScreen({
       ) : null}
 
       {today.status === 'loaded' ? (
-        <HomeBody summary={today.summary} canPunch={canPunch} clock={clock} punch={punch} />
+        <HomeBody
+          summary={today.summary}
+          canPunch={canPunch}
+          clock={clock}
+          punch={punch}
+          hold={hold}
+        />
       ) : null}
     </Screen>
   );
@@ -170,11 +210,13 @@ function HomeBody({
   canPunch,
   clock,
   punch,
+  hold,
 }: {
   summary: TodaySummary;
   canPunch: boolean;
   clock?: () => Date;
   punch: Punch;
+  hold: PunchHold | null;
 }) {
   return (
     <View style={styles.body}>
@@ -182,7 +224,7 @@ function HomeBody({
 
       {/* The clock is always drawn; only the status line under it is gated,
           because only that line is about punching. KMO-18's recovery actions
-          land directly below the button, under the same gate.
+          sit directly below the button, inside the same gate.
 
           Both the line and the button read `punch.state` and not the summary:
           they have to agree, and after a punch the summary is a request behind
@@ -195,6 +237,7 @@ function HomeBody({
           state={punch.state}
           attempt={punch}
           onPunch={punch.punch}
+          hold={hold}
           testID="punch-action"
         />
       ) : null}

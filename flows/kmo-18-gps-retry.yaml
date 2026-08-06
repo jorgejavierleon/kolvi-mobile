@@ -1,0 +1,128 @@
+# KMO-18 — the escape hatch under a button no fix is holding.
+#
+# Covers #3 (the primary disabled, `Reintentar ubicación` beneath it), #4's
+# observable half — pressing it asks the phone again and the button survives its
+# own press — and #6's negative half: the override belongs to a verdict, and
+# there is none here.
+#
+# **#4's loading state is not asserted here, and this device condition cannot
+# show it.** With location services off, `useLocation` asks
+# `hasServicesEnabled()` first and the OS answers no synchronously, so the
+# `acquiring` phase lasts a microtask and `Buscando tu ubicación` never survives
+# a frame. That is the app being honest — there is nothing to wait for — not the
+# spinner being missing. The loading state is proven in `use-location.test.ts`
+# (`retrying` true only while the fix is outstanding) and in
+# `punch-action.test.tsx` (the button keeps its label and spins in place). An
+# earlier revision of this flow asserted the copy here and failed on it.
+#
+# #5 is **not** in this flow and cannot be: it needs location services to come
+# back on between two presses, and `bin/device gps on` is not something Maestro
+# can reach mid-run. It is verified by hand on the emulator and written up on the
+# task.
+#
+# It works on any day that still has a punch left — `before` or `working` — and
+# never presses the primary, so it neither spends the day nor depends on which
+# half of it is left. A day already closed replaces the button with the success
+# panel, and there is then no held control for this flow to be about.
+#
+# Tagged out of the suite for the same reason `kmo-16-no-signal.yaml` is: the
+# switch belongs to the whole device, so a run that turned it off would take
+# every other flow with it. On its own, and put back afterwards:
+#
+#   bin/device gps off && bin/e2e flows/kmo-18-gps-retry.yaml
+#   bin/device gps on
+#
+# The permission is granted from inside the flow because `clearState` resets it.
+# Granting it is the point: this state has to be reachable by an employee who did
+# everything right and still has no fix.
+appId: cl.kolvi.empleados
+name: KMO-18 GPS retry
+tags:
+  - marcaje
+  - geo
+  - requires-gps-off
+---
+- runFlow: shared/sign-in.yaml
+
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 30000
+    label: 'On the tab shell'
+
+- extendedWaitUntil:
+    visible: 'Activar ubicación'
+    timeout: 30000
+    label: 'The card offers the way in'
+
+- tapOn: 'Activar ubicación'
+
+- extendedWaitUntil:
+    visible: 'Kolvi usa tu ubicación al marcar'
+    timeout: 20000
+    label: 'The rationale, before the OS prompt'
+
+- tapOn: 'Continuar'
+
+- extendedWaitUntil:
+    visible:
+      id: 'com.android.permissioncontroller:id/permission_allow_foreground_only_button'
+    timeout: 20000
+    label: "Android's own prompt"
+
+- tapOn:
+    id: 'com.android.permissioncontroller:id/permission_allow_foreground_only_button'
+
+# The precondition. The wait is generous because the app's own fix timeout is 12s
+# and this is the path that has to hit it.
+- extendedWaitUntil:
+    visible: 'Sin señal de GPS'
+    timeout: 45000
+    label: 'The phone answered with nothing'
+
+# #3. The design's own label, and deliberately not the bare `Reintentar` the
+# screen uses for a failed request — under this card the employee would not know
+# which of the two had been retried.
+- extendedWaitUntil:
+    visible: 'Reintentar ubicación'
+    timeout: 20000
+    label: '#3 — the retry, naming what it retries'
+
+- assertVisible:
+    id: 'location-retry'
+    label: '#3 — and it is the button, not a stray string'
+
+- assertVisible:
+    text: 'Marcar (entrada|salida)'
+    label: '#3 — the primary is held, not removed'
+
+# #6, from the state that is not the confirmed one: there is no geofence verdict
+# to override when the phone never said where it was.
+- assertNotVisible:
+    text: 'Marcar de todas formas (queda pendiente de revisión)'
+    label: '#6 — the override belongs to the other state'
+
+- takeScreenshot: kmo-18-no-signal
+
+# #4. Pressing it asks the phone again. With the services still off it can only
+# end back where it began, which is the honest outcome for this device condition
+# — #5 is the same retry against a phone that can answer, verified by hand.
+- tapOn:
+    id: 'location-retry'
+
+- extendedWaitUntil:
+    visible: 'Sin señal de GPS'
+    timeout: 45000
+    label: '#4 — the retry re-asks and the card resolves rather than hanging'
+
+# The control survived its own press. A button that vanished the instant it was
+# tapped — which is what `acquiring` would do to it without `retrying` — reads as
+# a tap that did nothing, and leaves the employee with no way to ask again.
+- assertVisible:
+    id: 'location-retry'
+    label: '#4 — the button that started it is still on screen'
+
+- assertVisible:
+    text: 'Marcar (entrada|salida)'
+    label: '#4 — and the primary is still held, still legible'
+
+- takeScreenshot: kmo-18-gps-retry

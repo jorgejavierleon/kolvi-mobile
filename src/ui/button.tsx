@@ -29,10 +29,12 @@ import {
  * lose that distinction on exactly the screens where it matters most, so both
  * are variants.
  *
- * The two outlines differ only in intent: `secondary` is the neutral companion
- * to a filled button, `danger` is the destructive one (`Rechazar`).
+ * The three outlines differ only in intent: `secondary` is the neutral companion
+ * to a filled button, `warning` is the one that proceeds *despite* something
+ * (`Marcar de todas formas (queda pendiente de revisión)`), and `danger` is the
+ * destructive one (`Rechazar`).
  */
-export type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'danger';
+export type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'warning' | 'danger';
 
 /**
  * Heights, from the design. `md` is the default because it is what every sheet
@@ -76,6 +78,14 @@ const variants: Record<ButtonVariant, VariantStyle> = {
     background: colors.surfaceCard,
     foreground: colors.slate,
     border: colors.border,
+  },
+  // Its own tone rather than a dimmed `danger`: an override is not a
+  // destructive action, and drawing it in the red the app uses for `Rechazar`
+  // would read as a refusal to an employee who is being offered a way forward.
+  warning: {
+    background: 'transparent',
+    foreground: tones.warning.foreground,
+    border: tones.warning.foreground,
   },
   danger: {
     background: 'transparent',

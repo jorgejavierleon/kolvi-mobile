@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, userEvent } from '@testing-library/react-native';
 
+import { es } from '@/i18n';
 import { colors, hitTargetMin, radius, tones, typography } from '@/theme';
 
 import { Button, type ButtonSize, type ButtonVariant } from './button';
@@ -46,6 +47,29 @@ describe('Button', () => {
         borderWidth: 1,
       });
       expect(screen.getByText('Reintentar ubicación')).toHaveStyle({ color: colors.slate });
+    });
+
+    // KMO-18. The override under the punch button is drawn in the same amber the
+    // out-of-range card above it is tinted with, so the button and the reason for
+    // it read as one thing.
+    it('outlines warning in the warning tone, never filling it', async () => {
+      await render(<Button label={es.marcaje.punch.override} onPress={noop} variant="warning" />);
+
+      expect(screen.getByRole('button')).toHaveStyle({
+        backgroundColor: 'transparent',
+        borderColor: tones.warning.foreground,
+        borderWidth: 1,
+      });
+      expect(screen.getByText(es.marcaje.punch.override)).toHaveStyle({
+        color: tones.warning.foreground,
+      });
+    });
+
+    // An override is a way forward, not a destruction. Sharing the red would tell
+    // an employee outside the geofence that the only action left to them is one
+    // the app draws like `Rechazar`.
+    it('does not draw the override in the danger tone', async () => {
+      expect(tones.warning.foreground).not.toBe(tones.danger.foreground);
     });
 
     it('outlines danger in the danger tone, never filling it', async () => {
@@ -177,7 +201,7 @@ describe('Button', () => {
       );
     });
 
-    it.each<ButtonVariant>(['primary', 'accent', 'secondary', 'danger'])(
+    it.each<ButtonVariant>(['primary', 'accent', 'secondary', 'warning', 'danger'])(
       'exposes the button role for %s',
       async (variant) => {
         await render(<Button label="Listo" onPress={noop} variant={variant} />);

@@ -1,0 +1,98 @@
+# KMO-18 — the escape hatch under a button the geofence is holding.
+#
+# Covers #1 (the primary disabled, the override beneath it with its consequence
+# in the label), #6's negative half (the GPS retry is not what this state offers)
+# and #7 on the device, where the hit target is a real measurement rather than a
+# style object.
+#
+# It does **not** press the override. Doing so would record a real mark — the
+# punch is live since `ams` KOL-34 — and spend the unpunched day
+# `kmo-17-punch-button.yaml` needs. #2 is verified by hand against the register
+# instead, and written up on the task.
+#
+# It works on any day that still has a punch left — `before` or `working` — and
+# never presses the primary, so it neither spends the day nor depends on which
+# half of it is left. A day already closed replaces the button with the success
+# panel, and there is then no held control for this flow to be about.
+#
+# The device's position is emulator state and not something a flow can set, so
+# this one runs on its own with the phone put outside the seeded `Sucursal
+# Centro`'s 150 m radius — Estación Central, about two kilometres west:
+#
+#   bin/device geo -33.4372 -70.6506 && bin/e2e flows/kmo-18-out-of-range.yaml
+#   bin/device geo -33.4489 -70.6693        # back inside, for everything else
+appId: cl.kolvi.empleados
+name: KMO-18 out-of-range override
+tags:
+  - marcaje
+  - geo
+  - requires-geo-off-premise
+---
+- runFlow: shared/sign-in.yaml
+
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 30000
+    label: 'On the tab shell'
+
+- extendedWaitUntil:
+    visible: 'Activar ubicación'
+    timeout: 30000
+    label: 'The card offers the way in'
+
+- tapOn: 'Activar ubicación'
+
+- extendedWaitUntil:
+    visible: 'Kolvi usa tu ubicación al marcar'
+    timeout: 20000
+    label: 'The rationale, before the OS prompt'
+
+- tapOn: 'Continuar'
+
+- extendedWaitUntil:
+    visible:
+      id: 'com.android.permissioncontroller:id/permission_allow_foreground_only_button'
+    timeout: 20000
+    label: "Android's own prompt"
+
+- tapOn:
+    id: 'com.android.permissioncontroller:id/permission_allow_foreground_only_button'
+
+# The precondition. Everything below is about what the screen does with it.
+- extendedWaitUntil:
+    visible: 'Fuera del rango permitido'
+    timeout: 30000
+    label: 'The employee is outside the radius'
+
+# #1. The design's own sentence, character for character — the consequence is
+# inside the label because an employee has to know before they press that the
+# mark will be reviewed (docs/design-decisions.md D-F1-c).
+- extendedWaitUntil:
+    visible: 'Marcar de todas formas (queda pendiente de revisión)'
+    timeout: 20000
+    label: '#1 — the override, with its consequence in the label'
+
+- assertVisible:
+    id: 'punch-override'
+    label: '#1 — and it is the button, not a stray string'
+
+# #1's other half. The action they cannot take is still on screen and still
+# legible: an employee outside the geofence has to see what they are being held
+# back from, which is why the design dims the button rather than hiding it.
+- assertVisible:
+    text: 'Marcar (entrada|salida)'
+    label: '#1 — the primary is held, not removed'
+
+# #6, from the state that is not the confirmed one: out of range is a verdict the
+# phone is sure of, so there is nothing to re-acquire and no retry offered.
+- assertNotVisible:
+    text: 'Reintentar ubicación'
+    label: '#6 — the GPS retry belongs to the other state'
+
+# The tab is whole. Being outside the geofence is not a broken screen.
+- extendedWaitUntil:
+    visible: 'Turno de hoy'
+    timeout: 30000
+    label: 'The shift card is still there'
+
+- takeScreenshot: kmo-18-out-of-range

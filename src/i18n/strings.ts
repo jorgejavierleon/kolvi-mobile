@@ -377,6 +377,19 @@ export const es = {
        * it is still worth pressing.
        */
       failed: 'No pudimos registrar tu marca. No quedó guardada — inténtalo de nuevo.',
+
+      /**
+       * The escape hatch under a disabled button, when the employee is outside
+       * the geofence (KMO-18 #1). Verbatim from the design, parenthesis and all.
+       *
+       * The consequence is *inside the label* rather than in a line beneath it,
+       * and that is the whole point of the sentence: out of range is recorded
+       * and flagged, never blocked (docs/design-decisions.md D-F1-c), so the
+       * employee has to know before they press that the mark they are about to
+       * make will be looked at by somebody. A shorter label — `Marcar de todas
+       * formas` — would be an override that hides what it costs.
+       */
+      override: 'Marcar de todas formas (queda pendiente de revisión)',
     },
 
     /**
@@ -407,6 +420,15 @@ export const es = {
       outside: 'Fuera del rango permitido',
       noSignal: 'Sin señal de GPS',
       denied: 'Sin permiso de ubicación',
+
+      /**
+       * The action under a disabled button in the no-signal state (KMO-18 #3).
+       * The design's own label, and deliberately not `es.actions.retry`: that
+       * one is the screen asking the server again, and this one is the phone
+       * being asked where it is. An employee reading `Reintentar` under a card
+       * that says `Sin señal de GPS` would not know which of the two it meant.
+       */
+      retry: 'Reintentar ubicación',
     },
 
     /**

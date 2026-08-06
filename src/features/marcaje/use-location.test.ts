@@ -75,7 +75,6 @@ describe('the state it reports', () => {
 
     expect(result.current.state).toEqual({ kind: 'confirmed', distanceMeters: expect.any(Number) });
     expect(result.current.geoStatus).toBe('inside');
-    expect(result.current.punchAllowed).toBe(true);
   });
 
   // #3
@@ -121,7 +120,6 @@ describe('the state it reports', () => {
     const { result } = await render(sourceWith({ getFix: async () => faraway }), null);
 
     expect(result.current.state).toEqual({ kind: 'confirmed', distanceMeters: null });
-    expect(result.current.punchAllowed).toBe(true);
   });
 });
 
@@ -195,7 +193,6 @@ describe('the permission', () => {
     const { result } = await render(sourceWith({ getPermission: async () => 'deniedForever' }));
 
     expect(result.current.state).toEqual({ kind: 'denied', canAskAgain: false });
-    expect(result.current.punchAllowed).toBe(true);
     expect(result.current.geoStatus).toBe('unknown');
     expect(result.current.fix).toBeNull();
   });
@@ -237,6 +234,78 @@ describe('retrying', () => {
 
     expect(getFix).toHaveBeenCalledTimes(2);
     expect(result.current.state.kind).toBe('confirmed');
+  });
+
+  /**
+   * KMO-18 #4. The button that started the retry has to stay on screen while it
+   * runs, and `acquiring` alone cannot say whether anybody asked for it — the
+   * first focus reaches that state too, on a screen nobody has touched.
+   *
+   * The second `getFix` is held open on purpose: the window this flag exists for
+   * is exactly the one where the phone has been asked and has not answered.
+   */
+  it('reports itself as retrying only while the asked-for acquisition is in flight', async () => {
+    let answer: () => void = () => {};
+    let call = 0;
+
+    const getFix = jest.fn(async (): Promise<LocationFix | null> => {
+      call += 1;
+
+      if (call === 1) {
+        return null;
+      }
+
+      return await new Promise<LocationFix | null>((resolve) => {
+        answer = () => resolve(inside);
+      });
+    });
+
+    const { result } = await render(sourceWith({ getFix }));
+
+    expect(result.current.state.kind).toBe('noSignal');
+    expect(result.current.retrying).toBe(false);
+
+    await settle(() => result.current.retry());
+
+    expect(result.current.state.kind).toBe('acquiring');
+    expect(result.current.retrying).toBe(true);
+
+    await settle(() => answer());
+
+    // Settled. The card says where the employee is, and the button that asked is
+    // no longer spinning — nor, by #6, on screen at all.
+    expect(result.current.state.kind).toBe('confirmed');
+    expect(result.current.retrying).toBe(false);
+  });
+
+  // The acquisition every focus starts is nobody's action, so there is no control
+  // to hold on screen for it — and a spinner under the punch button on a screen
+  // the employee just opened would be an app that looks busy for no reason.
+  it('does not report the acquisition started on focus as a retry', async () => {
+    const source = sourceWith({ getFix: () => new Promise(() => {}) });
+
+    const { result } = await renderHook(() => useLocation({ geofence: premise, source }));
+
+    await settle(() => {});
+
+    expect(result.current.state.kind).toBe('acquiring');
+    expect(result.current.retrying).toBe(false);
+  });
+
+  // Granting the permission is its own path back into acquisition, and it is not
+  // a retry however the employee reached it.
+  it('does not report the acquisition behind the rationale as a retry', async () => {
+    const { result } = await render(
+      sourceWith({
+        getPermission: async () => 'undetermined',
+        getFix: () => new Promise(() => {}),
+      }),
+    );
+
+    await settle(() => result.current.acceptRationale());
+
+    expect(result.current.state.kind).toBe('acquiring');
+    expect(result.current.retrying).toBe(false);
   });
 });
 

@@ -210,6 +210,25 @@ describe('phrases assembled around a server value', () => {
   });
 });
 
+// KMO-18. Both labels are transcribed from the design rather than authored, and
+// the override's is a compliance sentence: docs/design-decisions.md D-F1-c words
+// the escape hatch, and an employee pressing it has to have been told what it
+// costs before they do.
+describe('the escape hatches under the punch button', () => {
+  it('warns inside the override label that the mark will be reviewed', () => {
+    expect(es.marcaje.punch.override).toBe('Marcar de todas formas (queda pendiente de revisión)');
+    expect(es.marcaje.punch.override).toContain('pendiente de revisión');
+  });
+
+  // Two different retries on one screen: `Reintentar` asks the server for the day
+  // again, this one asks the phone where it is. An employee reading the bare verb
+  // under `Sin señal de GPS` would not know which had happened.
+  it('names what the location retry retries', () => {
+    expect(es.marcaje.location.retry).toBe('Reintentar ubicación');
+    expect(es.marcaje.location.retry).not.toBe(es.actions.retry);
+  });
+});
+
 // The one thing that must never appear here. A workday status or a leave type
 // arrives from the server as a {value, label} pair and is rendered as it came; a
 // copy of that vocabulary in the catalogue is how a record ends up reading one way

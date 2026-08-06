@@ -37,6 +37,7 @@ export function Gallery() {
           <Button label="Marcar entrada" variant="accent" size="lg" onPress={() => {}} />
           <Button label="Listo" onPress={() => setSheetOpen(true)} />
           <Button label="Reintentar ubicación" variant="secondary" onPress={() => {}} />
+          <Button label="Marcar de todas formas" variant="warning" size="sm" onPress={() => {}} />
           <Button label="Rechazar" variant="danger" onPress={() => {}} />
           <Button label="Sincronizar" size="sm" onPress={() => {}} />
           <Button label="Guardando marca" onPress={() => {}} loading />

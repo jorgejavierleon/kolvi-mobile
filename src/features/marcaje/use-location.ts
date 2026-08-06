@@ -61,15 +61,17 @@ export type LocationReading = {
   readonly fix: LocationFix | null;
   readonly geoStatus: GeoStatus;
   /**
-   * Whether the geolocation card is a reason to hold the punch button.
+   * Whether the acquisition in flight is one the employee asked for (KMO-18 #4).
    *
-   * False for `outside`, which KMO-18 reopens with an explicit override, and for
-   * the two transient states — a fix that is still arriving or a signal that
-   * might come back are both worth another few seconds. True for `denied`,
-   * which is neither transient nor overridable: there is no later moment at
-   * which that employee gets a fix, so the punch goes without one (#7).
+   * It exists because a retry moves the state back to `acquiring`, which is not
+   * `noSignal` — so the button that started it would disappear the instant it
+   * was pressed, taking the employee's own action off screen. With this, the
+   * retry stays where it was and spins.
+   *
+   * False for the acquisition that happens on focus: nobody pressed anything,
+   * and there is no control to keep on screen.
    */
-  readonly punchAllowed: boolean;
+  readonly retrying: boolean;
   /** The Spanish rationale, raised before the OS prompt and never after it (#1). */
   readonly rationaleVisible: boolean;
   /**
@@ -85,7 +87,7 @@ export type LocationReading = {
   acceptRationale: () => void;
   /** `Ahora no`, the backdrop, the back button. Recorded as an answer, not a postponement. */
   dismissRationale: () => void;
-  /** Ask the phone again, from the card or from KMO-18's `Reintentar ubicación`. */
+  /** Ask the phone again, from `Reintentar ubicación` under the punch button (#3). */
   retry: () => void;
   /** The OS settings, for the refusal the app cannot prompt its way out of (#8). */
   openSettings: () => void;
@@ -130,6 +132,13 @@ export function useLocation({
   const [phase, setPhase] = useState<LocationPhase>({ kind: 'acquiring' });
   const [fix, setFix] = useState<LocationFix | null>(null);
   const [rationaleVisible, setRationaleVisible] = useState(false);
+
+  /**
+   * Whether the acquisition in flight was asked for, rather than started on
+   * focus. Set by `run` and by nothing else, so it cannot outlive its own
+   * attempt: the next focus starts a fresh acquisition and clears it.
+   */
+  const [retryRequested, setRetryRequested] = useState(false);
 
   /**
    * Which attempt is the current one.
@@ -215,17 +224,29 @@ export function useLocation({
     [acquire, location],
   );
 
-  const run = useCallback((): void => {
-    const generation = attempt.current + 1;
-    attempt.current = generation;
+  const run = useCallback(
+    ({ requested = false }: { requested?: boolean } = {}): void => {
+      const generation = attempt.current + 1;
+      attempt.current = generation;
 
-    if (!enabled) {
-      return;
-    }
+      if (!enabled) {
+        return;
+      }
 
-    setPhase({ kind: 'acquiring' });
-    void start(generation);
-  }, [enabled, start]);
+      setRetryRequested(requested);
+      setPhase({ kind: 'acquiring' });
+      void start(generation);
+    },
+    [enabled, start],
+  );
+
+  /**
+   * `Reintentar ubicación`. Wrapped rather than handed out as `run` itself so a
+   * press event can never arrive where the flag is read.
+   */
+  const retry = useCallback((): void => {
+    run({ requested: true });
+  }, [run]);
 
   /**
    * On focus, and only on focus.
@@ -250,6 +271,10 @@ export function useLocation({
     const generation = attempt.current + 1;
     attempt.current = generation;
 
+    // Granting a permission is not a retry, even when a retry is what led here.
+    // The acquisition it starts must not put `Reintentar ubicación` under the
+    // punch button on a screen the employee reached through the rationale.
+    setRetryRequested(false);
     setPhase({ kind: 'acquiring' });
 
     void (async () => {
@@ -314,12 +339,14 @@ export function useLocation({
       state,
       fix: state.kind === 'confirmed' || state.kind === 'outside' ? fix : null,
       geoStatus: geoStatusOf(state),
-      punchAllowed: state.kind === 'confirmed' || state.kind === 'denied',
+      // Only while it is still in flight. A settled retry is just a state, and
+      // the button reading this has a spinner on it.
+      retrying: retryRequested && state.kind === 'acquiring',
       rationaleVisible,
       offerRationale,
       acceptRationale,
       dismissRationale,
-      retry: run,
+      retry,
       openSettings,
     }),
     [
@@ -329,7 +356,8 @@ export function useLocation({
       offerRationale,
       openSettings,
       rationaleVisible,
-      run,
+      retry,
+      retryRequested,
       state,
     ],
   );

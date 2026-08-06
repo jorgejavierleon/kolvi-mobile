@@ -43,6 +43,9 @@ const summary: TodaySummary = {
 
 const fix: LocationFix = { latitude: -33.4569, longitude: -70.5975, accuracyMeters: 5 };
 
+/** Estación Central, about two kilometres outside the seeded premise (KMO-18). */
+const farawayFix: LocationFix = { latitude: -33.4372, longitude: -70.6506, accuracyMeters: 5 };
+
 /** A phone that has the permission and knows where it is. */
 function fakeLocation(overrides: Partial<LocationSource> = {}): LocationSource {
   return {
@@ -630,5 +633,164 @@ describe('the punch (KMO-17)', () => {
     // It asked the register what the day actually looks like rather than
     // trusting the step it inferred.
     expect(fetchToday).toHaveBeenCalledTimes(2);
+  });
+});
+
+/**
+ * KMO-18, composed. The unit tests prove each half; what only this level can
+ * show is that the card above the button and the button itself are reading the
+ * same fact — and that a retry which succeeds releases the punch **in place**,
+ * with no reload and nothing remounted (#5).
+ */
+describe('the escape hatches (KMO-18)', () => {
+  /** A phone that is somewhere else. */
+  const outOfRange = () => fakeLocation({ getFix: async () => farawayFix });
+
+  // #1
+  it('holds the button and offers the override when the employee is out of range', async () => {
+    await mountLoaded({ location: outOfRange() });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location-card-title')).toHaveTextContent(
+        'Fuera del rango permitido',
+      ),
+    );
+
+    expect(screen.getByTestId('punch-button')).toBeDisabled();
+    expect(screen.getByText(es.marcaje.punch.override)).toBeOnTheScreen();
+  });
+
+  // #2's client half. The override is not a second kind of request: what goes on
+  // the wire is the punch the primary would have sent, carrying the client's own
+  // `outside` verdict, and the server evaluates the geofence again for itself.
+  it('records a real punch through the override, flagged outside on the wire', async () => {
+    const punchApi = fakePunchApi({ geoStatus: 'outside' });
+    await mountLoaded({ location: outOfRange(), punchApi });
+
+    await waitFor(() => expect(screen.getByText(es.marcaje.punch.override)).toBeOnTheScreen());
+
+    await userEvent.press(screen.getByTestId('punch-override'));
+
+    await waitFor(() => expect(punchApi.calls).toHaveLength(1));
+    expect(punchApi.calls[0]).toEqual({ type: 'in', fix: farawayFix, geoStatus: 'outside' });
+
+    // And it is a punch, not a gesture: the day moved.
+    await waitFor(() => expect(screen.getByText('Marcar salida')).toBeOnTheScreen());
+    expect(screen.getByTestId('clock-status')).toHaveTextContent('En jornada');
+  });
+
+  // #3
+  it('holds the button and offers the location retry when there is no signal', async () => {
+    await mountLoaded({ location: fakeLocation({ getFix: async () => null }) });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location-card-title')).toHaveTextContent('Sin señal de GPS'),
+    );
+
+    expect(screen.getByTestId('punch-button')).toBeDisabled();
+    expect(screen.getByText(es.marcaje.location.retry)).toBeOnTheScreen();
+  });
+
+  /**
+   * #4 and #5 together, which is the sequence the criteria are actually about: a
+   * phone that could not answer, then could.
+   *
+   * The card updates and the button is released **without the screen reloading**
+   * — `fetchToday` is asserted to have run once, so nothing here is a remount in
+   * disguise, and the employee is standing exactly where they were.
+   */
+  it('re-acquires on retry and releases the button, with no reload', async () => {
+    let answers = false;
+    const getFix = jest.fn(async (): Promise<LocationFix | null> => (answers ? fix : null));
+    const fetchToday = jest.fn(async () => summary);
+
+    await mountLoaded({ api: { fetchToday }, location: fakeLocation({ getFix }) });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location-card-title')).toHaveTextContent('Sin señal de GPS'),
+    );
+    expect(getFix).toHaveBeenCalledTimes(1);
+
+    answers = true;
+    await userEvent.press(screen.getByTestId('location-retry'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location-card-title')).toHaveTextContent('Ubicación confirmada'),
+    );
+
+    expect(getFix).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('punch-button')).toBeEnabled();
+    expect(screen.queryByTestId('location-retry')).not.toBeOnTheScreen();
+    expect(fetchToday).toHaveBeenCalledTimes(1);
+  });
+
+  // #4's other half: the fix the retry produced is the one the punch then
+  // carries. A released button that still sent the stale reading would be the
+  // screen and the wire disagreeing about where the employee was standing.
+  it('punches with the fix the retry produced', async () => {
+    let answers = false;
+    const punchApi = fakePunchApi();
+
+    await mountLoaded({
+      location: fakeLocation({ getFix: async () => (answers ? fix : null) }),
+      punchApi,
+    });
+
+    await waitFor(() => expect(screen.getByTestId('location-retry')).toBeOnTheScreen());
+
+    answers = true;
+    await userEvent.press(screen.getByTestId('location-retry'));
+
+    await waitFor(() => expect(screen.getByTestId('punch-button')).toBeEnabled());
+    await userEvent.press(screen.getByTestId('punch-button'));
+
+    await waitFor(() => expect(punchApi.calls).toHaveLength(1));
+    expect(punchApi.calls[0]).toEqual({ type: 'in', fix, geoStatus: 'inside' });
+  });
+
+  // #6
+  it('offers neither button once the location is confirmed', async () => {
+    await mountLoaded();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location-card-title')).toHaveTextContent('Ubicación confirmada'),
+    );
+
+    expect(screen.queryByTestId('punch-override')).not.toBeOnTheScreen();
+    expect(screen.queryByTestId('location-retry')).not.toBeOnTheScreen();
+    expect(screen.getByTestId('punch-button')).toBeEnabled();
+  });
+
+  /**
+   * The state the design has no frame for, and the one an app most easily locks
+   * an employee out of their own attendance with. A refusal is not a hold: no
+   * fix is ever coming, so the punch goes with `geo_status: unknown` rather than
+   * sitting behind a retry that cannot help (D-F1-c, KMO-17 #11).
+   */
+  it('does not hold the button for a permission refused for good', async () => {
+    await mountLoaded({ location: fakeLocation({ getPermission: async () => 'deniedForever' }) });
+
+    await waitFor(() => expect(screen.getByText(es.marcaje.location.denied)).toBeOnTheScreen());
+
+    expect(screen.getByTestId('punch-button')).toBeEnabled();
+    expect(screen.queryByTestId('punch-override')).not.toBeOnTheScreen();
+    expect(screen.queryByTestId('location-retry')).not.toBeOnTheScreen();
+  });
+
+  // The seconds a cold fix takes are not a hold either. The design's own
+  // `primaryDisabled` is out-of-range or no-GPS and nothing else, and a button
+  // dimmed for the twelve seconds a warehouse GPS start can run — with nothing
+  // under it to press — is goal G1 spent on a dead control.
+  it('does not hold the button while the first fix is still arriving', async () => {
+    await mountLoaded({
+      location: fakeLocation({ getFix: () => new Promise<LocationFix | null>(() => {}) }),
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location-card-title')).toHaveTextContent('Buscando tu ubicación'),
+    );
+
+    expect(screen.getByTestId('punch-button')).toBeEnabled();
+    expect(screen.queryByTestId('location-retry')).not.toBeOnTheScreen();
   });
 });
