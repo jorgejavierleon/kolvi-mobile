@@ -122,6 +122,9 @@ function fakePunchApi(overrides: Partial<PunchReceipt> = {}): PunchApi & { calls
         datetime: '2026-08-04 14:07:22' as NaiveDateTime,
         hash: '9f2c1b0e5d4a',
         geoStatus: 'inside',
+        folio: '20260804-0007',
+        employeeName: 'María Fernanda Soto',
+        employeeRut: '214375818',
         ...overrides,
       };
     },
@@ -633,6 +636,81 @@ describe('the punch (KMO-17)', () => {
     // It asked the register what the day actually looks like rather than
     // trusting the step it inferred.
     expect(fetchToday).toHaveBeenCalledTimes(2);
+  });
+});
+
+/**
+ * KMO-19 at the seam KMO-17 left open (its #10): a successful punch opens the
+ * comprobante. The sheet's own contents are `receipt-sheet.test.tsx`'s; what
+ * only this level can show is that what opens it is the **receipt the server
+ * answered with**, and that a punch which did not go through opens nothing.
+ */
+describe('the comprobante (KMO-19)', () => {
+  it('opens the sheet on a punch the server recorded', async () => {
+    await mountLoaded();
+
+    expect(screen.queryByText('¡Marca registrada!')).not.toBeOnTheScreen();
+
+    await userEvent.press(screen.getByTestId('punch-button'));
+
+    await waitFor(() => expect(screen.getByText('¡Marca registrada!')).toBeOnTheScreen());
+  });
+
+  it('fills it from the 201 and not from the screen underneath', async () => {
+    await mountLoaded();
+
+    await userEvent.press(screen.getByTestId('punch-button'));
+
+    // The server's time, its folio and its worker — none of which this screen
+    // has any other copy of. The clock above reads 14:32 from the fake device
+    // clock; the receipt reads the wall clock `ams` recorded.
+    await waitFor(() => expect(screen.getByText('04/08/26')).toBeOnTheScreen());
+    expect(screen.getByText('14:07:22')).toBeOnTheScreen();
+    expect(screen.getByText('20260804-0007')).toBeOnTheScreen();
+    expect(screen.getByText('21.437.581-8')).toBeOnTheScreen();
+  });
+
+  it('closes on Listo and stays closed', async () => {
+    await mountLoaded();
+
+    await userEvent.press(screen.getByTestId('punch-button'));
+    await waitFor(() => expect(screen.getByText('¡Marca registrada!')).toBeOnTheScreen());
+
+    await userEvent.press(screen.getByTestId('receipt-done'));
+
+    // Dismissed for good: the hook still holds the receipt, and a screen that
+    // drew from that would put the sheet straight back up on the next render.
+    await waitFor(() => expect(screen.queryByText('¡Marca registrada!')).not.toBeOnTheScreen());
+    expect(screen.getByText('Marcar salida')).toBeOnTheScreen();
+  });
+
+  it('opens no comprobante for a punch that failed', async () => {
+    await mountLoaded({
+      punchApi: {
+        punch: async () => {
+          throw new ApiError({ kind: 'server', status: 500 });
+        },
+      },
+    });
+
+    await userEvent.press(screen.getByTestId('punch-button'));
+
+    await waitFor(() => expect(screen.getByTestId('punch-failed')).toBeOnTheScreen());
+    expect(screen.queryByText('¡Marca registrada!')).not.toBeOnTheScreen();
+  });
+
+  // #7 through the composition: the line on the receipt is the server's verdict
+  // about the mark, which is the one KMO-18's override does not change.
+  it('carries the out-of-range line when the server flagged the mark', async () => {
+    await mountLoaded({ punchApi: fakePunchApi({ geoStatus: 'outside' }) });
+
+    await userEvent.press(screen.getByTestId('punch-button'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('receipt-out-of-range')).toHaveTextContent(
+        'Marca fuera de rango — pendiente de revisión',
+      ),
+    );
   });
 });
 

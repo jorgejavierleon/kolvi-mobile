@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { es, formatLongDate, greeting, weekSummary } from '@/i18n';
@@ -16,7 +16,8 @@ import { LocationCard } from './location-card';
 import { LocationRationale } from './location-rationale';
 import { useNow } from './now-clock';
 import { PunchAction, type PunchHold } from './punch-action';
-import type { PunchApi } from './punch-api';
+import type { PunchApi, PunchReceipt } from './punch-api';
+import { ReceiptSheet } from './receipt-sheet';
 import { ShiftCard, ShiftCardSkeleton } from './shift-card';
 import type { TodayApi, TodaySummary } from './today-api';
 import { useLocation } from './use-location';
@@ -69,8 +70,13 @@ export type HomeScreenProps = {
  * subject: what holds the button is a fact about the phone, and what releases it
  * is an action about the punch.
  *
- * What is not here yet: the comprobante sheet a punch opens (KMO-19) and the
- * pending-sync banner (KMO-22). Each lands in the slot the design puts it in.
+ * The comprobante (KMO-19) is composed here for the same reason: `usePunch`
+ * hands back the receipt the server answered with, `ReceiptSheet` draws it, and
+ * this screen is the only thing that knows whether the employee is still looking
+ * at it.
+ *
+ * What is not here yet: the pending-sync banner (KMO-22), which lands in the
+ * slot the design puts it in.
  */
 export function HomeScreen({
   onOpenProfile,
@@ -107,18 +113,34 @@ export function HomeScreen({
   });
 
   /**
+   * The comprobante the last punch produced (KMO-19), or `null` when there is
+   * none on screen.
+   *
+   * Screen state rather than a read of `punch.receipt`, and the distinction is
+   * the whole reason it exists: `punch.receipt` is the last receipt the *hook*
+   * holds, which survives the sheet being dismissed, so a screen that drew from
+   * it would reopen the comprobante on the next render. What is being tracked
+   * here is not "was there a punch" but "is the employee looking at its
+   * receipt", and only this screen knows that.
+   */
+  const [receipt, setReceipt] = useState<PunchReceipt | null>(null);
+  const dismissReceipt = useCallback(() => setReceipt(null), []);
+
+  /**
    * The punch (KMO-17).
    *
    * The state it is handed is the server's; what it hands back is that state
    * advanced by any punch it has since recorded, which is what the clock's
    * status line and the button both read. `onAlreadyMarked` is the reconcile:
    * the register already holds the mark, so the screen asks for the day again
-   * rather than trusting the step it just inferred (#7).
+   * rather than trusting the step it just inferred (#7); `onPunched` is the
+   * receipt going straight to the sheet above (KMO-19, and KMO-17 #10).
    */
   const punch = usePunch({
     state: today.status === 'loaded' ? today.summary.punchState : null,
     fix: location.fix,
     geoStatus: location.geoStatus,
+    onPunched: setReceipt,
     onAlreadyMarked: today.reload,
     api: punchApi,
   });
@@ -201,6 +223,13 @@ export function HomeScreen({
           hold={hold}
         />
       ) : null}
+
+      {/* Over everything, and only ever from a receipt the server answered with
+          (KMO-19 #9, and the criterion KMO-17 left open at #10). It is outside
+          the three load states on purpose: a comprobante is about the punch
+          that was just recorded, and a `/me/today` reload happening behind it
+          must not take it off the screen the employee is reading. */}
+      <ReceiptSheet receipt={receipt} onDismiss={dismissReceipt} testID="receipt-sheet" />
     </Screen>
   );
 }

@@ -393,6 +393,85 @@ export const es = {
     },
 
     /**
+     * The comprobante — the receipt an employee sees the moment a punch is
+     * recorded (KMO-19). Transcribed from the design's own overlay, and the one
+     * section of this catalogue that is a compliance artefact twice over:
+     * Res. 38 Art. 5 makes it Spanish, and Art. 13 makes the six row labels
+     * below the *minimum content* of a receipt rather than a layout choice.
+     *
+     * Every value beside these labels comes off the 201. Nothing in this section
+     * is a sentence about the phone, because nothing on the sheet is.
+     */
+    receipt: {
+      /** The design's `comprobanteHeadline` for a mark the server confirmed. */
+      headline: '¡Marca registrada!',
+      subtitle: 'Comprobante de marca',
+
+      /**
+       * The Art. 13 rows, in the design's order. `folio` is `N° comprobante`
+       * per docs/design-decisions.md D-F2-a — a real folio, `YYYYMMDD-NNNN`,
+       * which `ams` allocates per organization and day (KOL-35).
+       */
+      type: 'Tipo',
+      date: 'Fecha',
+      time: 'Hora',
+      worker: 'Trabajador',
+      rut: 'RUT',
+      folio: 'N° comprobante',
+
+      /**
+       * The `Tipo` value. `in` and `out` are how `ams` spells `Mark.type` on the
+       * wire; these are how the design writes them on the receipt, and they are
+       * app copy rather than server vocabulary — the 201 sends the enum, not a
+       * `{value, label}` pair.
+       */
+      types: {
+        in: 'Entrada',
+        out: 'Salida',
+      },
+
+      /**
+       * The checksum's label, with the algorithm in it because the design puts
+       * it there and because an inspector reading the receipt needs to know
+       * which one it is.
+       *
+       * What is deliberately *not* here is any sentence about verifying it. The
+       * hash is copyable so an employee can keep it or quote it — to HR, or
+       * against the emailed copy Art. 12 covers. `ams` has a checksum validation
+       * tool, but it lives in the DT inspector portal behind authentication and
+       * there is no public route; copy that implied otherwise would promise
+       * something no employee can do.
+       */
+      hash: 'Hash de verificación (SHA-256)',
+
+      /**
+       * The punch was made outside the geofence (#7). Verbatim from the design,
+       * em dash and all.
+       *
+       * It reads as a fact about the mark rather than as a warning about the
+       * employee, which is D-F1-c on the receipt: out of range is recorded and
+       * flagged, never blocked, so by the time this line is on screen the mark
+       * is already in the register and somebody will look at it. The wording
+       * says exactly that and stops.
+       */
+      outOfRange: 'Marca fuera de rango — pendiente de revisión',
+
+      /**
+       * Always on the sheet, for every mark (#8). It is what makes the receipt a
+       * receipt: the employee is being told which register their punch just
+       * joined, and under which resolution.
+       */
+      legal:
+        'Este registro forma parte del libro de asistencia electrónico (Resolución 38 de la Dirección del Trabajo).',
+
+      /** The pinned footer button, which only dismisses. Nothing is undone. */
+      done: 'Listo',
+
+      /** The backdrop, which a screen reader has nothing else to name. */
+      close: 'Cerrar comprobante',
+    },
+
+    /**
      * The titles on the geolocation card, above the shift card (KMO-16).
      *
      * The first three are transcribed from the design's own `geoTitle`, and each

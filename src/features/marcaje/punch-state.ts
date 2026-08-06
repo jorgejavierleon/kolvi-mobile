@@ -80,6 +80,18 @@ export function punchActionLabel(type: PunchType): string {
 }
 
 /**
+ * What the comprobante's `Tipo` row says the mark was (KMO-19 #3).
+ *
+ * A noun where `punchActionLabel` is a verb: the button offers to *marcar
+ * entrada*, and the receipt afterwards states that the mark's type was
+ * `Entrada`. Both hang off the same two wire values, here, rather than each
+ * screen mapping `in`/`out` to Spanish on its own.
+ */
+export function punchTypeName(type: PunchType): string {
+  return es.marcaje.receipt.types[type];
+}
+
+/**
  * Where the employee is once that punch is recorded (#2).
  *
  * Applied only to a punch the **server** accepted. The screen advances off the

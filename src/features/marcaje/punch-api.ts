@@ -17,12 +17,12 @@
  * have had one and dropped it, and the two must not look alike to a server that
  * is deciding whether a mark is evidence of anything.
  *
- * **The contract below is provisional**, like `today-api.ts` was for KOL-31.
- * `ams` KOL-34 is the ticket that makes the endpoint serve it — today it still
- * requires a client `datetime`, accepts no accuracy or geo status, enforces no
- * one-per-day guard and answers with an offset-stamped ISO 8601 datetime this
- * parser rejects on purpose. This file is the authoritative reading that ticket
- * is graded against.
+ * **The contract below was provisional and no longer is.** `ams` KOL-34 made the
+ * endpoint server-authoritative — no client `datetime`, its own geofence, the
+ * one-per-day guard, a naive wall-clock answer — and KOL-35 completed the
+ * receipt with the folio and the worker identity Res. 38 Art. 13 asks for. Both
+ * have shipped, and this file was the authoritative reading they were graded
+ * against.
  */
 
 import {
@@ -68,10 +68,24 @@ export type PunchReceipt = {
   readonly type: PunchType;
   /** The legal timestamp, naive Santiago wall-clock. Never re-read in a zone. */
   readonly datetime: NaiveDateTime;
-  /** The SHA-256 checksum the employee can verify the mark against (Art. 13). */
+  /** The SHA-256 checksum the mark is recorded under (Art. 13). */
   readonly hash: string;
   /** The server's geofence verdict, not the one this app sent. */
   readonly geoStatus: GeoStatus;
+  /**
+   * `N° comprobante`, the receipt number an employee reads back to HR —
+   * `YYYYMMDD-NNNN`, allocated per organization per day (D-F2-a, `ams` KOL-35).
+   * Never derived from `markId`, which is a database key and not a folio.
+   */
+  readonly folio: string | null;
+  /**
+   * The worker named on the receipt (Art. 13), from the immutable snapshot
+   * `MarkObserver` stamps onto the mark rather than from the live user — so a
+   * receipt reprinted years later names who the employee was at the punch.
+   */
+  readonly employeeName: string | null;
+  /** Their RUT, undotted as `ams` holds it. `formatRut` punctuates it. */
+  readonly employeeRut: string | null;
 };
 
 export type PunchApi = {
@@ -184,6 +198,9 @@ export function parsePunchReceipt(payload: unknown): PunchReceipt {
     datetime: parseDateTime(root.datetime),
     hash: parseHash(root.hash),
     geoStatus: parseGeoStatus(root.geo_status),
+    folio: parseOptionalText(root.folio, 'folio'),
+    employeeName: parseOptionalText(root.employee_name, 'employee_name'),
+    employeeRut: parseOptionalText(root.employee_rut, 'employee_rut'),
   };
 }
 
@@ -232,6 +249,34 @@ function parseHash(value: unknown): string {
   }
 
   return value;
+}
+
+/**
+ * One of the three Art. 13 identity fields, or `null` when the register has
+ * none.
+ *
+ * Nullable rather than required, and that is the register's shape rather than a
+ * hedge against a backend that has not caught up: `ams` stamps `employee_name`
+ * and `employee_rut` from `$user?->rut` onto the mark, and `users.rut` is itself
+ * nullable, so a mark with no RUT on it is a fact about the record. The sheet
+ * omits the row rather than drawing an empty one — see `receipt-sheet.tsx`.
+ *
+ * A value that is *present and not a string* still fails, like every other field
+ * on this receipt. The alternative is a comprobante that prints `[object
+ * Object]` where a worker's name belongs.
+ */
+function parseOptionalText(value: unknown, field: string): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value !== 'string') {
+    throw new PunchResponseError(`\`${field}\` is not text, received ${JSON.stringify(value)}`);
+  }
+
+  // An empty string is the same absence as a null, written differently. A row
+  // whose value is `''` would render as a label with nothing after it.
+  return value.trim().length === 0 ? null : value;
 }
 
 /**

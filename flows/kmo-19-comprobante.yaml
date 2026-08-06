@@ -1,0 +1,169 @@
+# KMO-19 — the comprobante a recorded punch opens.
+#
+# Covers #1 (the sheet rises over the screen and the pinned `Listo` dismisses
+# it), #2 (the headline), #3 and #4 (the Art. 13 rows, with the date as dd/mm/aa
+# and the time carrying seconds), #5 (the hash under its own label, untruncated),
+# #6 (`Copiar` becoming `Copiado`) and #8 (the legal note). It is also the device
+# half of KMO-17 #10 — a successful punch opens the sheet built here.
+#
+# What this flow cannot carry: #7, whose line needs a mark the *server* flagged
+# `outside` (`kmo-19-out-of-range.yaml`), and #10, which is a font scale rather
+# than a tap.
+#
+# **It walks the whole day**, entrada then salida, and that is not padding: the
+# two receipts are how the flow gets two clean screens. `Listo` is pressed on the
+# first, where nothing is over it; `Copiar` is pressed on the second and the flow
+# stops there — because Android's own clipboard preview pops up over the bottom
+# of the screen for six seconds after any app writes to the clipboard, directly
+# on top of the pinned footer, and a `Listo` tap made in that window lands on the
+# system UI instead. That overlay is the OS's, not the sheet's; splitting the two
+# assertions across the two receipts tests both without waiting on it.
+#
+# Tagged out of the suite for the same reason `kmo-17-punch.yaml` is: it spends
+# the day. The register keeps one `in` and one `out` per day (D-F1-b), so a
+# second run finds a day already closed and never reaches a receipt. Clear
+# today's marks for `employee@example.com` first, then:
+#
+#   bin/e2e flows/kmo-19-comprobante.yaml
+#
+# The assertions on the folio, the worker and the RUT are deliberately loose —
+# `assertVisible` on the row *label*, not on its value. The values are the seeded
+# employee's and the day's own sequence, and a flow that hard-coded
+# `20260806-0002` would fail tomorrow for the right reason at the wrong place.
+# That the values come from the 201 and from nowhere else is `receipt-sheet`'s
+# and `home-screen`'s Jest tier (#9), which is also where `Copiar` becoming
+# `Copiado` is asserted — see the note above that step.
+appId: cl.kolvi.empleados
+name: KMO-19 comprobante
+tags:
+  - marcaje
+  - requires-unpunched-day
+---
+- runFlow: shared/sign-in.yaml
+
+- extendedWaitUntil:
+    visible: 'Turno de hoy'
+    timeout: 30000
+    label: 'The shift card loaded, so /me/today has answered'
+
+- extendedWaitUntil:
+    visible: 'Marcar entrada'
+    timeout: 30000
+    label: 'An unpunched day, which is what this flow needs'
+
+- tapOn:
+    id: 'punch-button'
+
+# #1, #2. The sheet comes up on the receipt and not on the tap — the wait is the
+# round trip, and what appears is drawn from what came back.
+- extendedWaitUntil:
+    visible: '¡Marca registrada!'
+    timeout: 30000
+    label: '#2 — the headline over the success check (KMO-17 #10 on a device)'
+
+- assertVisible:
+    text: 'Comprobante de marca'
+    label: '#2 — and the subtitle under it'
+
+# #3. Every row Res. 38 Art. 13 asks for, plus D-F2-a's folio.
+- assertVisible:
+    text: 'Tipo'
+    label: '#3 — Tipo'
+- assertVisible:
+    text: 'Entrada'
+    label: '#3 — and its value, the type the server recorded'
+- assertVisible:
+    text: 'Fecha'
+    label: '#3 — Fecha'
+- assertVisible:
+    text: 'Hora'
+    label: '#3 — Hora'
+- assertVisible:
+    text: 'Trabajador'
+    label: '#3 — Trabajador'
+- assertVisible:
+    text: 'RUT'
+    label: '#3 — RUT'
+- assertVisible:
+    text: 'N° comprobante'
+    label: '#3 — N° comprobante, the folio ams allocates'
+
+# #4. The regulation's own formats: dd/mm/aa, and a time with seconds on it.
+- assertVisible:
+    text: '\d{2}/\d{2}/\d{2}'
+    label: '#4 — the date reads dd/mm/aa'
+- assertVisible:
+    text: '\d{2}:\d{2}:\d{2}'
+    label: '#4 — the time keeps its seconds'
+
+# #5. The label, and a 64-character hex string under it — the length in the
+# pattern is what says it was not truncated.
+- assertVisible:
+    text: 'Hash de verificación \(SHA-256\)'
+    label: '#5 — the hash is labelled with its algorithm'
+- assertVisible:
+    text: '[0-9a-f]{64}'
+    label: '#5 — all sixty-four characters are on screen, not an ellipsis'
+
+# #8. On every receipt, whatever else is on it.
+- assertVisible:
+    text: 'Este registro forma parte del libro de asistencia electrónico \(Resolución 38 de la Dirección del Trabajo\).'
+    label: '#8 — the legal note'
+
+- takeScreenshot: kmo-19-comprobante
+
+# #1. The pinned action dismisses, and behind it is the screen the employee
+# left — now showing the punch they just made.
+- tapOn:
+    id: 'receipt-done'
+
+- extendedWaitUntil:
+    visible: 'Marcar salida'
+    timeout: 10000
+    label: '#1 — Listo dismisses, and the day underneath moved on'
+
+- assertNotVisible:
+    text: '¡Marca registrada!'
+    label: '#1 — dismissed for good, not merely covered'
+
+# The salida, for the second receipt.
+- tapOn:
+    id: 'punch-button'
+
+- extendedWaitUntil:
+    visible: '¡Marca registrada!'
+    timeout: 30000
+    label: 'The second comprobante, for the mark that closes the day'
+
+- assertVisible:
+    text: 'Salida'
+    label: '#3 — the Tipo row names this one a salida'
+
+# #6, the half only a device can carry: the button is really there, and pressing
+# it really runs `expo-clipboard` against the OS clipboard. A native module that
+# had not linked would take the app down here rather than continue.
+#
+# What this flow deliberately does **not** assert is the `Copiado` label. It
+# stands for 1500ms — the design's own `setTimeout` — and Maestro's settle after
+# a tap took 3.7s on this emulator, so the label is always gone by the time an
+# assertion could run. Slowing the app down to be observable would be changing
+# the product to suit the test; the label swap is asserted in
+# `receipt-sheet.test.tsx` instead, where it is deterministic. The screenshot
+# below catches Android's own clipboard preview, which is the OS confirming it
+# accepted the write.
+- assertVisible:
+    text: 'Copiar'
+    label: '#6 — the copy action'
+
+- tapOn:
+    id: 'receipt-copy'
+
+- takeScreenshot: kmo-19-comprobante-copiado
+
+- assertVisible:
+    text: '¡Marca registrada!'
+    label: '#6 — the sheet survived the native clipboard call'
+
+- assertVisible:
+    text: '[0-9a-f]{64}'
+    label: '#6 — with the hash it just copied still whole on screen'

@@ -10,7 +10,13 @@ export { colors, tones, withAlpha } from './colors';
 export type { ColorToken, Tone, ToneColors } from './colors';
 
 export { fontFamilies, fontWeights, typography } from './typography';
-export type { FontFamily, FontFamilyToken, TypographyPreset, TypographyStyle } from './typography';
+export type {
+  BundledFontFamily,
+  FontFamily,
+  FontFamilyToken,
+  TypographyPreset,
+  TypographyStyle,
+} from './typography';
 
 export { fontAssets, useKolviFonts } from './fonts';
 

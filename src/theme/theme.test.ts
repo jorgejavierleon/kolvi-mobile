@@ -70,8 +70,24 @@ describe('typography', () => {
     eyebrow: { fontFamily: fontFamilies.uiSemiBold, fontSize: 11, ratio: 1.4 },
   } as const;
 
+  /**
+   * `mono` is the one preset with no line in `tokens/typography.css`: the design
+   * writes the comprobante's hash inline as `600 11px/1.5 monospace` (KMO-19
+   * #5). It is named here so that the assertion above stays "the token file and
+   * nothing else" rather than quietly widening to whatever `typography` holds.
+   */
+  const inlinePresets = ['mono'];
+
   it('defines every preset the design system names, and no others', () => {
-    expect(Object.keys(typography)).toEqual(Object.keys(tokenFile));
+    expect(Object.keys(typography)).toEqual([...Object.keys(tokenFile), ...inlinePresets]);
+  });
+
+  it('draws the hash in the platform monospace at the design’s 11/1.5', () => {
+    expect(typography.mono).toEqual({
+      fontFamily: fontFamilies.mono,
+      fontSize: 11,
+      lineHeight: 17,
+    });
   });
 
   it.each(Object.entries(tokenFile))('%s matches the token file', (name, expected) => {
@@ -90,7 +106,13 @@ describe('typography', () => {
 
   it('bundles a font file for every family a preset asks for', () => {
     for (const preset of Object.values(typography)) {
-      expect(fontAssets[preset.fontFamily]).toBeDefined();
+      if (preset.fontFamily === fontFamilies.mono) {
+        // The platform's own face. `useFonts` has no file to load for it, which
+        // is the point — see the note on `fontAssets`.
+        continue;
+      }
+
+      expect(fontAssets[preset.fontFamily as keyof typeof fontAssets]).toBeDefined();
     }
   });
 
@@ -100,6 +122,10 @@ describe('typography', () => {
       'PlusJakartaSans_400Regular',
       'PlusJakartaSans_500Medium',
       'PlusJakartaSans_600SemiBold',
+      // `Platform.select` resolves per platform — `monospace` on Android,
+      // `Menlo` on iOS — so the assertion names both rather than pinning the
+      // one the test runner happens to be. Neither is a bundled weight.
+      expect.stringMatching(/^(?:monospace|Menlo)$/),
     ]);
   });
 });

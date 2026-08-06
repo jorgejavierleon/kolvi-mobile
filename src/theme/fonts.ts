@@ -4,15 +4,19 @@ import { PlusJakartaSans_600SemiBold } from '@expo-google-fonts/plus-jakarta-san
 import { Sora_700Bold } from '@expo-google-fonts/sora/700Bold';
 import { useFonts } from 'expo-font';
 
-import { fontFamilies, type FontFamily } from './typography';
+import { fontFamilies, type BundledFontFamily } from './typography';
 
 /**
  * The four `.ttf` files the presets reference, keyed by the family name they are
  * registered under. They are bundled with the app, not fetched from Google: the
  * design system's `@import` of the Google Fonts CDN is a web convenience the app
  * cannot rely on, since employees punch in places with no signal at all.
+ *
+ * `fontFamilies.mono` is deliberately absent: it names the platform's own
+ * monospace face, which the OS already has and `useFonts` has no file to load
+ * for.
  */
-export const fontAssets: Record<FontFamily, number> = {
+export const fontAssets: Record<BundledFontFamily, number> = {
   [fontFamilies.display]: Sora_700Bold,
   [fontFamilies.uiRegular]: PlusJakartaSans_400Regular,
   [fontFamilies.uiMedium]: PlusJakartaSans_500Medium,

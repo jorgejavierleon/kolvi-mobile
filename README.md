@@ -305,9 +305,20 @@ sitting behind a retry that cannot help. What holds the button is a `PunchHold`,
 carries the escape hatch with it: there is no way to express a disabled punch button with
 nothing beneath it.
 
-The comprobante sheet the receipt opens (KMO-19) and the pending-sync banner (KMO-22) land
-in the slots the design puts them in. Jornada, Permisos and Documentos are still empty — run
-`backlog task list --plain` to see the backlog.
+A punch that lands opens the comprobante (KMO-19), which is the employee's evidence that
+their attendance was recorded: `Tipo`, `Fecha`, `Hora`, `Trabajador`, `RUT` and
+`N° comprobante` — the minimum content Res. 38 Art. 13 names, with the folio `ams` allocates
+per organization per day — over the SHA-256 in monospace, with a `Copiar` button that
+confirms in its own label. Every value on it comes off the 201 and **none** of it from this
+phone: the sheet takes a receipt and has no other source, so it cannot show a time, a name or
+a folio the register does not hold. The hash is copyable for keeping or quoting, and nothing
+around the button implies the employee can verify it themselves — `ams`' checksum tool is in
+the DT inspector portal, behind authentication, and no public route exists. A mark the server
+flagged outside the geofence carries `Marca fuera de rango — pendiente de revisión`, and the
+legal note naming the libro de asistencia is on every receipt without exception.
+
+The pending-sync banner (KMO-22) lands in the slot the design puts it in. Jornada, Permisos
+and Documentos are still empty — run `backlog task list --plain` to see the backlog.
 
 One thing the session still cannot do, and it is the backend's: a deactivated employee keeps a
 working token, because `ams` checks `is_active` only when issuing one (PRD A7/A8) — the app ends

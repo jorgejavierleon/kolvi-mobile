@@ -1,0 +1,89 @@
+# KMO-19 — the comprobante for a mark the server flagged out of range.
+#
+# Covers #7, and only #7: `Marca fuera de rango — pendiente de revisión` on the
+# receipt of a punch made outside the geofence. The rest of the sheet is
+# `kmo-19-comprobante.yaml`'s.
+#
+# It is a separate flow because the condition is two things at once, and neither
+# belongs inside a flow: the phone has to be **outside** the seeded `Sucursal
+# Centro`'s 150 m radius, which is emulator state, and the day has to still have
+# a punch left in it, which is the register's. It also **presses the override**,
+# which `kmo-18-out-of-range.yaml` deliberately does not — so this flow records a
+# real mark and spends the day.
+#
+# The line comes from the *server's* verdict and not from the override having
+# been pressed (D-F1-c: the client's geofence is advisory, `ams` KOL-34 runs its
+# own haversine). Which is the point of asserting it here rather than in Jest:
+# on this run the two agree because the phone really is two kilometres away.
+#
+# Clear today's marks for `employee@example.com`, put the phone outside, then:
+#
+#   bin/device geo -33.4372 -70.6506 && bin/e2e flows/kmo-19-out-of-range.yaml
+#   bin/device geo -33.4489 -70.6693        # back inside, for everything else
+appId: cl.kolvi.empleados
+name: KMO-19 comprobante out of range
+tags:
+  - marcaje
+  - geo
+  - requires-geo-off-premise
+  - requires-unpunched-day
+---
+- runFlow: shared/sign-in.yaml
+
+- extendedWaitUntil:
+    visible: 'Turno de hoy'
+    timeout: 30000
+    label: 'The shift card loaded, so the geofence is known'
+
+# `clearState` in shared/launch.yaml resets the app's runtime permissions, so the
+# flow grants location itself — an employee with no fix is never *outside* the
+# fence, only `unknown`, and this flow is about the verdict.
+- extendedWaitUntil:
+    visible: 'Activar ubicación'
+    timeout: 30000
+    label: 'The card offers the way in'
+
+- tapOn: 'Activar ubicación'
+
+- extendedWaitUntil:
+    visible: 'Kolvi usa tu ubicación al marcar'
+    timeout: 20000
+    label: 'The rationale, before the OS prompt'
+
+- tapOn: 'Continuar'
+
+- extendedWaitUntil:
+    visible:
+      id: 'com.android.permissioncontroller:id/permission_allow_foreground_only_button'
+    timeout: 20000
+    label: "Android's own prompt"
+
+- tapOn:
+    id: 'com.android.permissioncontroller:id/permission_allow_foreground_only_button'
+
+- extendedWaitUntil:
+    visible: 'Fuera del rango permitido'
+    timeout: 30000
+    label: 'The phone is outside the premise, and the card says so'
+
+# KMO-18's escape hatch, pressed on purpose this time.
+- tapOn:
+    id: 'punch-override'
+
+- extendedWaitUntil:
+    visible: '¡Marca registrada!'
+    timeout: 30000
+    label: 'The mark was recorded — out of range is flagged, never blocked'
+
+- assertVisible:
+    text: 'Marca fuera de rango — pendiente de revisión'
+    label: '#7 — the receipt carries the server’s verdict about the mark'
+
+- assertVisible:
+    text: 'Este registro forma parte del libro de asistencia electrónico \(Resolución 38 de la Dirección del Trabajo\).'
+    label: '#8 — and the legal note is there for this mark too'
+
+- takeScreenshot: kmo-19-comprobante-fuera-de-rango
+
+- tapOn:
+    id: 'receipt-done'

@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-06 01:56'
+updated_date: '2026-08-06 15:25'
 labels:
   - mobile
   - marcaje
@@ -49,7 +49,7 @@ Per docs/design-decisions.md §2 there are exactly three states and one entrada 
 - [x] #7 A server rejection because the punch already exists for today renders as a friendly Spanish state, never as an error dialog
 - [x] #8 A failed punch leaves the state unchanged and offers retry without the employee losing their place
 - [ ] #9 The button remains legible and operable in direct sunlight and with gloves, verified on a physical mid-range Android
-- [ ] #10 A successful punch transitions the state and opens the comprobante sheet built in KMO-19
+- [x] #10 A successful punch transitions the state and opens the comprobante sheet built in KMO-19
 - [x] #11 A punch made without a location fix — permission permanently denied, or no signal — is recorded rather than blocked, and travels with geo_status unknown (carried over from KMO-16 #7)
 <!-- AC:END -->
 
@@ -167,6 +167,10 @@ Both stay unchecked because neither has evidence, not because they were forgotte
 - **#10** — carried to **KMO-19**, which builds the sheet this ticket only opens. Recorded there in that task's notes, along with what is already wired (`onPunched(receipt)`, `punch.receipt`, the `PunchReceipt` shape) and the one thing still missing on the wire: `MarkResource` sends no worker name, no RUT and no folio, so KMO-19's Art. 13 detail block needs a companion `ams` ticket that nobody has written yet.
 
 Nine of eleven checked, every one of them against evidence that can be re-run.
+
+**#10 is now verified and checked**, from KMO-19's branch as that ticket's notes said it would be. `flows/kmo-19-comprobante.yaml` punches on the device and waits for `¡Marca registrada!`: the sheet rises from the receipt the server answered with, and the day underneath moved to `Marcar salida` behind it. `home-screen.test.tsx` covers the same seam at the Jest tier — the sheet opens on a 201 and stays shut on a punch that failed.
+
+#9 remains open and still needs the physical-device tier: sunlight and gloves are not things an emulator can be made to honestly pass.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

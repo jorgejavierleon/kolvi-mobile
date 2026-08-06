@@ -17,6 +17,11 @@ function payload(overrides: Record<string, unknown> = {}): Record<string, unknow
     datetime: '2026-08-05 08:03:11',
     type: 'in',
     geo_status: 'inside',
+    // The Art. 13 identity, which `ams` KOL-35 added to `MarkResource`. The RUT
+    // arrives undotted, exactly as `users.rut` holds it.
+    folio: '20260805-0042',
+    employee_name: 'María Fernanda Soto',
+    employee_rut: '214375818',
     ...overrides,
   };
 }
@@ -140,6 +145,9 @@ describe('parsePunchReceipt', () => {
       datetime: '2026-08-05 08:03:11',
       hash: '9f2c1b0e5d4a3c2b1a0f9e8d7c6b5a4938271605f4e3d2c1b0a9988776655443',
       geoStatus: 'inside',
+      folio: '20260805-0042',
+      employeeName: 'María Fernanda Soto',
+      employeeRut: '214375818',
     });
   });
 
@@ -188,6 +196,51 @@ describe('parsePunchReceipt', () => {
     // rango — pendiente de revisión` (KMO-19 #7).
     it('fails on a verdict it does not recognise rather than rounding it down', () => {
       expect(() => parsePunchReceipt(payload({ geo_status: 'out_of_range' }))).toThrow(
+        PunchResponseError,
+      );
+    });
+  });
+
+  /**
+   * The three Res. 38 Art. 13 fields `ams` KOL-35 added (KMO-19 #3).
+   *
+   * All three are nullable, and that is the register's own shape rather than a
+   * concession to a backend that has not caught up: `MarkObserver` stamps the
+   * identity from `$user?->rut`, and `users.rut` is itself nullable. The
+   * comprobante omits a row it has no value for instead of drawing an empty one.
+   */
+  describe('the Art. 13 identity', () => {
+    it('reads the folio as the server allocated it, not as a dressed-up mark id', () => {
+      const receipt = parsePunchReceipt(payload());
+
+      expect(receipt.folio).toBe('20260805-0042');
+      expect(receipt.folio).not.toContain(String(receipt.markId));
+    });
+
+    it('keeps the RUT undotted, leaving the punctuation to formatRut', () => {
+      expect(parsePunchReceipt(payload()).employeeRut).toBe('214375818');
+    });
+
+    /** The wire spelling and the receipt's, for the three nullable fields. */
+    const identity = [
+      ['folio', 'folio'],
+      ['employee_name', 'employeeName'],
+      ['employee_rut', 'employeeRut'],
+    ] as const;
+
+    // An empty string is the same absence written differently, and the row it
+    // would draw is a label with nothing after it.
+    it.each(identity)('reads an absent or blank %s as null', (wire, field) => {
+      for (const absent of [null, undefined, '   ']) {
+        expect(parsePunchReceipt(payload({ [wire]: absent }))[field]).toBeNull();
+      }
+    });
+
+    // Present and not a string is a disagreement about the contract, and the
+    // failure it would otherwise cause is a worker's name rendering as
+    // `[object Object]` on a legal receipt.
+    it.each(identity)('fails on a %s that is not text', (wire) => {
+      expect(() => parsePunchReceipt(payload({ [wire]: { value: 'x' } }))).toThrow(
         PunchResponseError,
       );
     });

@@ -208,3 +208,19 @@ export function MapPinOffIcon(props: IconProps) {
     </Glyph>
   );
 }
+
+/**
+ * `check` — the comprobante's success mark (KMO-19 #2).
+ *
+ * The design thickens this one to 3 and draws it at 30 in a 64dp success-tinted
+ * circle: it is the largest glyph in the app because it is the confirmation an
+ * employee looks for after the one action the app exists for, and it is read
+ * across a warehouse rather than up close.
+ */
+export function CheckIcon(props: IconProps) {
+  return (
+    <Glyph {...props} strokeWidth={3}>
+      <Path d="M20 6 9 17l-5-5" />
+    </Glyph>
+  );
+}

@@ -18,6 +18,9 @@ function receipt(overrides: Partial<PunchReceipt> = {}): PunchReceipt {
     datetime: '2026-08-05 08:03:11' as NaiveDateTime,
     hash: '9f2c1b0e5d4a',
     geoStatus: 'inside',
+    folio: '20260805-0042',
+    employeeName: 'María Fernanda Soto',
+    employeeRut: '214375818',
     ...overrides,
   };
 }
