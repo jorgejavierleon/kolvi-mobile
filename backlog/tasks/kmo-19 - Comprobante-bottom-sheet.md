@@ -4,6 +4,7 @@ title: Comprobante bottom sheet
 status: To Do
 assignee: []
 created_date: '2026-07-30 20:59'
+updated_date: '2026-08-06 01:56'
 labels:
   - mobile
   - marcaje
@@ -45,3 +46,21 @@ The hash is copyable so the employee can verify it against the public validation
 - [ ] #9 No value on the sheet is derived from client-side state or the device clock
 - [ ] #10 The sheet body scrolls independently when the content exceeds the sheet height at large font scales
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**KMO-17 #10 is owed here, and it is the only criterion of that ticket left open.** It reads: *"A successful punch transitions the state and opens the comprobante sheet built in KMO-19."* KMO-17 could not close it — the sheet is this ticket's, and this ticket depends on that one — so it was left unchecked deliberately rather than signed off on a seam.
+
+Everything the sheet needs is already built and tested:
+
+- `src/features/marcaje/use-punch.ts` takes an **`onPunched(receipt: PunchReceipt)`** callback and calls it with the parsed 201, and also keeps the last receipt on `punch.receipt`. `use-punch.test.ts` covers both. Nothing is wired to it yet — `home-screen.tsx` passes `onAlreadyMarked` but no `onPunched`, which is the one line this ticket adds.
+- `src/features/marcaje/punch-api.ts` defines `PunchReceipt` — `markId`, `type`, `datetime` (naive Santiago wall-clock), `hash`, `geoStatus`. That is what `ams` returns today, verified against the live endpoint after KOL-34.
+
+Two things to know before building the detail block:
+
+- **`ams` does not yet send the Art. 13 fields.** `MarkResource` returns `mark_id`, `hash`, `datetime`, `type` and `geo_status` and nothing else — no worker name, no RUT, and **no folio**. This ticket's #3, #4 and its `N° comprobante` row need those on the wire first, and KOL-34 deliberately scoped them out (PRD §420 item 4; the folio is its own decision, D-F2-a, `YYYYMMDD-NNNN`). That is a companion `ams` ticket nobody has written yet.
+- **#7's out-of-range line reads `geoStatus`**, which the receipt already carries and the server already decides — `'outside'` is what puts `Marca fuera de rango — pendiente de revisión` on the sheet. That half needs no backend work.
+
+When this ships, verify KMO-17 #10 on the device — punch, and watch the sheet come up from the receipt — and check it on KMO-17 rather than here.
+<!-- SECTION:NOTES:END -->

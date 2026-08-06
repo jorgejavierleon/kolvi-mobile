@@ -1,11 +1,11 @@
 ---
 id: KMO-17
 title: Punch action and the before/working/done state machine
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-06 01:50'
+updated_date: '2026-08-06 01:56'
 labels:
   - mobile
   - marcaje
@@ -158,6 +158,15 @@ One thing worth knowing when reading those rows: the flow's marks carry no fix. 
 `npm run check` still green — 912 tests, 57 suites; nothing in `src/` changed for KOL-34. `kmo-17-punch-button.yaml` failed once on a cold AVD with the same `Ingresar`-visible signature as the earlier flakiness and passed on the immediate re-run.
 
 All probe data was removed: marks 206–210 force-deleted and the `probe` token revoked. `employee@example.com` is back to an unpunched day.
+
+## Closing with #9 and #10 unchecked
+
+Both stay unchecked because neither has evidence, not because they were forgotten — and the two are open for different reasons.
+
+- **#9** — the user waived it as a blocker on closing this ticket. Nothing about the criterion changed: sunlight and gloves need a physical mid-range Android, an emulator run that "passed" them would be worthless, and the button has never been in front of either. It is a real gap in the record and the button's outdoor legibility is still unproven. What is known is what shaped it: 64dp minimum, full width, the app's one coral on a pale page, the display font, and a glow that separates it from everything else on the screen.
+- **#10** — carried to **KMO-19**, which builds the sheet this ticket only opens. Recorded there in that task's notes, along with what is already wired (`onPunched(receipt)`, `punch.receipt`, the `PunchReceipt` shape) and the one thing still missing on the wire: `MarkResource` sends no worker name, no RUT and no folio, so KMO-19's Art. 13 detail block needs a companion `ams` ticket that nobody has written yet.
+
+Nine of eleven checked, every one of them against evidence that can be re-run.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
