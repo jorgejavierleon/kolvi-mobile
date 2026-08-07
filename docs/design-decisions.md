@@ -65,7 +65,7 @@ settles the compliance position and the wire contract, and **supersedes both the
 provisional bullets it replaces and `docs/prd-mobile-app.md` §7.3**. Every claim below is
 cited from `docs/context/resolucion_38.txt` directly, not from the PRD's paraphrase of it.
 
-**Compliance sign-off:** pending the compliance owner's review (KMO-21 #1).
+**Compliance sign-off:** Jorge Leon, 2026-08-07 (KMO-21 #1).
 
 ### 4.1 A queue conforms — and refusing the punch does not
 

@@ -1,11 +1,11 @@
 ---
 id: KMO-21
 title: SPIKE — offline punching compliance position and wire contract
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-07 15:53'
+updated_date: '2026-08-07 18:15'
 labels:
   - mobile
   - offline
@@ -38,13 +38,13 @@ The output of this task is a written decision appended to docs/design-decisions.
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A written position states whether an offline queue is defensible under Res. 38 Art. 9, citing the article text from docs/context/resolucion_38.txt, and is signed off by the compliance owner
+- [x] #1 A written position states whether an offline queue is defensible under Res. 38 Art. 9, citing the article text from docs/context/resolucion_38.txt, and is signed off by the compliance owner
 - [x] #2 The decision names which timestamp is legal and confirms the device reading is stored separately and never substituted
 - [x] #3 The wire contract for a queued punch is specified: the field carrying the device clock, the sync time, the idempotency key, and what the server returns
 - [x] #4 The maximum queue age is decided, along with what happens to a punch that exceeds it
 - [x] #5 The decision states whether an unsynced punch counts as registered for the purposes of the attendance book, and what the employee is told
 - [x] #6 The outcome is appended to docs/design-decisions.md §4 and the dependent subtasks are updated or closed to match
-- [ ] #7 The corresponding backend work is raised in the ams repository
+- [x] #7 The corresponding backend work is raised in the ams repository
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -79,6 +79,10 @@ Verification: every Spanish quotation in §4 checked as a verbatim substring of 
 AC #1 and AC #7 left unchecked deliberately — see the final summary.
 
 On AC #2's wording: it says the device reading is 'stored separately and never substituted', which was written under the position §4.2 supersedes. Checked because it is satisfied in substance — §4.2 names the legal timestamp explicitly, and device_datetime is stored raw, immutably and permanently beside date_time so the two can always be compared. What no longer holds is the implication that date_time on the queued path comes from the server's own clock. It does not; it is adjudicated from the device reading. Recorded here rather than by rewriting the criterion.
+
+AC #1 signed off by Jorge Leon (compliance owner, per the design-decisions.md header) on 2026-08-07, in session, after the written §4. The pending line in §4 is replaced with the recorded sign-off.
+
+AC #7 raised as ams KOL-54 — 'Ingest queued offline punches on POST /api/v1/marks: device timestamp, idempotency and the 24 h cap'. High, depends on KOL-34 and KOL-35, 11 acceptance criteria: the two new request fields and their 422s, date_time adjudicated from device_datetime, the unique (user_id, idempotency_key) index with a byte-identical 200 on replay, the 24 h cap filing over-age punches through the Art. 39 b)/40 pathway, MarkResource echoing the provenance, and an explicit decision on whether offline provenance enters the Art. 8 checksum input. The ticket file is left uncommitted in /home/jj/Work/ams: that tree has unrelated WIP (KOL-38, the overtime PRD, the QA checklist), so committing it is the owner's call.
 <!-- SECTION:NOTES:END -->
 
 ## Comments
@@ -94,3 +98,17 @@ Substantively done and left In Progress, because two criteria need you rather th
 **AC #7 — the ams ticket.** The backend half does not exist: device_datetime / synced_at / idempotency_key / captured_offline columns, the unique (user_id, idempotency_key) index, the 24 h window validation, 200-on-replay, filing an over-age punch through the Art. 39 b) / Art. 40 pathway instead of inserting it, and the open question of pulling offline provenance inside the Art. 8 checksum envelope. Awaiting your go-ahead to raise it in /home/jj/Work/ams.
 ---
 <!-- COMMENTS:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Settled the blocking compliance question: an offline punch queue conforms, on stronger grounds than the PRD claimed. Res. 38 Art. 10 is an express exception permitting capture-and-store with automatic later transmission, and Art. 38 a)/b) make the alternative — an app that refuses a punch without signal — independently non-conforming, so the offline epic stays in Phase 1 and no dependent subtask was closed.
+
+One shipped decision is reversed. Art. 11 is textually attached to Art. 10 ('Para cumplir el fin señalado en el párrafo anterior') and requires the sello de tiempo to be the hour the marcación is made, so §4's previous position — the server's clock stamps every mark — would have registered a queued punch at its sync time: a punch made at 08:00 and transmitted at 12:00 entering the book as 12:00, against Art. 11, Art. 44 and Art. 41 b). The server now adjudicates date_time from a validated device_datetime on the queued path only, keeping the raw reading, synced_at and captured_offline beside it. Art. 8 and Art. 14 a) ii) do not forbid this — they govern adulteración post-registro, not the origin of a timestamp.
+
+Also settled: the wire contract (device_datetime and idempotency_key in the body, 201/200/409/422/401 and what each means to the client), a 24 h queue age with over-age punches filed through the Art. 39 b)/40 bilateral addition pathway rather than inserted or dropped, and that an unsynced punch is captured-and-stored but not registered — the book is the central database (Art. 9, Art. 20 a, Art. 22.1). Two constraints the design lacked came out of Art. 10's second paragraph: no manual offline mode, and offline frequency must be measurable per employee and premise.
+
+Written into docs/design-decisions.md §4.1-§4.6, superseding the three provisional bullets and PRD §7.3. Signed off by Jorge Leon on 2026-08-07. KMO-22, KMO-23, KMO-24 and KMO-49 updated to match — KMO-23 most of all, whose old criterion #6 ('the device clock reading is never sent as the legal timestamp field') the decision contradicts and which is reworded to what survives it. Backend half raised as ams KOL-54.
+
+Verified: every Spanish quotation in §4 confirmed by script as a verbatim substring of docs/context/resolucion_38.txt, whitespace-normalised, with the single elision marked. npm run check green — 62 suites, 1060 tests, Prettier clean. No Jest or Maestro tier applies; the ticket ships prose and changes nothing on screen.
+<!-- SECTION:FINAL_SUMMARY:END -->
