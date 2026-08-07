@@ -4,6 +4,7 @@ title: Connectivity detection and the pending-sync banner
 status: To Do
 assignee: []
 created_date: '2026-07-30 20:59'
+updated_date: '2026-08-07 15:52'
 labels:
   - mobile
   - offline
@@ -39,4 +40,15 @@ The banner appears only when there are queued punches. Being offline with an emp
 - [ ] #5 The banner disappears when the queue empties
 - [ ] #6 No banner shows when the queue is empty, whether the device is online or offline
 - [ ] #7 A flush attempt that fails leaves the queue intact and explains why in Spanish
+- [ ] #8 There is no manual offline mode: the queue engages only on an actual failure to reach the server, never as a setting, a preference or a default (docs/design-decisions.md §4.6 — Res. 38 Art. 10 limits the exception to situaciones excepcionales, and a toggle would also hand the employee a way to choose their own timestamp)
 <!-- AC:END -->
+
+## Comments
+
+<!-- COMMENTS:BEGIN -->
+author: @claude
+created: 2026-08-07 15:52
+---
+KMO-21 is settled; §4.6 adds one criterion this ticket did not carry — no offline toggle. The banner stays the only offline affordance. #4 (Sincronizar) is unchanged but read it with KMO-23 #4: the automatic flush is the compliance mechanism, the button only accelerates it.
+---
+<!-- COMMENTS:END -->

@@ -4,6 +4,7 @@ title: Offline session — punching when the app cannot reach the server to veri
 status: To Do
 assignee: []
 created_date: '2026-08-02 13:10'
+updated_date: '2026-08-07 15:52'
 labels:
   - mobile
   - offline
@@ -63,3 +64,15 @@ Depends on KMO-21: if the spike concludes an offline queue is not defensible, mo
 - [ ] #9 A 401 while flushing ends the session without dropping the queue, and the punches still flush after the same employee signs in again
 - [ ] #10 A device-tier flow covers the core case: sign in, go offline, force-quit, cold start, and reach the punch screen
 <!-- AC:END -->
+
+## Comments
+
+<!-- COMMENTS:BEGIN -->
+author: @claude
+created: 2026-08-07 15:52
+---
+KMO-21 is settled and the queue is defensible (Res. 38 Art. 10 is an express exception, and Art. 38 a/b make refusing the punch independently non-conforming) — so nothing in this ticket disappears, which was the conditional its description raised.
+
+Two contacts with §4: the idempotency_key in §4.3 is scoped per user server-side via a unique (user_id, idempotency_key) index, which is half of this ticket's #7; and §4.4's 24 h cap bounds how long a stranded queue stays flushable, which is context for #8 (sign-out with a non-empty queue) and #9 (401 while flushing). The offline *session* lifetime in #1 is still this ticket's to decide — §4 deliberately says nothing about it.
+---
+<!-- COMMENTS:END -->
