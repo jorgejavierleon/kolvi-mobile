@@ -8,12 +8,15 @@ import { Card } from '@/ui/card';
 import { Screen } from '@/ui/screen';
 import { ScreenHeader } from '@/ui/screen-header';
 import { Skeleton } from '@/ui/skeleton';
+import { TextLink } from '@/ui/text-link';
 
 import { useSession } from '../auth/session';
 import { Clock } from './clock';
 import type { LocationSource } from './location';
 import { LocationCard } from './location-card';
 import { LocationRationale } from './location-rationale';
+import type { MarksApi } from './marks-api';
+import { MarksSheet } from './marks-sheet';
 import { useNow } from './now-clock';
 import { PunchAction, type PunchHold } from './punch-action';
 import type { PunchApi, PunchReceipt } from './punch-api';
@@ -21,6 +24,7 @@ import { ReceiptSheet } from './receipt-sheet';
 import { ShiftCard, ShiftCardSkeleton } from './shift-card';
 import type { TodayApi, TodaySummary } from './today-api';
 import { useLocation } from './use-location';
+import { useMarks } from './use-marks';
 import { usePunch, type Punch } from './use-punch';
 import { useToday } from './use-today';
 
@@ -31,6 +35,8 @@ export type HomeScreenProps = {
   api?: TodayApi;
   /** Injected in tests; the app uses the configured client. */
   punchApi?: PunchApi;
+  /** Injected in tests; the app uses the configured client. */
+  marksApi?: MarksApi;
   /** Injected in tests; the app reads the phone. */
   clock?: () => Date;
   /** Injected in tests; the app reads the phone's location. */
@@ -75,6 +81,12 @@ export type HomeScreenProps = {
  * this screen is the only thing that knows whether the employee is still looking
  * at it.
  *
+ * The punch history (KMO-20) is the second thing that opens that sheet. Res. 38
+ * Art. 22.1 makes a receipt retrievable rather than a one-time view, so the list
+ * hands `ReceiptSheet` a stored mark exactly as `usePunch` hands it a fresh one,
+ * and this screen is again the only thing that knows which of the two sheets the
+ * employee is on.
+ *
  * What is not here yet: the pending-sync banner (KMO-22), which lands in the
  * slot the design puts it in.
  */
@@ -82,6 +94,7 @@ export function HomeScreen({
   onOpenProfile,
   api,
   punchApi,
+  marksApi,
   clock,
   locationSource,
 }: HomeScreenProps) {
@@ -106,6 +119,16 @@ export function HomeScreen({
    */
   const canPunch = session.can('ClockOwn:Mark');
 
+  /**
+   * KMO-20 #5. `ViewOwn:Mark` is the permission the history is behind, and it is
+   * a different one from `ClockOwn:Mark`: an employee whose role reads marks but
+   * does not make them still has a record to consult, and one who punches
+   * without it has no list to open. Gated the same way the punch surface is —
+   * hidden rather than shown and 403ing, which is the safe direction to be wrong
+   * in on a screen about a legal register.
+   */
+  const canViewMarks = session.can('ViewOwn:Mark');
+
   const location = useLocation({
     geofence: shift?.geofence ?? null,
     enabled: canPunch,
@@ -125,6 +148,26 @@ export function HomeScreen({
    */
   const [receipt, setReceipt] = useState<PunchReceipt | null>(null);
   const dismissReceipt = useCallback(() => setReceipt(null), []);
+
+  /**
+   * Whether the employee is looking at their punch history (KMO-20).
+   *
+   * A sheet rather than a route, and that is #5 rather than a preference: a
+   * pushed route lands on the root stack and covers the tab bar — that is what
+   * makes `Mi perfil` an overlay — so a route would take the employee out of
+   * Marcaje to reach a list about marcaje. The sheet rises over the tab they are
+   * already on.
+   */
+  const [marksOpen, setMarksOpen] = useState(false);
+  const openMarks = useCallback(() => setMarksOpen(true), []);
+  const dismissMarks = useCallback(() => setMarksOpen(false), []);
+
+  /**
+   * The history itself, loaded only once the list has been opened — Inicio keeps
+   * its one `/me/today` and the ten-second time-to-punch pays nothing for a list
+   * nobody has looked at. See `use-marks.ts`.
+   */
+  const marks = useMarks({ enabled: canViewMarks && marksOpen, api: marksApi });
 
   /**
    * The punch (KMO-17).
@@ -224,11 +267,41 @@ export function HomeScreen({
         />
       ) : null}
 
+      {/* KMO-20 #5. Outside the three load states, like the location card and
+          for the same kind of reason: Art. 22.1 access to the register is not
+          conditional on today's summary having arrived, so an employee whose
+          `/me/today` failed can still open their history and read a receipt. */}
+      {canViewMarks ? (
+        <TextLink
+          label={es.marcaje.marks.open}
+          onPress={openMarks}
+          style={styles.openMarks}
+          testID="marks-open"
+        />
+      ) : null}
+
+      {/* The two sheets **swap** rather than stack: a row tapped in the list
+          sets `receipt`, which closes the list under it, and dismissing the
+          comprobante puts the employee back on the list they came from. Two RN
+          `Modal`s over each other is a stack neither platform agrees about, and
+          there is nothing here that needs one. */}
+      <MarksSheet
+        visible={marksOpen && receipt === null}
+        marks={marks}
+        onSelect={setReceipt}
+        onDismiss={dismissMarks}
+        testID="marks-sheet"
+      />
+
       {/* Over everything, and only ever from a receipt the server answered with
           (KMO-19 #9, and the criterion KMO-17 left open at #10). It is outside
           the three load states on purpose: a comprobante is about the punch
           that was just recorded, and a `/me/today` reload happening behind it
-          must not take it off the screen the employee is reading. */}
+          must not take it off the screen the employee is reading.
+
+          Since KMO-20 it also draws a *stored* mark, unchanged: the history
+          hands it the same `PunchReceipt` the 201 does, so a retrieved receipt
+          carries the folio and the hash the register recorded (#2, #3). */}
       <ReceiptSheet receipt={receipt} onDismiss={dismissReceipt} testID="receipt-sheet" />
     </Screen>
   );
@@ -342,6 +415,10 @@ const clockSkeletonHeight = typography.display.lineHeight;
 const styles = StyleSheet.create({
   body: {
     gap: spacing[5],
+  },
+  openMarks: {
+    alignSelf: 'center',
+    marginTop: spacing[5],
   },
   week: {
     ...typography.caption,

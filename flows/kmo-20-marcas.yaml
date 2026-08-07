@@ -1,0 +1,160 @@
+# KMO-20 — retrieving a past receipt from the Marcaje tab.
+#
+# Covers #5 (the list opens from Inicio without leaving the tab), #1 (rows with
+# type, date and time), #2 (a row opens the comprobante KMO-19 built) and #3 (the
+# retrieved receipt carries the same hash the punch showed).
+#
+# **It punches first, and that is the point rather than setup.** #3 is a claim
+# about two renderings of one mark being the same mark, so the only honest way to
+# check it on a device is to read a value off the receipt at punch time and find
+# it again on the receipt retrieved from the list. `copyTextFrom` is what carries
+# it across: the hash is the value least likely to collide with anything else on
+# screen, and it is the one an employee would actually compare against the copy
+# Art. 12 mails them.
+#
+# It taps `punch-button` rather than a label, so it runs on a day with either
+# punch still to make — the register keeps one `in` and one `out` per day
+# (D-F1-b), and only a day with both already on it has no button to press. Tagged
+# out of the suite for the same reason `kmo-19-comprobante.yaml` is: it spends a
+# punch, so a run needs a day that still has one.
+#
+#   bin/e2e flows/kmo-20-marcas.yaml
+#
+# What this flow cannot carry: #4, whose empty state needs an employee with no
+# marks at all — and this flow's first act is to give them one. That criterion is
+# Jest's, in `marks-sheet.test.tsx` and `home-screen.test.tsx`.
+appId: cl.kolvi.empleados
+name: KMO-20 mis últimas marcas
+tags:
+  - marcaje
+  - requires-unpunched-day
+---
+- runFlow: shared/sign-in.yaml
+
+- extendedWaitUntil:
+    visible: 'Turno de hoy'
+    timeout: 30000
+    label: 'The shift card loaded, so /me/today has answered'
+
+- extendedWaitUntil:
+    visible:
+      id: 'punch-button'
+    timeout: 30000
+    label: 'A day with a punch still to make, which is what this flow needs'
+
+# The mark this flow will go looking for.
+- tapOn:
+    id: 'punch-button'
+
+- extendedWaitUntil:
+    visible: '¡Marca registrada!'
+    timeout: 30000
+    label: 'The comprobante the punch produced'
+
+# The value #3 is about, taken off the receipt as it was issued.
+- copyTextFrom:
+    id: 'receipt-hash'
+
+- tapOn:
+    id: 'receipt-done'
+
+- extendedWaitUntil:
+    visible: 'Ver mis últimas marcas'
+    timeout: 10000
+    label: '#5 — back on Inicio, with the way into the history on it'
+
+- tapOn:
+    id: 'marks-open'
+
+- extendedWaitUntil:
+    visible: 'Mis últimas marcas'
+    timeout: 30000
+    label: '#5 — the list, over the tab rather than instead of it'
+
+- assertVisible:
+    text: 'Tus diez marcas más recientes'
+    label: '#5 — and what it is a list of'
+
+# #5 is asserted at the *end* of this flow rather than here, and the reason is
+# worth writing down. A sheet is an RN `Modal`, which is its own window: nothing
+# behind it is in the view hierarchy, so `tab-inicio` cannot be found while the
+# list is up — the same quirk `shared/sign-in.yaml` documents. It is also not
+# merely a hierarchy artefact: the sheet is 86% of the screen and genuinely
+# covers the bar. What "without leaving the tab context" is really a claim about
+# is that no navigation happened, and the way to see that is that dismissing the
+# list puts the employee straight back on Inicio — same tab, same screen, no back
+# journey. That is the assertion at the bottom.
+
+# #1. Each punch by what it was and when. Both types are asserted because the
+# register holds both and a row that dropped its type would still pass on one.
+- assertVisible:
+    text: 'Entrada'
+    label: '#1 — an entrada, named'
+- assertVisible:
+    text: 'Salida'
+    label: '#1 — and a salida'
+- assertVisible:
+    text: '\w{3} \d{1,2} \w{3}'
+    label: '#1 — the date, as `Mié 5 ago`'
+- assertVisible:
+    text: '\d{2}:\d{2}'
+    label: '#1 — and the time'
+
+- takeScreenshot: kmo-20-marcas
+
+# #2. The first row is the newest mark — the one just made. Tapped by position
+# rather than by label, because which of the two types it is depends on where the
+# day had got to.
+- tapOn:
+    id: 'mark-row-.*'
+    index: 0
+
+- extendedWaitUntil:
+    visible: '¡Marca registrada!'
+    timeout: 10000
+    label: '#2 — the same comprobante, from the stored mark'
+
+- assertVisible:
+    text: 'N° comprobante'
+    label: '#2 — with the Art. 13 rows on it'
+- assertVisible:
+    text: 'Este registro forma parte del libro de asistencia electrónico \(Resolución 38 de la Dirección del Trabajo\).'
+    label: '#2 — and the legal note every receipt carries'
+
+# #3. The hash copied off the receipt at punch time, on the receipt retrieved
+# from the register. Same mark, same checksum, two renderings.
+- assertVisible:
+    text: '${maestro.copiedText}'
+    label: '#3 — the retrieved receipt carries the hash the punch showed'
+
+- takeScreenshot: kmo-20-comprobante-recuperado
+
+# Dismissing the retrieved receipt returns to the list it was opened from — the
+# two sheets swap rather than stack.
+- tapOn:
+    id: 'receipt-done'
+
+- extendedWaitUntil:
+    visible: 'Mis últimas marcas'
+    timeout: 10000
+    label: 'Listo puts the employee back on the list they came from'
+
+# #5. Closing the list lands on Inicio itself — the tab bar with Inicio still the
+# tab, the shift card still under the header, and no back journey to get there.
+# Nothing was ever pushed, so there is nothing to come back from.
+- tapOn:
+    id: 'marks-done'
+
+- extendedWaitUntil:
+    visible:
+      id: 'tab-inicio'
+    timeout: 10000
+    label: '#5 — the tab bar, with the employee still on the tab they started on'
+
+- assertVisible:
+    text: 'Turno de hoy'
+    label: '#5 — and Inicio itself, never navigated away from'
+
+- assertNotVisible:
+    text: 'Mis últimas marcas'
+    label: 'The list is dismissed for good, not merely covered'

@@ -472,6 +472,44 @@ export const es = {
     },
 
     /**
+     * The punch history (KMO-20). Res. 38 Art. 22.1 gives the worker permanent
+     * and unrestricted access to their own record, and this list is Phase 1's
+     * answer to it — so, like the receipt above, the section is a compliance
+     * artefact and not a convenience.
+     *
+     * The design has no surface for it: it draws `Historial` under Jornada,
+     * which is the five-year workday history Phase 2 builds. All of this is
+     * therefore authored, in the design's own register.
+     */
+    marks: {
+      /** The link under the week summary — the way in, from the Marcaje tab. */
+      open: 'Ver mis últimas marcas',
+      title: 'Mis últimas marcas',
+
+      /**
+       * Under the title, and load-bearing rather than decorative: the endpoint
+       * answers with the ten most recent marks, and an employee who reads this
+       * list as *all* their marks would conclude the register had lost the rest.
+       * It says how far back the list goes, so the absence of an older punch is
+       * the list's limit rather than evidence of anything.
+       */
+      subtitle: 'Tus diez marcas más recientes',
+
+      /**
+       * An employee who has never punched (#4). Two lines, because one would be
+       * ambiguous: the first says the register holds nothing yet, and the second
+       * says what will put something in it — an empty list with no explanation
+       * is the "the app is broken" report `es.states` exists to prevent, and on
+       * this screen it would be read as marks that went missing.
+       */
+      empty: 'Aún no tienes marcas registradas',
+      emptyBody: 'Cuando marques entrada o salida, el comprobante quedará aquí.',
+
+      /** The backdrop, which a screen reader has nothing else to name. */
+      close: 'Cerrar mis marcas',
+    },
+
+    /**
      * The titles on the geolocation card, above the shift card (KMO-16).
      *
      * The first three are transcribed from the design's own `geoTitle`, and each
@@ -707,6 +745,21 @@ export function greeting(firstName: string): string {
  */
 export function timeRange(start: string, end: string): string {
   return `${start} – ${end}`;
+}
+
+/**
+ * `Entrada · Mié 5 ago · 08:03` — one row of the punch history, announced as a
+ * single element (KMO-20 #1).
+ *
+ * The row draws the three values in two columns, which a screen reader would
+ * otherwise read as three unrelated strings with no way to tell which date the
+ * time belongs to. This is what it announces instead, and the separator is the
+ * middot the location card already uses rather than a fourth spelling of "and".
+ *
+ * All three arrive already formatted: this joins strings and computes nothing.
+ */
+export function markSummary(type: string, date: string, time: string): string {
+  return `${type} · ${date} · ${time}`;
 }
 
 /**

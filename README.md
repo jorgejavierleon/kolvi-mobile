@@ -257,7 +257,7 @@ Tests sit next to what they test: `button.tsx` and `button.test.tsx` in the same
 ## Project status
 
 Scaffold, the design tokens, the shared UI primitives — `Button`, `Card`, `StatusBadge`,
-`SegmentedControl`, `BottomSheet`, `TileRow`, `TextField`, `Skeleton` — the typed `/api/v1`
+`SegmentedControl`, `BottomSheet`, `TileRow`, `ListRow`, `TextField`, `Skeleton` — the typed `/api/v1`
 client, the es-CL catalogue with its formatters, and the navigation shell: the four-tab bar
 (Inicio, Jornada, Permisos, Documentos) with the profile surface over it, in
 `src/app/(tabs)/`.
@@ -316,6 +316,18 @@ around the button implies the employee can verify it themselves — `ams`' check
 the DT inspector portal, behind authentication, and no public route exists. A mark the server
 flagged outside the geofence carries `Marca fuera de rango — pendiente de revisión`, and the
 legal note naming the libro de asistencia is on every receipt without exception.
+
+Under the week summary is the way back to any of that (KMO-20): `Ver mis últimas marcas`
+opens the ten most recent punches from `GET /api/v1/marks`, newest first, each one a tap
+away from the comprobante it was issued with. Res. 38 Art. 22.1 makes a receipt retrievable
+rather than a one-time view, so a stored mark is parsed by the punch response's own parser
+and handed to the same sheet — which is what makes a receipt pulled from the register carry
+the folio and the hash it carried the moment it was made, rather than a second rendering of
+them. It is a sheet and not a route: a pushed route lands on the root stack and covers the
+tab bar, and the list has to stay inside Marcaje. The two sheets swap rather than stack, so
+`Listo` on a retrieved receipt returns to the list it came from. The list costs the punch
+screen nothing until it is opened — Inicio keeps its one request, and goal G1 is why. The
+five-year workday history is Phase 2's, under Jornada.
 
 The pending-sync banner (KMO-22) lands in the slot the design puts it in. Jornada, Permisos
 and Documentos are still empty — run `backlog task list --plain` to see the backlog.

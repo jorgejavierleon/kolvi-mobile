@@ -14,6 +14,7 @@ import { HomeScreen } from './home-screen';
 import { CLOCK_TICK_MS } from './now-clock';
 import type { LocationFix } from './geofence';
 import type { LocationPermission, LocationSource } from './location';
+import type { MarksApi } from './marks-api';
 import { DuplicateMarkError, type PunchApi, type PunchReceipt } from './punch-api';
 import type { TodayApi, TodaySummary } from './today-api';
 
@@ -101,11 +102,41 @@ const metrics: Metrics = {
 type MountOptions = {
   api?: TodayApi;
   punchApi?: PunchApi;
+  marksApi?: MarksApi;
   permissions?: readonly Permission[];
   firstName?: string | null;
   at?: string;
   location?: LocationSource;
 };
+
+/** A stored mark, as `GET /marks` answers with one (KMO-20). */
+function storedMark(overrides: Partial<PunchReceipt> = {}): PunchReceipt {
+  return {
+    markId: 1502,
+    type: 'in',
+    datetime: '2026-07-31 08:01:44' as NaiveDateTime,
+    hash: 'c3d4e5f60718',
+    geoStatus: 'inside',
+    folio: '20260731-0003',
+    employeeName: 'Camila Rojas',
+    employeeRut: '123456789',
+    ...overrides,
+  };
+}
+
+/** A register holding whatever the case needs, counting how often it is asked. */
+function fakeMarksApi(marks: readonly PunchReceipt[]): MarksApi & { calls: number } {
+  const api = {
+    calls: 0,
+    fetchMarks: async () => {
+      api.calls += 1;
+
+      return marks;
+    },
+  };
+
+  return api;
+}
 
 /** A server that records whatever it is handed (KMO-17). */
 function fakePunchApi(overrides: Partial<PunchReceipt> = {}): PunchApi & { calls: unknown[] } {
@@ -145,6 +176,7 @@ async function mount(options: MountOptions = {}) {
       onOpenProfile={() => {}}
       api={api}
       punchApi={options.punchApi ?? fakePunchApi()}
+      marksApi={options.marksApi ?? fakeMarksApi([storedMark()])}
       clock={clock}
       locationSource={options.location ?? fakeLocation()}
     />,
@@ -870,5 +902,219 @@ describe('the escape hatches (KMO-18)', () => {
 
     expect(screen.getByTestId('punch-button')).toBeEnabled();
     expect(screen.queryByTestId('location-retry')).not.toBeOnTheScreen();
+  });
+});
+
+/**
+ * KMO-20, composed. `marks-sheet.test.tsx` proves the list draws and `use-marks`
+ * proves it loads; what only this level can show is that the list is reachable
+ * from the tab without leaving it (#5), and that a row tapped in it opens the
+ * comprobante KMO-19 built rather than a second rendering of one (#2, #3).
+ */
+describe('the punch history (KMO-20)', () => {
+  /** Open the list from the link on the tab, and wait for it to have loaded. */
+  async function openHistory() {
+    await userEvent.press(screen.getByTestId('marks-open'));
+    await waitFor(() => expect(screen.getByTestId('marks-list')).toBeOnTheScreen());
+  }
+
+  // #5
+  it('is reachable from the Marcaje tab', async () => {
+    await mountLoaded();
+
+    expect(screen.getByTestId('marks-open')).toBeOnTheScreen();
+    expect(screen.getByText('Ver mis últimas marcas')).toBeOnTheScreen();
+  });
+
+  // #5. A sheet and not a route: the screen behind it is still Inicio, which is
+  // what "without leaving the tab context" means on a tab bar this app draws by
+  // hand. A pushed route would land on the root stack and cover it.
+  it('opens over the tab rather than navigating away from it', async () => {
+    await mountLoaded();
+
+    await openHistory();
+
+    expect(screen.getByText('Mis últimas marcas')).toBeOnTheScreen();
+    // The clock and the shift card are still mounted underneath.
+    expect(screen.getByTestId('shift-card')).toBeOnTheScreen();
+    expect(screen.getByTestId('clock')).toBeOnTheScreen();
+  });
+
+  // #1
+  it('lists the punches the register answered with', async () => {
+    await mountLoaded({
+      marksApi: fakeMarksApi([
+        storedMark({ markId: 1502, type: 'out', datetime: '2026-07-31 17:58:02' as NaiveDateTime }),
+        storedMark({ markId: 1501, type: 'in', datetime: '2026-07-31 08:01:44' as NaiveDateTime }),
+      ]),
+    });
+
+    await openHistory();
+
+    expect(screen.getByText('Salida')).toBeOnTheScreen();
+    expect(screen.getByText('17:58')).toBeOnTheScreen();
+    expect(screen.getByText('08:01')).toBeOnTheScreen();
+  });
+
+  it('costs the punch screen no request until it is opened', async () => {
+    // Goal G1 is time-to-punch, and a list nobody has looked at must not spend
+    // a warehouse connection on the screen where the button is.
+    const marksApi = fakeMarksApi([storedMark()]);
+
+    await mountLoaded({ marksApi });
+
+    expect(marksApi.calls).toBe(0);
+
+    await openHistory();
+
+    expect(marksApi.calls).toBe(1);
+  });
+
+  it('asks the register again when the list is reopened after a punch', async () => {
+    const marksApi = fakeMarksApi([storedMark()]);
+
+    await mountLoaded({ marksApi });
+
+    await openHistory();
+    await userEvent.press(screen.getByTestId('marks-done'));
+    await waitFor(() => expect(screen.queryByTestId('marks-list')).not.toBeOnTheScreen());
+
+    await userEvent.press(screen.getByTestId('punch-button'));
+    await waitFor(() => expect(screen.getByText('¡Marca registrada!')).toBeOnTheScreen());
+    await userEvent.press(screen.getByTestId('receipt-done'));
+
+    await openHistory();
+
+    // A history that omits the mark the employee made a minute ago is the one
+    // wrong answer this list can give.
+    expect(marksApi.calls).toBe(2);
+  });
+
+  it('does not ask again when a comprobante is opened from a row and dismissed', async () => {
+    const marksApi = fakeMarksApi([storedMark()]);
+
+    await mountLoaded({ marksApi });
+
+    await openHistory();
+    await userEvent.press(screen.getByTestId('mark-row-1502'));
+    await waitFor(() => expect(screen.getByText('¡Marca registrada!')).toBeOnTheScreen());
+    await userEvent.press(screen.getByTestId('receipt-done'));
+    await waitFor(() => expect(screen.getByTestId('marks-list')).toBeOnTheScreen());
+
+    // Reading one of its rows is not closing the list, and the register did not
+    // change while they were doing it.
+    expect(marksApi.calls).toBe(1);
+  });
+
+  describe('a punch tapped in the list (#2, #3)', () => {
+    it('opens the comprobante KMO-19 built, from the stored mark', async () => {
+      await mountLoaded();
+
+      await openHistory();
+      await userEvent.press(screen.getByTestId('mark-row-1502'));
+
+      await waitFor(() => expect(screen.getByText('¡Marca registrada!')).toBeOnTheScreen());
+    });
+
+    // #3. The values are the register's, and the same ones the punch showed:
+    // both paths hand `ReceiptSheet` the same `PunchReceipt`.
+    it('shows the folio and the hash the register recorded', async () => {
+      await mountLoaded();
+
+      await openHistory();
+      await userEvent.press(screen.getByTestId('mark-row-1502'));
+
+      await waitFor(() => expect(screen.getByText('20260731-0003')).toBeOnTheScreen());
+      expect(screen.getByTestId('receipt-hash')).toHaveTextContent('c3d4e5f60718');
+      // Its own recorded time, not today's and not the device clock's.
+      expect(screen.getByText('31/07/26')).toBeOnTheScreen();
+      expect(screen.getByText('08:01:44')).toBeOnTheScreen();
+    });
+
+    it('shows the receipt alone rather than stacked over the list', async () => {
+      await mountLoaded();
+
+      await openHistory();
+      await userEvent.press(screen.getByTestId('mark-row-1502'));
+
+      // Two React Native `Modal`s over each other is a stack neither platform
+      // agrees about, and nothing here needs one.
+      await waitFor(() => expect(screen.getByText('¡Marca registrada!')).toBeOnTheScreen());
+      expect(screen.queryByTestId('marks-list')).not.toBeOnTheScreen();
+    });
+
+    it('returns to the list when the comprobante is dismissed', async () => {
+      await mountLoaded();
+
+      await openHistory();
+      await userEvent.press(screen.getByTestId('mark-row-1502'));
+      await waitFor(() => expect(screen.getByText('¡Marca registrada!')).toBeOnTheScreen());
+
+      await userEvent.press(screen.getByTestId('receipt-done'));
+
+      // Back where they came from, without a second request for a register that
+      // did not change while they were reading one of its rows.
+      await waitFor(() => expect(screen.getByTestId('marks-list')).toBeOnTheScreen());
+      expect(screen.queryByText('¡Marca registrada!')).not.toBeOnTheScreen();
+    });
+  });
+
+  // #4
+  it('shows the Spanish empty state for an employee who has never punched', async () => {
+    await mountLoaded({ marksApi: fakeMarksApi([]) });
+
+    await userEvent.press(screen.getByTestId('marks-open'));
+
+    await waitFor(() =>
+      expect(screen.getByText('Aún no tienes marcas registradas')).toBeOnTheScreen(),
+    );
+    expect(
+      screen.getByText('Cuando marques entrada o salida, el comprobante quedará aquí.'),
+    ).toBeOnTheScreen();
+  });
+
+  it('closes on Listo and stays closed', async () => {
+    await mountLoaded();
+
+    await openHistory();
+    await userEvent.press(screen.getByTestId('marks-done'));
+
+    await waitFor(() => expect(screen.queryByTestId('marks-list')).not.toBeOnTheScreen());
+    expect(screen.getByTestId('marks-open')).toBeOnTheScreen();
+  });
+
+  describe('the ViewOwn:Mark gate', () => {
+    it('offers no history to an employee whose role does not read marks', async () => {
+      await mountLoaded({ permissions: ['ClockOwn:Mark'] });
+
+      // Hidden rather than shown and 403ing — the safe direction to be wrong in
+      // on a screen about a legal register.
+      expect(screen.queryByTestId('marks-open')).not.toBeOnTheScreen();
+    });
+
+    it('offers it to one who reads marks without punching them', async () => {
+      await mountLoaded({ permissions: ['ViewOwn:Mark'] });
+
+      expect(screen.getByTestId('marks-open')).toBeOnTheScreen();
+      expect(screen.queryByTestId('punch-action')).not.toBeOnTheScreen();
+    });
+  });
+
+  // Art. 22.1 access is not conditional on today's summary having arrived. An
+  // employee whose `/me/today` failed can still open their history.
+  it('stays reachable when today’s summary failed to load', async () => {
+    await mount({
+      api: {
+        fetchToday: async () => {
+          throw new ApiError({ kind: 'server', status: 500 });
+        },
+      },
+    });
+
+    await waitFor(() => expect(screen.getByTestId('home-load-failed')).toBeOnTheScreen());
+
+    await openHistory();
+
+    expect(screen.getByText('Mis últimas marcas')).toBeOnTheScreen();
   });
 });
