@@ -67,6 +67,11 @@ cited from `docs/context/resolucion_38.txt` directly, not from the PRD's paraphr
 
 **Compliance sign-off:** Jorge Leon, 2026-08-07 (KMO-21 #1).
 
+**The server half has shipped** — `ams` KOL-54, 2026-08-07. §4.2's checksum question and §4.4's
+second window edge were open when this was signed off and are now settled; both are recorded below
+as implemented rather than as intent. Where this section and the endpoint disagree, the endpoint is
+the fact and this section is the bug.
+
 ### 4.1 A queue conforms — and refusing the punch does not
 
 The PRD argued the queue from Art. 9 alone, that automatic online transmission "constrains the
@@ -131,11 +136,22 @@ Art. 8 and Art. 14 a) ii) were read as forbidding this and do not. They govern a
 **after the fact** — `prevengan la adulteración de la información post - registro` — not where a
 timestamp originates. Nothing here alters a mark once it is in the register.
 
-One property to preserve: `ams` computes the checksum over `user_id + type + date_time`, so the
-Art. 8 hash covers the *truthful* time with no change to the formula and no loss of verifiability
-for marks already recorded. Offline provenance must be brought **inside** that envelope as well —
-outside it, clearing `captured_offline` leaves a valid hash — but the encoding is `ams`' call,
-since a conditional formula is a burden on the Art. 8 verification tool the same article requires.
+**The Art. 8 checksum — decided by `ams` KOL-54.** Offline provenance goes **inside** the envelope,
+through a conditional suffix:
+
+- online, and every mark already in the register: `sha256(user_id . type . date_time)`, byte for
+  byte the string KOL-34 left;
+- queued: that string plus `'|offline|' . device_datetime`.
+
+Inside, because on a queued punch the provenance *is* part of the operation Art. 8 hashes
+(`de los datos de cada operación`) rather than metadata about it — `date_time` was adjudicated from
+the device reading instead of read off the server's clock, and a `captured_offline` that could be
+cleared without breaking the hash would leave the register unable to say how its own legal
+timestamp was obtained. Conditional rather than unconditional, because folding the new fields into
+every mark would make every checksum already printed on an Art. 13 g) comprobante fail
+recomputation — invalidating the existing register to spare a branch. Geolocation stays outside, as
+KOL-34 left it: a coordinate is a measurement *about* the punch and legitimately absent; the
+provenance of the legal timestamp is the punch.
 
 ### 4.3 The wire contract
 
@@ -170,18 +186,32 @@ since a conditional formula is a burden on the Art. 8 verification tool the same
 |---|---|---|
 | `201` | recorded — full receipt: server folio, hash, `date_time`, geofence verdict | drop from the queue, show the confirmed receipt |
 | `200` | this `idempotency_key` is already recorded; the **identical** receipt | drop from the queue; indistinguishable to the employee |
-| `409` | the day already holds this punch type (D-F1-b) | drop from the queue, say so calmly (never a dialog) |
-| `422` | outside the §4.4 window, or a malformed pair | stop retrying; §4.4 takes over |
+| `409` | the day the punch **was made** already holds this type (D-F1-b) | drop from the queue, say so calmly (never a dialog) |
+| `422` + `code: queued_punch_too_old` | past the §4.4 window; the server has **already filed it** for HR | drop from the queue, show the server's message |
+| `422` + `code: queued_punch_in_future` | the phone's clock is ahead of the server beyond tolerance | do not retry blind — §4.4 |
+| `422` (plain Laravel validation) | a malformed or half pair, a bad UUID, an offset on `device_datetime`, a `datetime` on either path | a client bug; log it, do not surface it as a punch failure |
 | `401` | the token is dead | keep the queue intact (KMO-49) |
 
 `200` against `201` is the whole idempotency contract: a retry whose answer was lost is not a
-second punch, and the register is what says so rather than the client guessing. The receipt echoes
-`device_datetime`, `synced_at` and `captured_offline`, so a synced receipt can show its own
-provenance.
+second punch, and the register is what says so rather than the client guessing. `ams` looks the
+replay up **before** it checks the window and before the one-per-day guard, so a punch already in
+the register stays answerable however old the queue has since become.
 
-### 4.4 Maximum queue age: 24 hours
+The receipt echoes `device_datetime`, `synced_at` and `captured_offline` (`MarkResource`), so a
+synced receipt can show its own provenance.
 
-Measured from `device_datetime` to the moment the server receives it.
+**The two refusals are distinguished by `code`, not by their message** — the copy is the server's
+Spanish, shown verbatim, and branching on a sentence somebody may improve is exactly what
+`punch-api.ts` rules out. `ApiError` does not carry `code` today; it keeps `kind`, `userMessage` and
+Laravel's `errors` bag, so the field is dropped at the transport boundary. Carrying it through
+`src/api/errors.ts` is a prerequisite of KMO-23, not an optional refinement: the two refusals need
+opposite outcomes and are otherwise indistinguishable to the app.
+
+### 4.4 The window: 24 hours old, 5 minutes ahead
+
+Measured from `device_datetime` to the moment the server receives it. Both edges live in `ams`
+config — `offline_punch_max_age_hours` (24) and `offline_punch_future_tolerance_minutes` (5) — and
+they are **not symmetric**, because the two failures are not the same failure.
 
 Why a day: Art. 45.1 requires an automatic email to employee and employer 30 minutes after a
 missed punch, and Art. 40 f) lets the system fill a missing mark `al día siguiente` with the
@@ -198,9 +228,29 @@ Art. 40 pathway, the same bilateral procedure HR uses for a forgotten punch:
 
 with the Art. 40 consequence that the employee is emailed and has 48 hours to object. That is the
 right shape: their evidence enters the record, flagged and bilaterally, rather than as a silent
-backdated insert. In the app the punch leaves the queue, the employee is told it now needs their
-jefatura, and the phone keeps it until they have acknowledged it. The Spanish is KMO-23's, from
-`src/i18n`.
+backdated insert.
+
+`ams` KOL-54 implements this by **reusing `MarkModification`** rather than a new model — it already
+represents an addition (`mark_id` null, `mark_type` set) and already carries the whole Art. 40
+apparatus: the notification, the 48 h window, the consolidation on silence. The reason is
+`SystemError`, which is what Art. 39 b)'s `fallas del sistema` names. `mark_modifications` carries
+`device_datetime` and `captured_offline` too, so the mark that eventually lands does not read as an
+ordinary punch — the Art. 10 ¶2 problem again, one step later.
+
+The filing happens **inside the same request** that refuses the punch. So `queued_punch_too_old` is
+not "nothing happened": the punch is in HR's hands, the employee has been emailed, and the app's job
+is to drop it from the queue and show the server's message. Retrying it would be asking to file it
+twice.
+
+**`queued_punch_in_future` is the other edge and needs its own answer.** A phone more than five
+minutes ahead is not a punch to file — there is no missing mark, the device is simply wrong about
+the time, and the fix is on the device. Note the trap: the queue never re-reads the clock (§4.3), so
+a retry sends the same future reading, and the punch becomes recordable only once the server's own
+clock passes it — at which point it would land at an hour the employee did not work. **KMO-23 decides
+what the app does here**, and "keep retrying" is not the answer. Left open deliberately rather than
+guessed at.
+
+The Spanish for both is the server's, from `ui.marks.api.offline.*`, shown verbatim.
 
 ### 4.5 An unsynced punch is not registered, and the employee is told so
 
@@ -236,10 +286,13 @@ Two constraints follow that the design did not carry:
 - **There is no manual offline mode.** The queue engages only on an actual failure to reach the
   server — never as a setting, a preference or a default. A toggle would make the exception the
   operating mode, and would hand the employee a way to choose their own timestamp.
-- **Offline frequency is telemetry, per employee and per premise** (KMO-29). An employee who
-  queues every punch is not an exceptional case; that is a site without connectivity, and the
-  employer must fix it or change mechanism. The system's job is to make that visible, not to
-  absorb it quietly.
+- **Offline frequency has to be visible.** An employee who queues every punch is not an
+  exceptional case; that is a site without connectivity, and the employer must fix it or change
+  mechanism. The system's job is to make that visible, not to absorb it quietly. **Per employee and
+  per premise, that reporting is server-side**, in `ams`, where the mark already carries `user_id`,
+  `premise_id` and `captured_offline` — not in mobile telemetry, which is forbidden from carrying
+  personal data at all (KMO-29 #5). The app's share is the aggregate count of offline punches and
+  sync outcomes it already owes under KMO-29 #4.
 
 This is also what makes `captured_offline` mandatory on the mark rather than inferable from
 timing: a case cannot be `debidamente justificado` if the register cannot say which marks were

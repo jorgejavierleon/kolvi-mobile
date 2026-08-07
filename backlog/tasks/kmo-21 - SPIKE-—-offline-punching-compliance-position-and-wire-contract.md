@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-07 18:15'
+updated_date: '2026-08-07 20:21'
 labels:
   - mobile
   - offline
@@ -96,6 +96,22 @@ Substantively done and left In Progress, because two criteria need you rather th
 **AC #1 — compliance sign-off.** §4 is written and every citation verified verbatim against docs/context/resolucion_38.txt. It carries the line 'Compliance sign-off: pending the compliance owner's review (KMO-21 #1)'. If you are the compliance owner for this (design-decisions.md names you as Owner), read §4 and say so; I will replace that line with the sign-off and check the criterion. If it belongs to a lawyer or the client, the criterion stays open until they have seen it.
 
 **AC #7 — the ams ticket.** The backend half does not exist: device_datetime / synced_at / idempotency_key / captured_offline columns, the unique (user_id, idempotency_key) index, the 24 h window validation, 200-on-replay, filing an over-age punch through the Art. 39 b) / Art. 40 pathway instead of inserting it, and the open question of pulling offline provenance inside the Art. 8 checksum envelope. Awaiting your go-ahead to raise it in /home/jj/Work/ams.
+---
+
+author: @claude
+created: 2026-08-07 20:21
+---
+Reconciled §4 with ams KOL-54 as shipped (2026-08-07). §4 was written as a spec; the endpoint now exists and is the fact, so the record was corrected rather than left as intent:
+
+- **§4.2** — the Art. 8 checksum question the spike left to ams is answered: offline provenance goes *inside* the envelope via a conditional suffix ('|offline|' . device_datetime), so no stored checksum moves and no comprobante already in an employee's hands stops verifying. Geolocation stays outside, and the reasoning for the asymmetry is recorded.
+- **§4.3** — the 422 row split into three: queued_punch_too_old, queued_punch_in_future, and plain Laravel validation. Added the {message, code} body shape, the replay lookup running ahead of both the window and the 409, and the finding that ApiError drops code at the transport boundary — which makes src/api/errors.ts a prerequisite of KMO-23 rather than a refinement.
+- **§4.4** — retitled: the window has two edges and they are not symmetric (24 h old, 5 min ahead, both ams config). Records that the over-age filing happens inside the refusing request via MarkModification, that mark_modifications carries the provenance forward, and leaves the in_future client behaviour explicitly open for KMO-23 rather than inventing an answer.
+- **§4.6** — corrected an error of mine: it pointed per-employee offline-frequency reporting at KMO-29, whose own #5 forbids sending any personal data to telemetry. That reporting is server-side in ams; the app's share is the aggregate count under KMO-29 #4.
+- **§4 header** — notes the server half has shipped and states which side wins on disagreement.
+
+The header line 'Where this section and the endpoint disagree, the endpoint is the fact and this section is the bug' is deliberate: §4 is now describing something that exists.
+
+npm run check green (62 suites, 1060 tests). New citations verified verbatim against docs/context/resolucion_38.txt. KMO-23 updated to match — 13 criteria now, including the errors.ts prerequisite and the in_future decision.
 ---
 <!-- COMMENTS:END -->
 
