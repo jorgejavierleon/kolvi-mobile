@@ -18,6 +18,7 @@ export {
   locationOutOfRange,
   markSummary,
   passwordResetSent,
+  pendingSyncSubtitle,
   pendingSyncSummary,
   sectionEnd,
   tabWithPendingCount,

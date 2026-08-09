@@ -83,10 +83,45 @@ describe('Button', () => {
       expect(screen.getByText('Rechazar')).toHaveStyle({ color: tones.danger.foreground });
     });
 
+    // KMO-22. The one filled warning treatment: the `Sincronizar` pill sits on
+    // the warning-tinted banner, where an outline in the tone's own foreground
+    // would be a border against its own background.
+    it('fills warningSolid with the warning foreground', async () => {
+      await render(<Button label={es.actions.sync} onPress={noop} variant="warningSolid" />);
+
+      expect(screen.getByRole('button')).toHaveStyle({
+        backgroundColor: tones.warning.foreground,
+        borderWidth: 0,
+      });
+      expect(screen.getByText(es.actions.sync)).toHaveStyle({ color: colors.white });
+    });
+
     it('takes its corner from the radius token, never a bare number', async () => {
       await render(<Button label="Listo" onPress={noop} />);
 
       expect(screen.getByRole('button')).toHaveStyle({ borderRadius: radius.md });
+    });
+  });
+
+  describe('shapes', () => {
+    it('rounds to radius.md by default', async () => {
+      await render(<Button label="Listo" onPress={noop} />);
+
+      expect(screen.getByRole('button')).toHaveStyle({ borderRadius: radius.md });
+    });
+
+    it('takes the pill radius when asked for one', async () => {
+      await render(<Button label={es.actions.sync} onPress={noop} shape="pill" />);
+
+      expect(screen.getByRole('button')).toHaveStyle({ borderRadius: radius.pill });
+    });
+
+    // The design draws its own `Sincronizar` pill 30dp tall. The shape is the
+    // design's; the height is this repo's floor, and the floor wins.
+    it('keeps the hit-target floor on a pill', async () => {
+      await render(<Button label={es.actions.sync} onPress={noop} shape="pill" size="sm" />);
+
+      expect(screen.getByRole('button')).toHaveStyle({ minHeight: hitTargetMin });
     });
   });
 

@@ -4,6 +4,7 @@ import {
   es,
   locationConfirmed,
   locationOutOfRange,
+  pendingSyncSubtitle,
   pendingSyncSummary,
   sectionEnd,
   tabWithPendingCount,
@@ -164,6 +165,15 @@ describe('phrases assembled around a server value', () => {
   it('agrees the count and the noun in the pending-sync banner', () => {
     expect(pendingSyncSummary(1)).toBe('1 marca esperando sincronizar');
     expect(pendingSyncSummary(2)).toBe('2 marcas esperando sincronizar');
+  });
+
+  // KMO-22 #3. The two lines of the banner are one sentence about a number, and
+  // the design only ever drew the plural half of it — `no forman` over `1 marca`
+  // is a plural verb with a singular subject, on an interface Art. 5 requires to
+  // be Spanish.
+  it('agrees the verb in the pending-sync subtitle with the count above it', () => {
+    expect(pendingSyncSubtitle(1)).toBe('Aún no forma parte del libro de asistencia');
+    expect(pendingSyncSubtitle(2)).toBe('Aún no forman parte del libro de asistencia');
   });
 
   // KMO-12 #3. The number and the verb both have to agree, and the sentence has to

@@ -33,8 +33,22 @@ import {
  * to a filled button, `warning` is the one that proceeds *despite* something
  * (`Marcar de todas formas (queda pendiente de revisión)`), and `danger` is the
  * destructive one (`Rechazar`).
+ *
+ * `warningSolid` is the fifth treatment and the design's own: the `Sincronizar`
+ * pill sitting **on** the warning-tinted pending-sync banner (KMO-22). It is
+ * filled rather than outlined because an outline in `tones.warning.foreground`
+ * on a `tones.warning.background` card is a border against its own tint —
+ * legible only if you already know it is there.
  */
-export type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'warning' | 'danger';
+export type ButtonVariant =
+  'primary' | 'accent' | 'secondary' | 'warning' | 'warningSolid' | 'danger';
+
+/**
+ * The corner. `rounded` is `radius.md`, which is every button the design draws
+ * inside a form or a footer; `pill` is the fully-rounded action that sits inline
+ * on a status strip, which is how the design draws `Sincronizar`.
+ */
+export type ButtonShape = 'rounded' | 'pill';
 
 /**
  * Heights, from the design. `md` is the default because it is what every sheet
@@ -50,6 +64,7 @@ export type ButtonProps = {
   onPress: () => void;
   variant?: ButtonVariant;
   size?: ButtonSize;
+  shape?: ButtonShape;
   /** Dims and blocks the press; the button stays on screen and readable. */
   disabled?: boolean;
   /** Swaps in the spinner, keeps the label, and blocks the press. */
@@ -87,6 +102,9 @@ const variants: Record<ButtonVariant, VariantStyle> = {
     foreground: tones.warning.foreground,
     border: tones.warning.foreground,
   },
+  // The tone's own foreground, filled. On the banner it draws the action out of
+  // the tint it is sitting on, which the outline above cannot do.
+  warningSolid: { background: tones.warning.foreground, foreground: colors.white },
   danger: {
     background: 'transparent',
     foreground: tones.danger.foreground,
@@ -116,6 +134,7 @@ export function Button({
   onPress,
   variant = 'primary',
   size = 'md',
+  shape = 'rounded',
   disabled = false,
   loading = false,
   accessibilityLabel,
@@ -151,6 +170,7 @@ export function Button({
         styles.base,
         {
           minHeight,
+          borderRadius: shape === 'pill' ? radius.pill : radius.md,
           backgroundColor: background,
           borderColor: border ?? 'transparent',
           borderWidth: border === undefined ? 0 : borderWidth,
@@ -184,7 +204,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing[2],
     minWidth: hitTargetMin,
-    borderRadius: radius.md,
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[2],
   },

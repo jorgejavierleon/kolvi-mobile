@@ -210,6 +210,30 @@ export function MapPinOffIcon(props: IconProps) {
 }
 
 /**
+ * `cloud-upload` — the pending-sync banner (KMO-22 #2).
+ *
+ * **The one icon in this file that deviates from the design deliberately.** The
+ * mockup's banner glyph transcribes to Lucide `sunrise` — the rays, the horizon
+ * rule at `M22 22H2` and the arc at `M16 18a4 4 0 0 0-8 0` are all there — which
+ * is almost certainly a slip made reaching for the arrow-up-over-a-shape
+ * silhouette. A sunrise on a banner about punches that have not reached the
+ * attendance book means nothing, and it means nothing in a place where the icon
+ * is load-bearing: the repo's rule is that status is never carried by colour
+ * alone, so on a warning-tinted strip read at a glance outdoors, this glyph is
+ * half of what says *pending transmission*. Spacing, colour and copy on the
+ * banner are the design's, unchanged.
+ */
+export function CloudUploadIcon(props: IconProps) {
+  return (
+    <Glyph {...props} strokeWidth={2.2}>
+      <Path d="M12 13v8" />
+      <Path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+      <Path d="m8 17 4-4 4 4" />
+    </Glyph>
+  );
+}
+
+/**
  * `check` — the comprobante's success mark (KMO-19 #2).
  *
  * The design thickens this one to 3 and draws it at 30 in a 64dp success-tinted

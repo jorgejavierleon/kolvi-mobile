@@ -10,12 +10,14 @@ import { employeePermissions, parsePermissions, type Permission } from '../auth/
 import { SessionProvider } from '../auth/session';
 import type { SessionUser } from '../auth/session-user';
 import { createMemoryTokenStore } from '../auth/token-store';
+import type { ConnectivitySource } from './connectivity';
 import { HomeScreen } from './home-screen';
 import { CLOCK_TICK_MS } from './now-clock';
 import type { LocationFix } from './geofence';
 import type { LocationPermission, LocationSource } from './location';
 import type { MarksApi } from './marks-api';
 import { DuplicateMarkError, type PunchApi, type PunchReceipt } from './punch-api';
+import { createPunchQueue, type PunchQueue, type PunchSync } from './punch-queue';
 import type { TodayApi, TodaySummary } from './today-api';
 
 /**
@@ -46,6 +48,31 @@ const fix: LocationFix = { latitude: -33.4569, longitude: -70.5975, accuracyMete
 
 /** Estación Central, about two kilometres outside the seeded premise (KMO-18). */
 const farawayFix: LocationFix = { latitude: -33.4372, longitude: -70.6506, accuracyMeters: 5 };
+
+/**
+ * A phone whose radio the test drives (KMO-22 #1).
+ *
+ * Injected everywhere, like the location source: without it the real
+ * `expo-network` is reached for, and the screen's answer to `Sincronizar` would
+ * depend on the host running the suite.
+ */
+function fakeConnectivity(online = true): ConnectivitySource & { report(next: boolean): void } {
+  const listeners: ((next: boolean) => void)[] = [];
+
+  return {
+    getState: async () => online,
+    subscribe: (listener) => {
+      listeners.push(listener);
+
+      return () => {};
+    },
+    report: (next) => {
+      for (const listener of listeners) {
+        listener(next);
+      }
+    },
+  };
+}
 
 /** A phone that has the permission and knows where it is. */
 function fakeLocation(overrides: Partial<LocationSource> = {}): LocationSource {
@@ -107,6 +134,9 @@ type MountOptions = {
   firstName?: string | null;
   at?: string;
   location?: LocationSource;
+  queue?: PunchQueue;
+  connectivity?: ConnectivitySource;
+  punchSync?: PunchSync;
 };
 
 /** A stored mark, as `GET /marks` answers with one (KMO-20). */
@@ -179,6 +209,9 @@ async function mount(options: MountOptions = {}) {
       marksApi={options.marksApi ?? fakeMarksApi([storedMark()])}
       clock={clock}
       locationSource={options.location ?? fakeLocation()}
+      queue={options.queue ?? createPunchQueue()}
+      connectivitySource={options.connectivity ?? fakeConnectivity()}
+      punchSync={options.punchSync}
     />,
     { wrapper: sessionWrapper(sessionUser) },
   );
@@ -1116,5 +1149,205 @@ describe('the punch history (KMO-20)', () => {
     await openHistory();
 
     expect(screen.getByText('Mis últimas marcas')).toBeOnTheScreen();
+  });
+});
+
+describe('the pending-sync banner (KMO-22)', () => {
+  /**
+   * Every `testID` on screen, in the order the tree draws them — which is what
+   * "above the location card" means when the assertion has no pixels to look at.
+   */
+  function testIDsInOrder(): string[] {
+    const found: string[] = [];
+
+    const walk = (node: unknown): void => {
+      if (node === null || typeof node !== 'object') {
+        return;
+      }
+
+      const element = node as { props?: { testID?: unknown }; children?: unknown };
+
+      if (typeof element.props?.testID === 'string') {
+        found.push(element.props.testID);
+      }
+
+      if (Array.isArray(element.children)) {
+        for (const child of element.children) {
+          walk(child);
+        }
+      }
+    };
+
+    walk(screen.toJSON());
+
+    return found;
+  }
+
+  /** A queue already holding punches, as KMO-23 will fill it. */
+  function queueHolding(count: number): PunchQueue {
+    const queue = createPunchQueue();
+
+    for (let index = 0; index < count; index += 1) {
+      queue.enqueue({
+        id: `q${index}`,
+        type: index % 2 === 0 ? 'in' : 'out',
+        fix: null,
+        geoStatus: 'unknown',
+      });
+    }
+
+    return queue;
+  }
+
+  describe('with an empty queue (#6)', () => {
+    it('shows nothing, online', async () => {
+      await mountLoaded();
+
+      expect(screen.queryByTestId('pending-sync-banner')).not.toBeOnTheScreen();
+      expect(screen.queryByText(es.actions.sync)).not.toBeOnTheScreen();
+    });
+
+    it('shows nothing offline either', async () => {
+      // Being offline with nothing waiting is not something the employee needs
+      // told: nothing of theirs is at risk, and a standing "sin conexión" strip
+      // is how somebody learns to read past the one that matters.
+      await mountLoaded({ connectivity: fakeConnectivity(false) });
+
+      expect(screen.queryByTestId('pending-sync-banner')).not.toBeOnTheScreen();
+    });
+
+    it('shows nothing when connectivity is lost while the screen is open', async () => {
+      const connectivity = fakeConnectivity(true);
+      await mountLoaded({ connectivity });
+
+      await act(async () => {
+        connectivity.report(false);
+      });
+
+      expect(screen.queryByTestId('pending-sync-banner')).not.toBeOnTheScreen();
+    });
+  });
+
+  describe('with punches waiting (#2, #3)', () => {
+    it('names the count and says they are not in the attendance book', async () => {
+      await mountLoaded({ queue: queueHolding(2) });
+
+      expect(screen.getByText('2 marcas esperando sincronizar')).toBeOnTheScreen();
+      expect(screen.getByText('Aún no forman parte del libro de asistencia')).toBeOnTheScreen();
+    });
+
+    it('uses the singular for one', async () => {
+      await mountLoaded({ queue: queueHolding(1) });
+
+      expect(screen.getByText('1 marca esperando sincronizar')).toBeOnTheScreen();
+    });
+
+    it('sits above the location card, where the design puts it', async () => {
+      await mountLoaded({ queue: queueHolding(1) });
+
+      const order = testIDsInOrder();
+
+      expect(order.indexOf('pending-sync-banner')).toBeGreaterThanOrEqual(0);
+      expect(order.indexOf('pending-sync-banner')).toBeLessThan(order.indexOf('location-card'));
+      expect(order.indexOf('pending-sync-banner')).toBeLessThan(order.indexOf('shift-card'));
+    });
+
+    it('is on screen before today’s summary has arrived', async () => {
+      // An untransmitted punch is a fact about the phone. A `/me/today` that is
+      // slow, or never lands, does not make it any less untransmitted.
+      await mount({
+        api: { fetchToday: () => new Promise<TodaySummary>(() => {}) },
+        queue: queueHolding(1),
+      });
+
+      expect(screen.getByTestId('pending-sync-banner')).toBeOnTheScreen();
+      expect(screen.getByTestId('home-skeleton')).toBeOnTheScreen();
+    });
+  });
+
+  describe('Sincronizar (#4, #5)', () => {
+    it('flushes the queue and takes the banner away when it empties', async () => {
+      const queue = queueHolding(2);
+      const sent: string[] = [];
+
+      await mountLoaded({
+        queue,
+        punchSync: async (punch) => {
+          sent.push(punch.id);
+        },
+      });
+
+      await userEvent.press(screen.getByTestId('pending-sync-action'));
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('pending-sync-banner')).not.toBeOnTheScreen(),
+      );
+      expect(sent).toEqual(['q0', 'q1']);
+    });
+
+    it('reports itself busy while the flush runs', async () => {
+      const queue = queueHolding(1);
+      let release: (() => void) | undefined;
+
+      await mountLoaded({
+        queue,
+        punchSync: () =>
+          new Promise<void>((resolve) => {
+            release = resolve;
+          }),
+      });
+
+      await userEvent.press(screen.getByTestId('pending-sync-action'));
+
+      await waitFor(() =>
+        expect(screen.getByTestId('pending-sync-action').props.accessibilityState.busy).toBe(true),
+      );
+
+      await act(async () => {
+        release?.();
+      });
+    });
+  });
+
+  describe('when the flush fails (#7)', () => {
+    it('keeps every punch and says why in the server’s Spanish', async () => {
+      const queue = queueHolding(2);
+
+      await mountLoaded({
+        queue,
+        punchSync: () =>
+          Promise.reject(
+            new ApiError({ kind: 'server', status: 500, serverMessage: 'El servidor falló.' }),
+          ),
+      });
+
+      await userEvent.press(screen.getByTestId('pending-sync-action'));
+
+      await waitFor(() =>
+        expect(screen.getByTestId('pending-sync-error')).toHaveTextContent('El servidor falló.'),
+      );
+      expect(screen.getByText('2 marcas esperando sincronizar')).toBeOnTheScreen();
+    });
+
+    it('says so immediately with no connectivity, rather than spending a doomed request', async () => {
+      // #1, wired to the one thing this screen uses it for. The button is never
+      // disabled — Art. 38 b) names a blocked app as non-conforming — so the
+      // press lands and produces the reason without the round trip.
+      const punchSync = jest.fn();
+
+      await mountLoaded({
+        queue: queueHolding(1),
+        connectivity: fakeConnectivity(false),
+        punchSync,
+      });
+
+      await userEvent.press(screen.getByTestId('pending-sync-action'));
+
+      await waitFor(() =>
+        expect(screen.getByTestId('pending-sync-error')).toHaveTextContent(es.errors.network),
+      );
+      expect(punchSync).not.toHaveBeenCalled();
+      expect(screen.getByText('1 marca esperando sincronizar')).toBeOnTheScreen();
+    });
   });
 });

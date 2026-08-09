@@ -510,6 +510,40 @@ export const es = {
     },
 
     /**
+     * The pending-sync banner, above the location card (KMO-22).
+     *
+     * Transcribed from the design, and load-bearing rather than decorative:
+     * docs/design-decisions.md §4.5 settles that a queued punch is **not
+     * registered** — the attendance book is the central database (Res. 38
+     * Art. 9), an unsynced mark has no folio and no Art. 8 checksum, and it is
+     * invisible to the Art. 17 fiscalización portal. So the employee is told,
+     * in the app's own words, that what is on their phone is not yet in the
+     * book. A banner that said "guardadas" and stopped would be describing a
+     * record that does not exist.
+     *
+     * The title is `pendingSyncSummary` and the subtitle is
+     * `pendingSyncSubtitle`, both below: the two lines are one sentence about a
+     * number, so both of them decline with it.
+     *
+     * The banner appears **only when there are queued punches** (#6). Being
+     * offline with an empty queue is not news: nothing is at risk, and a
+     * standing "sin conexión" strip on the home screen is how an employee
+     * learns to read past the one that matters.
+     */
+    sync: {
+      /**
+       * The flush did not go through (#7).
+       *
+       * The fallback only — a server that said why is quoted verbatim, and a
+       * phone with no signal gets `es.errors.network`, which already names the
+       * cause. What this has to carry is the part the employee cannot see: the
+       * marks are still on the phone, so nothing was lost and the button is
+       * still worth pressing.
+       */
+      failed: 'No pudimos sincronizar tus marcas. Siguen guardadas en este teléfono.',
+    },
+
+    /**
      * The titles on the geolocation card, above the shift card (KMO-16).
      *
      * The first three are transcribed from the design's own `geoTitle`, and each
@@ -799,6 +833,28 @@ export function locationOutOfRange(premise: string): string {
 /** `2 marcas esperando sincronizar` — the offline queue banner on the home screen. */
 export function pendingSyncSummary(count: number): string {
   return `${count} ${count === 1 ? 'marca esperando' : 'marcas esperando'} sincronizar`;
+}
+
+/**
+ * `Aún no forman parte del libro de asistencia` — the line under it (KMO-22 #3).
+ *
+ * A formatter rather than the fixed string the design draws, and the reason is
+ * visible the first time an employee queues exactly one punch: the design only
+ * ever renders this banner in the plural, so its subtitle is `no forman`, and
+ * over `1 marca esperando sincronizar` that is a plural verb with a singular
+ * subject. Res. 38 Art. 5 makes the Spanish a compliance requirement, and the
+ * singular is already the register's own wording — the offline comprobante in
+ * docs/design-decisions.md §4.5 says `aún no forma parte del libro de asistencia
+ * electrónico`.
+ *
+ * What it says is the same claim in both numbers, and it is §4.5's: the
+ * attendance book is the central database (Art. 9), and a punch on this phone is
+ * captured and stored pending transmission, which is not registration.
+ */
+export function pendingSyncSubtitle(count: number): string {
+  return count === 1
+    ? 'Aún no forma parte del libro de asistencia'
+    : 'Aún no forman parte del libro de asistencia';
 }
 
 /**

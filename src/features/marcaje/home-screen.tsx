@@ -12,17 +12,26 @@ import { TextLink } from '@/ui/text-link';
 
 import { useSession } from '../auth/session';
 import { Clock } from './clock';
+import type { ConnectivitySource } from './connectivity';
 import type { LocationSource } from './location';
 import { LocationCard } from './location-card';
 import { LocationRationale } from './location-rationale';
 import type { MarksApi } from './marks-api';
 import { MarksSheet } from './marks-sheet';
 import { useNow } from './now-clock';
+import { PendingSyncBanner } from './pending-sync-banner';
 import { PunchAction, type PunchHold } from './punch-action';
 import type { PunchApi, PunchReceipt } from './punch-api';
+import {
+  punchQueue as appPunchQueue,
+  usePunchQueue,
+  type PunchQueue,
+  type PunchSync,
+} from './punch-queue';
 import { ReceiptSheet } from './receipt-sheet';
 import { ShiftCard, ShiftCardSkeleton } from './shift-card';
 import type { TodayApi, TodaySummary } from './today-api';
+import { useConnectivity } from './use-connectivity';
 import { useLocation } from './use-location';
 import { useMarks } from './use-marks';
 import { usePunch, type Punch } from './use-punch';
@@ -41,6 +50,19 @@ export type HomeScreenProps = {
   clock?: () => Date;
   /** Injected in tests; the app reads the phone's location. */
   locationSource?: LocationSource;
+  /** Injected in tests; the app uses the process-wide queue. */
+  queue?: PunchQueue;
+  /** Injected in tests; the app reads the phone. */
+  connectivitySource?: ConnectivitySource;
+  /**
+   * How one queued punch is transmitted — **KMO-23's**, along with the wire body
+   * in docs/design-decisions.md §4.3 and the enqueue that fills the queue in the
+   * first place.
+   *
+   * Optional until then, and unreachable while it is: the banner is only on
+   * screen when the queue holds something, and nothing puts anything in it yet.
+   */
+  punchSync?: PunchSync;
 };
 
 /**
@@ -87,8 +109,11 @@ export type HomeScreenProps = {
  * and this screen is again the only thing that knows which of the two sheets the
  * employee is on.
  *
- * What is not here yet: the pending-sync banner (KMO-22), which lands in the
- * slot the design puts it in.
+ * The pending-sync banner (KMO-22) is composed above the location card, in the
+ * slot the design puts it in, and it is the third thing on this screen that
+ * sits outside the three load states: an untransmitted punch is a fact about
+ * the phone, not about `/me/today`. What is *not* here is anything that decides
+ * to queue — that is a request that failed, and it arrives with KMO-23.
  */
 export function HomeScreen({
   onOpenProfile,
@@ -97,6 +122,9 @@ export function HomeScreen({
   marksApi,
   clock,
   locationSource,
+  queue = appPunchQueue,
+  connectivitySource,
+  punchSync,
 }: HomeScreenProps) {
   const session = useSession();
   const today = useToday(api);
@@ -189,6 +217,45 @@ export function HomeScreen({
   });
 
   /**
+   * The punches this phone is still holding (KMO-22).
+   *
+   * Read here rather than inside the banner so the screen — which already owns
+   * every other composition decision on it — is the one place that knows the
+   * queue exists. Empty until KMO-23 puts something in it.
+   */
+  const pending = usePunchQueue(queue);
+
+  /**
+   * Whether the phone thinks it can reach anything (#1).
+   *
+   * Used for exactly one thing on this screen, and deliberately nothing else:
+   * pressing `Sincronizar` with the radio off says so immediately instead of
+   * spending a doomed round trip to arrive at the same sentence. It never
+   * decides that a punch belongs in the queue — that is a request that actually
+   * failed, per §4.6 and the header of `connectivity.ts` — and there is no
+   * setting anywhere that can put the app in this state on purpose (#8).
+   *
+   * The automatic flush KMO-23 #4 hangs off `onRestored` is not wired yet: there
+   * is nothing to transmit and nothing to transmit it with.
+   */
+  const connectivity = useConnectivity({ source: connectivitySource });
+
+  /**
+   * `Sincronizar` — the Art. 10 accelerator, never the mechanism (§4.1).
+   *
+   * The guard is the KMO-22/KMO-23 seam rather than a real branch: without a
+   * `punchSync` there is no way to enqueue either, so the banner carrying this
+   * button cannot be on screen.
+   */
+  const flushQueue = useCallback((): void => {
+    if (punchSync === undefined) {
+      return;
+    }
+
+    void queue.flush({ sync: punchSync, online: connectivity.online });
+  }, [connectivity.online, punchSync, queue]);
+
+  /**
    * What the geolocation card is holding the punch for, and the way out of it
    * (KMO-18). Composed here, like everything else on this screen: the hook knows
    * where the employee is, the component draws a button, and this is the one
@@ -228,6 +295,21 @@ export function HomeScreen({
         eyebrow={formatLongDate(now.date)}
         avatarLabel={es.profile.open}
         onPressAvatar={onOpenProfile}
+      />
+
+      {/* Above the location card, where the design puts it — and outside the
+          three load states for the same reason that card is: what this says is
+          a fact about the phone, and a `/me/today` that is slow or never
+          arrives does not make an untransmitted punch any less untransmitted.
+
+          It draws nothing at all when the queue is empty (#6), so there is no
+          gate on it here: the count is what puts it on screen. */}
+      <PendingSyncBanner
+        count={pending.count}
+        error={pending.lastError}
+        onSync={flushQueue}
+        syncing={pending.syncing}
+        testID="pending-sync-banner"
       />
 
       {/* Above the shift card, where the design puts it, and above the three

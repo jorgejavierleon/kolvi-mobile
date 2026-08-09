@@ -1,0 +1,93 @@
+# KMO-22 — the pending-sync banner is absent when there is nothing to sync.
+#
+# Covers #6 (an empty queue shows no banner) and #8 (there is no manual offline
+# mode: nowhere in the app is there a switch, a preference or a default that
+# turns the queue on).
+#
+# **The offline half of #6 is not in this flow, and cannot be yet.** A cold start
+# with no connectivity lands on the login screen — `session.tsx` verifies the
+# stored token with `GET /api/user` and signs out on any failure, including one
+# that never reached a server — so Inicio is unreachable with the radio off until
+# KMO-49 builds the offline session. `shared/sign-in.yaml` needs a reachable
+# `ams` for the same reason, which is why this flow is not tagged
+# `requires-offline`. The offline half is verified against a session that is
+# already up, from the shell rather than from a flow:
+#
+#   bin/device net off
+#   bin/ui 'Sincronizar'                 # exit 1 — no banner appeared
+#   bin/ui 'esperando sincronizar'       # exit 1
+#   bin/device net on
+#
+# The rest of the banner — the count, the subtitle, `Sincronizar` and what a
+# failed flush says — has no device tier in this ticket either: nothing enqueues
+# a punch until KMO-23 #1, so the banner cannot be put on screen here. It is
+# covered in `pending-sync-banner.test.tsx` and `home-screen.test.tsx`, and gets
+# its flow with KMO-23.
+appId: cl.kolvi.empleados
+name: KMO-22 no banner with an empty queue
+tags:
+  - marcaje
+  - offline
+---
+- runFlow: shared/sign-in.yaml
+
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 30000
+    label: 'On the tab shell'
+
+# The screen the banner would be on. Waiting for the shift card rather than
+# asserting immediately: the banner draws above it, so a check that ran before
+# Inicio had painted would pass against an empty screen.
+- extendedWaitUntil:
+    visible: 'Turno de hoy'
+    timeout: 30000
+    label: 'Inicio has painted, so the slot above the location card exists'
+
+- assertNotVisible:
+    text: 'Sincronizar'
+    label: '#6 — nothing is waiting, so there is nothing to accelerate'
+
+- assertNotVisible:
+    text: '.*esperando sincronizar'
+    label: '#6 — and no count of punches that are not there'
+
+- assertNotVisible:
+    text: 'Aún no forman parte del libro de asistencia'
+    label: '#6 — an employee with an empty queue is told nothing about one'
+
+# #8, on the two surfaces an employee can reach from here. The queue engages on
+# an actual failure to reach the server and never as a setting — Res. 38 Art. 10
+# confines the exception to `situaciones excepcionales`, and a toggle would both
+# make it the operating mode and hand the employee a way to choose their own
+# timestamp (docs/design-decisions.md §4.6).
+- assertNotVisible:
+    text: 'Sin conexión'
+    label: '#8 — Inicio offers no offline mode'
+
+- assertNotVisible:
+    text: 'Modo sin conexión'
+    label: '#8 — under any name'
+
+- tapOn:
+    text: 'Abrir mi perfil'
+    label: 'Open Mi perfil, where a preference would live'
+
+- extendedWaitUntil:
+    visible: 'Mi perfil'
+    timeout: 20000
+    label: 'On the profile surface'
+
+- assertNotVisible:
+    text: 'Sin conexión'
+    label: '#8 — and neither does the one screen in the app with settings on it'
+
+- assertNotVisible:
+    text: 'Modo sin conexión'
+    label: '#8 — under any name'
+
+- assertNotVisible:
+    text: 'Sincronizar'
+    label: '#8 — syncing is not a preference either'
+
+- takeScreenshot: kmo-22-no-banner

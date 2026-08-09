@@ -329,8 +329,23 @@ tab bar, and the list has to stay inside Marcaje. The two sheets swap rather tha
 screen nothing until it is opened — Inicio keeps its one request, and goal G1 is why. The
 five-year workday history is Phase 2's, under Jornada.
 
-The pending-sync banner (KMO-22) lands in the slot the design puts it in. Jornada, Permisos
-and Documentos are still empty — run `backlog task list --plain` to see the backlog.
+Above the location card, in the slot the design puts it in, is the pending-sync banner
+(KMO-22): `{n} marcas esperando sincronizar` over `Aún no forman parte del libro de
+asistencia`, with `Sincronizar` beside it. It is on screen only when the phone is holding
+punches — being offline with an empty queue is not news an employee needs, and §4.5 is why
+the copy says _not part of the book_ rather than _saved_: the register is the central
+database, and a queued punch has no folio and no Art. 8 checksum. `Sincronizar` is an
+accelerator and never the mechanism (Art. 10 requires the deferred send to be automatic), so
+it is never disabled, and a flush that fails leaves every punch where it was and says why in
+the server's own Spanish. Connectivity itself comes from `expo-network` through
+`src/features/marcaje/connectivity.ts`, and it is **optimism, not authority** — there is no
+setter on it and no offline mode anywhere, because Art. 10 confines the exception to
+_situaciones excepcionales_ and what puts a punch in the queue is a request that actually
+failed. The queue behind the banner is `punch-queue.ts`; it holds rows in memory and nothing
+fills it yet, which is KMO-23's along with durability and the wire contract.
+
+Jornada, Permisos and Documentos are still empty — run `backlog task list --plain` to see the
+backlog.
 
 One thing the session still cannot do, and it is the backend's: a deactivated employee keeps a
 working token, because `ams` checks `is_active` only when issuing one (PRD A7/A8) — the app ends
