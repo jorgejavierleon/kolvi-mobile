@@ -1,64 +1,156 @@
 import { act, renderHook } from '@testing-library/react-native';
 
-import { ApiError } from '@/api';
+import { ApiError, type NaiveDateTime } from '@/api';
 import { es } from '@/i18n';
 
-import { createPunchQueue, usePunchQueue, type QueuedPunch } from './punch-queue';
+import {
+  createPunchQueue,
+  usePunchQueue,
+  type PunchSync,
+  type PunchSyncResult,
+  type QueuedPunch,
+} from './punch-queue';
+import type { PunchQueueStore } from './punch-queue-store';
 
 function punch(id: string, overrides: Partial<QueuedPunch> = {}): QueuedPunch {
-  return { id, type: 'in', fix: null, geoStatus: 'unknown', ...overrides };
+  return {
+    id,
+    type: 'in',
+    fix: null,
+    geoStatus: 'unknown',
+    idempotencyKey: `idem-${id}`,
+    deviceDatetime: '2026-08-04 08:00:00' as NaiveDateTime,
+    ...overrides,
+  };
+}
+
+/** A store that behaves, and records what was asked of it. */
+function fakeStore(
+  seed: QueuedPunch[] = [],
+): PunchQueueStore & { appended: QueuedPunch[]; removed: string[] } {
+  let rows = [...seed];
+  const appended: QueuedPunch[] = [];
+  const removed: string[] = [];
+
+  return {
+    appended,
+    removed,
+    load: async () => rows,
+    append: async (row) => {
+      rows = [...rows, row];
+      appended.push(row);
+    },
+    remove: async (id) => {
+      rows = rows.filter((row) => row.id !== id);
+      removed.push(id);
+    },
+  };
 }
 
 describe('createPunchQueue', () => {
-  it('starts empty, with nothing to say', () => {
+  it('starts empty, with nothing to say', async () => {
     const queue = createPunchQueue();
 
-    expect(queue.getState()).toEqual({ entries: [], syncing: false, lastError: null });
+    // The store load resolves in a microtask even for the in-memory default —
+    // give it one before asserting the settled shape.
+    await Promise.resolve();
+
+    expect(queue.getState()).toEqual({
+      entries: [],
+      syncing: false,
+      lastError: null,
+      lastNotice: null,
+    });
   });
 
-  it('keeps punches in the order they were made', () => {
+  it('keeps punches in the order they were made', async () => {
     const queue = createPunchQueue();
 
-    queue.enqueue(punch('a'));
-    queue.enqueue(punch('b', { type: 'out' }));
+    await queue.enqueue(punch('a'));
+    await queue.enqueue(punch('b', { type: 'out' }));
 
     expect(queue.getState().entries.map((entry) => entry.id)).toEqual(['a', 'b']);
   });
 
-  it('notifies subscribers, and stops once unsubscribed', () => {
+  it('notifies subscribers, and stops once unsubscribed', async () => {
     const queue = createPunchQueue();
     const listener = jest.fn();
 
     const unsubscribe = queue.subscribe(listener);
-    queue.enqueue(punch('a'));
-    expect(listener).toHaveBeenCalledTimes(1);
+    await queue.enqueue(punch('a'));
+    expect(listener).toHaveBeenCalled();
 
+    const callsAfterFirst = listener.mock.calls.length;
     unsubscribe();
-    queue.enqueue(punch('b'));
-    expect(listener).toHaveBeenCalledTimes(1);
+    await queue.enqueue(punch('b'));
+    expect(listener).toHaveBeenCalledTimes(callsAfterFirst);
   });
 
-  it('hands out a new state object per change', () => {
+  it('hands out a new state object per change', async () => {
     // `useSyncExternalStore` compares by identity: a mutated array would leave
     // the banner drawing a count that has already moved.
     const queue = createPunchQueue();
+    await Promise.resolve();
 
     const before = queue.getState();
-    queue.enqueue(punch('a'));
+    await queue.enqueue(punch('a'));
 
     expect(queue.getState()).not.toBe(before);
+  });
+
+  describe('durability (#1, #2)', () => {
+    it('does not tell the queue about a new punch until the store has it', async () => {
+      const store = fakeStore();
+      const queue = createPunchQueue(store);
+
+      let storeHadItWhenStateChanged = false;
+      queue.subscribe(() => {
+        storeHadItWhenStateChanged = store.appended.length > 0;
+      });
+
+      await queue.enqueue(punch('a'));
+
+      expect(storeHadItWhenStateChanged).toBe(true);
+    });
+
+    it('loads whatever the store already held, on construction', async () => {
+      const store = fakeStore([punch('a'), punch('b')]);
+      const queue = createPunchQueue(store);
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(queue.getState().entries.map((entry) => entry.id)).toEqual(['a', 'b']);
+    });
+
+    it('carries the idempotency key and the device reading through untouched', async () => {
+      const queue = createPunchQueue();
+      const entry = punch('a', {
+        idempotencyKey: '0f9c4e6a-3b21-4d7f-9a58-1c2e7b40d913',
+        deviceDatetime: '2026-08-07 08:03:11' as NaiveDateTime,
+      });
+
+      await queue.enqueue(entry);
+
+      expect(queue.getState().entries[0]).toMatchObject({
+        idempotencyKey: '0f9c4e6a-3b21-4d7f-9a58-1c2e7b40d913',
+        deviceDatetime: '2026-08-07 08:03:11',
+      });
+    });
   });
 
   describe('flush', () => {
     it('transmits every punch, oldest first, and empties the queue', async () => {
       const queue = createPunchQueue();
-      queue.enqueue(punch('a'));
-      queue.enqueue(punch('b'));
+      await queue.enqueue(punch('a'));
+      await queue.enqueue(punch('b'));
 
       const seen: string[] = [];
       await queue.flush({
         sync: async (entry) => {
           seen.push(entry.id);
+
+          return undefined;
         },
       });
 
@@ -67,18 +159,29 @@ describe('createPunchQueue', () => {
       expect(queue.getState().lastError).toBeNull();
     });
 
+    it('removes a settled row from the durable store too', async () => {
+      const store = fakeStore();
+      const queue = createPunchQueue(store);
+      await queue.enqueue(punch('a'));
+
+      await queue.flush({ sync: async () => undefined });
+
+      expect(store.removed).toEqual(['a']);
+    });
+
     it('reports itself busy while it runs', async () => {
       const queue = createPunchQueue();
-      queue.enqueue(punch('a'));
+      await queue.enqueue(punch('a'));
 
       let release: (() => void) | undefined;
       const flushed = queue.flush({
         sync: () =>
-          new Promise<void>((resolve) => {
-            release = resolve;
+          new Promise<PunchSyncResult>((resolve) => {
+            release = () => resolve(undefined);
           }),
       });
 
+      await Promise.resolve();
       expect(queue.getState().syncing).toBe(true);
 
       release?.();
@@ -91,17 +194,18 @@ describe('createPunchQueue', () => {
       // Two passes over the same rows would post each punch twice. §4.3's
       // idempotency key is the server's guard, not a licence to send one.
       const queue = createPunchQueue();
-      queue.enqueue(punch('a'));
+      await queue.enqueue(punch('a'));
 
       let release: (() => void) | undefined;
       const sync = jest.fn(
         () =>
-          new Promise<void>((resolve) => {
-            release = resolve;
+          new Promise<PunchSyncResult>((resolve) => {
+            release = () => resolve(undefined);
           }),
       );
 
       const first = queue.flush({ sync });
+      await Promise.resolve();
       await queue.flush({ sync });
 
       expect(sync).toHaveBeenCalledTimes(1);
@@ -112,7 +216,7 @@ describe('createPunchQueue', () => {
 
     it('does nothing at all when the queue is empty', async () => {
       const queue = createPunchQueue();
-      const sync = jest.fn();
+      const sync: PunchSync = jest.fn(async () => undefined);
 
       await queue.flush({ sync });
 
@@ -123,8 +227,8 @@ describe('createPunchQueue', () => {
     describe('when it fails', () => {
       it('leaves the queue intact and says why in the server’s Spanish', async () => {
         const queue = createPunchQueue();
-        queue.enqueue(punch('a'));
-        queue.enqueue(punch('b'));
+        await queue.enqueue(punch('a'));
+        await queue.enqueue(punch('b'));
 
         await queue.flush({
           sync: () =>
@@ -140,7 +244,7 @@ describe('createPunchQueue', () => {
 
       it('falls back to the catalogue for a failure that is not the API', async () => {
         const queue = createPunchQueue();
-        queue.enqueue(punch('a'));
+        await queue.enqueue(punch('a'));
 
         await queue.flush({ sync: () => Promise.reject(new Error('undefined is not a function')) });
 
@@ -151,18 +255,18 @@ describe('createPunchQueue', () => {
 
       it('quotes the catalogue sentence an ApiError carries for its kind', async () => {
         const queue = createPunchQueue();
-        queue.enqueue(punch('a'));
+        await queue.enqueue(punch('a'));
 
         await queue.flush({ sync: () => Promise.reject(new ApiError({ kind: 'network' })) });
 
         expect(queue.getState().lastError).toBe(es.errors.network);
       });
 
-      it('stops at the first refusal and keeps what it did not send', async () => {
+      it('stops at the first refusal that means try again, and keeps what it did not send', async () => {
         const queue = createPunchQueue();
-        queue.enqueue(punch('a'));
-        queue.enqueue(punch('b'));
-        queue.enqueue(punch('c'));
+        await queue.enqueue(punch('a'));
+        await queue.enqueue(punch('b'));
+        await queue.enqueue(punch('c'));
 
         const seen: string[] = [];
         await queue.flush({
@@ -172,6 +276,8 @@ describe('createPunchQueue', () => {
             if (entry.id === 'b') {
               throw new ApiError({ kind: 'network' });
             }
+
+            return undefined;
           },
         });
 
@@ -183,17 +289,17 @@ describe('createPunchQueue', () => {
 
       it('keeps a punch made while the flush was in flight', async () => {
         const queue = createPunchQueue();
-        queue.enqueue(punch('a'));
+        await queue.enqueue(punch('a'));
 
         let release: (() => void) | undefined;
         const flushed = queue.flush({
           sync: () =>
-            new Promise<void>((resolve) => {
-              release = resolve;
+            new Promise<PunchSyncResult>((resolve) => {
+              release = () => resolve(undefined);
             }),
         });
 
-        queue.enqueue(punch('b'));
+        await queue.enqueue(punch('b'));
         release?.();
         await flushed;
 
@@ -202,21 +308,74 @@ describe('createPunchQueue', () => {
 
       it('clears the previous reason when the next flush succeeds', async () => {
         const queue = createPunchQueue();
-        queue.enqueue(punch('a'));
+        await queue.enqueue(punch('a'));
 
         await queue.flush({ sync: () => Promise.reject(new ApiError({ kind: 'network' })) });
         expect(queue.getState().lastError).not.toBeNull();
 
-        await queue.flush({ sync: async () => {} });
+        await queue.flush({ sync: async () => undefined });
         expect(queue.getState().lastError).toBeNull();
+      });
+    });
+
+    describe('a settlement with a notice (KMO-23 #9, #10, #11, #12)', () => {
+      // A duplicate, or one of the two offline-window 422s, is not "try again
+      // later" — the register has already decided this punch's fate, so the
+      // row leaves the queue like a success does, carrying a line for the
+      // employee instead of nothing at all.
+      it('drops the row and keeps the message, without stopping the rest of the flush', async () => {
+        const queue = createPunchQueue();
+        await queue.enqueue(punch('a'));
+        await queue.enqueue(punch('b'));
+
+        const seen: string[] = [];
+        await queue.flush({
+          sync: async (entry) => {
+            seen.push(entry.id);
+
+            return entry.id === 'a' ? { message: 'Esa marca ya estaba registrada.' } : undefined;
+          },
+        });
+
+        expect(seen).toEqual(['a', 'b']);
+        expect(queue.getState().entries).toEqual([]);
+        expect(queue.getState().lastNotice).toBe('Esa marca ya estaba registrada.');
+        expect(queue.getState().lastError).toBeNull();
+      });
+
+      it('removes the settled row from the durable store even when it carries a notice', async () => {
+        const store = fakeStore();
+        const queue = createPunchQueue(store);
+        await queue.enqueue(punch('a'));
+
+        await queue.flush({ sync: async () => ({ message: 'La marca es demasiado antigua.' }) });
+
+        expect(store.removed).toEqual(['a']);
+      });
+
+      it('clears the previous notice at the start of the next flush', async () => {
+        const queue = createPunchQueue();
+        await queue.enqueue(punch('a'));
+        await queue.enqueue(punch('b'));
+
+        await queue.flush({
+          sync: async (entry) =>
+            entry.id === 'a'
+              ? { message: 'primera' }
+              : Promise.reject(new ApiError({ kind: 'network' })),
+        });
+        expect(queue.getState().lastNotice).toBe('primera');
+
+        await queue.flush({ sync: async () => undefined });
+        expect(queue.getState().lastNotice).toBeNull();
       });
     });
 
     describe('with no connectivity', () => {
       it('explains immediately rather than spending a doomed round trip', async () => {
         const queue = createPunchQueue();
-        queue.enqueue(punch('a'));
-        const sync = jest.fn();
+        await queue.enqueue(punch('a'));
+        const sync: PunchSync = jest.fn(async () => undefined);
 
         await queue.flush({ sync, online: false });
 
@@ -230,7 +389,7 @@ describe('createPunchQueue', () => {
         // told (#6) — there is no banner to put the sentence on.
         const queue = createPunchQueue();
 
-        await queue.flush({ sync: jest.fn(), online: false });
+        await queue.flush({ sync: jest.fn(async () => undefined), online: false });
 
         expect(queue.getState().lastError).toBeNull();
       });
@@ -247,7 +406,7 @@ describe('usePunchQueue', () => {
     expect(result.current.count).toBe(0);
 
     await act(async () => {
-      queue.enqueue(punch('a'));
+      await queue.enqueue(punch('a'));
     });
 
     expect(result.current.count).toBe(1);
@@ -256,13 +415,13 @@ describe('usePunchQueue', () => {
 
   it('re-renders as the queue drains', async () => {
     const queue = createPunchQueue();
-    queue.enqueue(punch('a'));
+    await queue.enqueue(punch('a'));
 
     const { result } = await renderHook(() => usePunchQueue(queue));
     expect(result.current.count).toBe(1);
 
     await act(async () => {
-      await queue.flush({ sync: async () => {} });
+      await queue.flush({ sync: async () => undefined });
     });
 
     expect(result.current.count).toBe(0);

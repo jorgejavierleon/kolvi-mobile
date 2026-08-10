@@ -1,13 +1,16 @@
-import { ApiError, createApiClient, type ApiClient } from '@/api';
+import { ApiError, createApiClient, type ApiClient, type NaiveDateTime } from '@/api';
+import { es } from '@/i18n';
 
 import {
   createPunchApi,
+  createPunchSync,
   DuplicateMarkError,
   isDuplicateMarkError,
   parsePunchReceipt,
   PunchResponseError,
   type PunchRequest,
 } from './punch-api';
+import type { QueuedPunch } from './punch-queue';
 
 /** A complete 201, as the contract in `punch-api.ts` describes it. */
 function payload(overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -295,5 +298,188 @@ describe('a punch that already exists for today', () => {
     const punching = createPunchApi(clientFor(fetchImpl)).punch(request());
 
     await expect(punching).rejects.toThrow(PunchResponseError);
+  });
+});
+
+/** A queued punch, exactly as `use-punch.ts` builds one. */
+function queuedPunch(overrides: Partial<QueuedPunch> = {}): QueuedPunch {
+  return {
+    id: 'row-1',
+    type: 'in',
+    fix: { latitude: -33.4569, longitude: -70.5975, accuracyMeters: 12.4 },
+    geoStatus: 'inside',
+    idempotencyKey: '0f9c4e6a-3b21-4d7f-9a58-1c2e7b40d913',
+    deviceDatetime: '2026-08-07 08:03:11' as NaiveDateTime,
+    ...overrides,
+  };
+}
+
+describe('createPunchSync (KMO-23 §4.3)', () => {
+  it('puts device_datetime and idempotency_key on the wire, alongside the ordinary body', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue(jsonResponse(payload(), 201));
+
+    await createPunchSync(clientFor(fetchImpl))(queuedPunch());
+
+    const body = JSON.parse(fetchImpl.mock.calls[0]?.[1]?.body as string) as Record<
+      string,
+      unknown
+    >;
+    expect(body).toEqual({
+      type: 'in',
+      lat: -33.4569,
+      lng: -70.5975,
+      accuracy_m: 12.4,
+      geo_status: 'inside',
+      device_datetime: '2026-08-07 08:03:11',
+      idempotency_key: '0f9c4e6a-3b21-4d7f-9a58-1c2e7b40d913',
+    });
+  });
+
+  it('sends an absent fix the same way the online path does — explicit nulls', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue(jsonResponse(payload(), 201));
+
+    await createPunchSync(clientFor(fetchImpl))(queuedPunch({ fix: null, geoStatus: 'unknown' }));
+
+    const body = JSON.parse(fetchImpl.mock.calls[0]?.[1]?.body as string) as Record<
+      string,
+      unknown
+    >;
+    expect(body).toMatchObject({ lat: null, lng: null, accuracy_m: null, geo_status: 'unknown' });
+  });
+
+  // #6. `client.post` already treats a 200 as `ok`, exactly like a 201 — this
+  // is the whole idempotency contract, and it needs no branch to hold.
+  it.each([201, 200])('drops the row silently on a %d', async (status) => {
+    const fetchImpl = jest.fn().mockResolvedValue(jsonResponse(payload(), status));
+
+    await expect(createPunchSync(clientFor(fetchImpl))(queuedPunch())).resolves.toBeUndefined();
+  });
+
+  // #5. The same idempotency key, submitted twice, settles the same way both
+  // times — the second call is what a retry after a lost 201 answer sends.
+  it('treats a resend under the same idempotency key exactly like the first send', async () => {
+    const fetchImpl = jest
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(payload(), 201))
+      .mockResolvedValueOnce(jsonResponse(payload(), 200));
+
+    const sync = createPunchSync(clientFor(fetchImpl));
+    const punch = queuedPunch();
+
+    await expect(sync(punch)).resolves.toBeUndefined();
+    await expect(sync(punch)).resolves.toBeUndefined();
+
+    const keys = fetchImpl.mock.calls.map(
+      (call) => (JSON.parse(call[1]?.body as string) as Record<string, unknown>).idempotency_key,
+    );
+    expect(keys).toEqual([punch.idempotencyKey, punch.idempotencyKey]);
+  });
+
+  // #11. Authored, not the server's sentence — matching how the live 409 on
+  // `punch.alreadyMarked` already reads.
+  it('drops a 409 with the app’s own calm line, not a stop', async () => {
+    const fetchImpl = jest
+      .fn()
+      .mockResolvedValue(jsonResponse({ message: 'Ya existe una marca de este tipo hoy.' }, 409));
+
+    await expect(createPunchSync(clientFor(fetchImpl))(queuedPunch())).resolves.toEqual({
+      message: es.marcaje.sync.duplicate,
+    });
+  });
+
+  // #9. Filed for HR inside the same request per §4.4 — retrying would ask to
+  // file it twice, so this drops and never throws.
+  it('drops queued_punch_too_old and shows the server’s sentence verbatim', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue(
+      jsonResponse(
+        {
+          message: 'La marca es demasiado antigua para transmitirse automáticamente.',
+          code: 'queued_punch_too_old',
+        },
+        422,
+      ),
+    );
+
+    await expect(createPunchSync(clientFor(fetchImpl))(queuedPunch())).resolves.toEqual({
+      message: 'La marca es demasiado antigua para transmitirse automáticamente.',
+    });
+  });
+
+  // #10, the decision this ticket recorded: dropped and never retried, same
+  // shape as the too-old case, because the queue never re-reads the clock and
+  // a bare retry can only fail identically or land at a wrong hour later.
+  it('drops queued_punch_in_future and shows the server’s sentence verbatim', async () => {
+    const fetchImpl = jest
+      .fn()
+      .mockResolvedValue(
+        jsonResponse(
+          { message: 'El reloj de tu teléfono está adelantado.', code: 'queued_punch_in_future' },
+          422,
+        ),
+      );
+
+    await expect(createPunchSync(clientFor(fetchImpl))(queuedPunch())).resolves.toEqual({
+      message: 'El reloj de tu teléfono está adelantado.',
+    });
+  });
+
+  it('never retries either offline-window 422 — one call is the whole attempt', async () => {
+    const fetchImpl = jest
+      .fn()
+      .mockResolvedValue(jsonResponse({ message: 'x', code: 'queued_punch_too_old' }, 422));
+
+    await createPunchSync(clientFor(fetchImpl))(queuedPunch());
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  // A malformed or half pair, a bad UUID — a client bug per §4.3's own table,
+  // not a punch failure. Dropped rather than left to jam the queue behind it.
+  it('drops a 422 with no recognised code, logging it as a bug rather than surfacing it', async () => {
+    const fetchImpl = jest
+      .fn()
+      .mockResolvedValue(jsonResponse({ message: 'Los datos entregados no son válidos.' }, 422));
+    const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(createPunchSync(clientFor(fetchImpl))(queuedPunch())).resolves.toBeUndefined();
+    expect(errorLog).toHaveBeenCalled();
+
+    errorLog.mockRestore();
+  });
+
+  // Nothing here means the register has decided anything — `punch-queue.ts`
+  // keeps the row, and everything queued after it, for the next attempt. A
+  // fake `ApiClient` rather than a fetch mock: `createApiClient` always
+  // re-wraps a rejected `fetch` as `network`, which is the one kind among
+  // these that is not itself worth re-deriving through the real transport.
+  it.each([
+    ['network', new ApiError({ kind: 'network' })],
+    ['timeout', new ApiError({ kind: 'timeout' })],
+    ['401', new ApiError({ kind: 'unauthorized', status: 401 })],
+    ['500', new ApiError({ kind: 'server', status: 500 })],
+  ])('rethrows on %s, so the queue keeps the row', async (_label, error) => {
+    const client: ApiClient = {
+      request: async () => Promise.reject(error),
+      get: async () => Promise.reject(error),
+      post: async () => Promise.reject(error),
+      put: async () => Promise.reject(error),
+      patch: async () => Promise.reject(error),
+      del: async () => Promise.reject(error),
+      resetSession: () => {},
+    };
+
+    await expect(createPunchSync(client)(queuedPunch())).rejects.toBe(error);
+  });
+
+  it('really does surface a network failure as `network` through the real transport', async () => {
+    // The one integration check that the fake client above bypasses on
+    // purpose — a genuine `fetch` rejection still comes out the other side
+    // as a connectivity failure, which is what `punch-queue.ts` breaks the
+    // flush loop on.
+    const fetchImpl = jest.fn().mockRejectedValue(new TypeError('Network request failed'));
+
+    const syncing = createPunchSync(clientFor(fetchImpl))(queuedPunch());
+
+    await expect(syncing).rejects.toMatchObject({ kind: 'network' });
   });
 });

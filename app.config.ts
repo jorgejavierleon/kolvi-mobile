@@ -67,6 +67,10 @@ const config: ExpoConfig = {
       },
     ],
     'expo-font',
+    // The durable punch queue (KMO-23). Every default here is fine as-is — no
+    // encryption, no FTS, no custom build flags — a queue of a handful of
+    // punches has no need for any of them.
+    'expo-sqlite',
     // The device id that names this installation's Sanctum token lives in the
     // Android keystore / iOS keychain, not in app storage, so a backup restored
     // onto a second handset cannot resurrect it and silently steal the token.

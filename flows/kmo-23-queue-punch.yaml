@@ -1,0 +1,74 @@
+# KMO-23 — a punch with no connectivity is captured durably rather than shown
+# as a failure.
+#
+# Covers #1: the queued line is on screen, not `punch-failed`, and the copy
+# matches src/i18n character for character.
+#
+# `requires-offline`, and the first half of a two-flow, three-command recipe —
+# `kmo-23-queue-relaunch.yaml` is the second half, and its own header explains
+# why the two cannot be one flow. Run as:
+#
+#   bin/e2e flows/shared/sign-in.yaml
+#   bin/device net off
+#   bin/e2e flows/kmo-23-queue-punch.yaml
+#   bin/device net on
+#   bin/e2e flows/kmo-23-queue-relaunch.yaml
+#
+# **Does not spend the day, unlike kmo-17-punch.yaml.** The request made here
+# never reaches the server — the radio is off — so nothing is recorded against
+# `employee@example.com`'s attendance, and the server's own idea of the day
+# never moves. That is also why this asserts `Marcar entrada` specifically
+# rather than branching on whichever button is up, the way
+# `kmo-23-queue-relaunch.yaml`'s sibling flows sometimes do: a punch made here
+# advances the *local* state the instant it is queued — before any round trip,
+# since there is none — so a second, unconditional `when: visible: 'Marcar
+# salida'` right after this one would find it already true and tap that too,
+# leaving two marks queued instead of one and `Jornada finalizada` behind for
+# no server-side reason. One button, one tap, one queued mark.
+#
+# **Does not relaunch, and must not** — it picks up the running app
+# `sign-in.yaml` left on the tab shell, the same shape as
+# `kmo-12-sign-out-offline.yaml`.
+appId: cl.kolvi.empleados
+name: KMO-23 a punch with no connectivity queues rather than fails
+tags:
+  - marcaje
+  - offline
+  - requires-offline
+---
+- assertVisible:
+    text: 'Turno de hoy'
+    label: 'The previous run left the app signed in, past the shift card'
+
+- assertNotVisible:
+    text: 'esperando sincronizar'
+    label: 'Nothing queued yet'
+
+- assertVisible:
+    text: 'Marcar entrada'
+    label: 'An unpunched day — this flow never advances the server’s own idea of it'
+
+- tapOn: 'Marcar entrada'
+
+- extendedWaitUntil:
+    visible: '1 marca esperando sincronizar'
+    timeout: 15000
+    label: '#1 — captured durably and shown waiting, not shown as a failure'
+
+- assertNotVisible:
+    id: 'punch-failed'
+    label: 'The Art. 10 exception, not #8’s error line'
+
+- assertVisible:
+    text: 'Marca guardada en tu teléfono. Se enviará automáticamente cuando haya conexión.'
+    label: 'The inline line under the button, character for character'
+
+- assertVisible:
+    text: 'Aún no forma parte del libro de asistencia'
+    label: 'And the banner above the card agrees — not registered, only captured'
+
+- takeScreenshot: kmo-23-queued-offline
+
+# Killed here, while still offline — the second flow relaunches once the shell
+# has brought connectivity back, for the reason its own header gives.
+- stopApp

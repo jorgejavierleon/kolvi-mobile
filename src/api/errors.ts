@@ -8,6 +8,15 @@
  * confusing them either drops a punch or queues one that will never be accepted.
  * Second, Res. 38 Art. 5 requires Spanish, so no error is ever allowed to surface
  * a status line, an exception name or an English fetch message.
+ *
+ * Third, since KMO-23: a 422 can carry a machine-readable `code` alongside its
+ * Spanish `message`. The offline queue has two refusals that both answer 422 and
+ * need opposite outcomes — `queued_punch_too_old` is filed and must never be
+ * retried, `queued_punch_in_future` is dropped and must never be retried either,
+ * but a plain validation 422 is a client bug and is neither. Branching on the
+ * Spanish sentence would make that decision depend on wording somebody may
+ * improve, so `code` travels through this boundary rather than being read off the
+ * body ad hoc at each call site.
  */
 
 import { es } from '@/i18n';
@@ -50,6 +59,7 @@ type ApiErrorInit = {
   kind: ApiErrorKind;
   status?: number;
   serverMessage?: string;
+  code?: string;
   fieldErrors?: FieldErrors;
   retryAfterSeconds?: number;
   cause?: unknown;
@@ -63,6 +73,15 @@ export class ApiError extends Error {
 
   /** The server's own `message`, kept separate from the fallback copy. */
   readonly serverMessage: string | undefined;
+
+  /**
+   * The server's machine-readable refusal code, when it sent one — `ams` puts
+   * this on the two offline-queue 422s (`queued_punch_too_old`,
+   * `queued_punch_in_future`) and on nothing else today. `undefined` for a
+   * status with no code, and for a 422 that is plain Laravel validation rather
+   * than one of those two.
+   */
+  readonly code: string | undefined;
 
   /** Field-level messages from a 422. Empty for every other kind. */
   readonly fieldErrors: FieldErrors;
@@ -78,6 +97,7 @@ export class ApiError extends Error {
     kind,
     status,
     serverMessage,
+    code,
     fieldErrors,
     retryAfterSeconds,
     cause,
@@ -90,6 +110,7 @@ export class ApiError extends Error {
     this.kind = kind;
     this.status = status;
     this.serverMessage = serverMessage;
+    this.code = code;
     this.fieldErrors = fieldErrors ?? {};
     this.retryAfterSeconds = retryAfterSeconds;
     this.cause = cause;
@@ -169,6 +190,7 @@ export function errorFromResponse(
     kind: kindForStatus(status),
     status,
     serverMessage: readMessage(body),
+    code: readCode(body),
     fieldErrors: readFieldErrors(body),
     retryAfterSeconds: readRetryAfter(headers),
   });
@@ -240,6 +262,14 @@ function readMessage(body: unknown): string | undefined {
   }
 
   return typeof body.message === 'string' ? body.message : undefined;
+}
+
+function readCode(body: unknown): string | undefined {
+  if (!isRecord(body)) {
+    return undefined;
+  }
+
+  return typeof body.code === 'string' ? body.code : undefined;
 }
 
 /**

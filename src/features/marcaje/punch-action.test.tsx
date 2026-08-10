@@ -383,3 +383,26 @@ describe('a punch that already existed', () => {
     expect(screen.getByText(es.marcaje.punch.alreadyMarked)).toBeOnTheScreen();
   });
 });
+
+// KMO-23. Not an error either: the punch was captured durably, it is simply
+// not in the register yet, and the state has already moved to say so.
+describe('a punch made with no connectivity', () => {
+  const queued: PunchAttempt = { status: 'queued', message: es.marcaje.punch.queued };
+
+  it('renders as a line on the screen, with no dialog and no danger tint', async () => {
+    await draw('working', { attempt: queued });
+
+    expect(screen.getByText(es.marcaje.punch.queued)).toBeOnTheScreen();
+    expect(screen.queryByTestId('punch-failed')).toBeNull();
+    expect(
+      StyleSheet.flatten(screen.getByTestId('punch-queued').props.style).backgroundColor,
+    ).not.toBe(tones.danger.background);
+  });
+
+  it('shows the state the hook advanced to, behind the line', async () => {
+    await draw('done', { attempt: queued });
+
+    expect(screen.getByText('Jornada finalizada')).toBeOnTheScreen();
+    expect(screen.getByText(es.marcaje.punch.queued)).toBeOnTheScreen();
+  });
+});

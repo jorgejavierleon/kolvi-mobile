@@ -1,12 +1,17 @@
 /**
- * What time the phone thinks it is, for the clock and the date on the home screen.
+ * What time the phone thinks it is, for the clock and the date on the home screen
+ * — and, since KMO-23, the one reading a queued punch carries as its own.
  *
- * **This is a display clock and never a legal timestamp.** Res. 38 Art. 11 puts
- * the assignment of a punch's time on the system, not the device: the server
- * stamps an online punch and the app sends none (decision §5 F1), and an offline
- * punch carries the device reading as a separate `device_datetime` that is stored
- * apart from the authoritative one (§4). So nothing here ever reaches a mark. It
- * exists so an employee can see the time they are about to punch at.
+ * **The display clock is never a legal timestamp**; that half is unchanged. Res.
+ * 38 Art. 11 puts the assignment of a punch's time on the system, and the server
+ * stamps an online punch while the app sends nothing (§5 F1). What KMO-21 §4.2
+ * settled is narrower than "nothing here ever reaches a mark" used to claim: a
+ * *queued* punch does carry a device reading, as `device_datetime`, because Art.
+ * 11 is written to serve exactly the offline case and the legal time it names is
+ * the hour the marcación **is made**, not the hour the register hears about it.
+ * The server still assigns `date_time` — it adjudicates it from `device_datetime`
+ * rather than trusting it blind — so this module still never produces the legal
+ * timestamp itself, only the raw reading the server adjudicates against.
  *
  * It is also the one place in the app that reads `Date`, which the rest of the
  * codebase refuses on purpose — `@/api/datetime` cannot hold a timezone-aware
@@ -19,7 +24,14 @@
  * module.
  */
 
-import { formatNaiveDate, formatNaiveTime, type NaiveDate, type NaiveTime } from '@/api';
+import {
+  formatNaiveDate,
+  formatNaiveDateTime,
+  formatNaiveTime,
+  type NaiveDate,
+  type NaiveDateTime,
+  type NaiveTime,
+} from '@/api';
 import { useEffect, useState } from 'react';
 
 /**
@@ -57,6 +69,31 @@ export function readNow(clock: () => Date = () => new Date()): NowReading {
       second: now.getSeconds(),
     }),
   };
+}
+
+/**
+ * The device's own reading, as a single naive datetime — `device_datetime` on a
+ * queued punch (§4.3).
+ *
+ * **Read once, at the moment of the punch, and never again.** The caller decides
+ * when that moment is by deciding when to call this; there is no hook here that
+ * would let a queue row quietly re-read the clock on flush and record the flush
+ * instead of the punch. A separate function from `readNow` rather than one more
+ * field on it, because the two are read at different moments for different
+ * reasons — `readNow` on a timer, for display; this once, for a value that is
+ * about to travel to the server and be stored immutably beside the mark.
+ */
+export function readDeviceDateTime(clock: () => Date = () => new Date()): NaiveDateTime {
+  const now = clock();
+
+  return formatNaiveDateTime({
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+    day: now.getDate(),
+    hour: now.getHours(),
+    minute: now.getMinutes(),
+    second: now.getSeconds(),
+  });
 }
 
 /**

@@ -21,7 +21,7 @@ import { MarksSheet } from './marks-sheet';
 import { useNow } from './now-clock';
 import { PendingSyncBanner } from './pending-sync-banner';
 import { PunchAction, type PunchHold } from './punch-action';
-import type { PunchApi, PunchReceipt } from './punch-api';
+import { createPunchSync, type PunchApi, type PunchReceipt } from './punch-api';
 import {
   punchQueue as appPunchQueue,
   usePunchQueue,
@@ -55,12 +55,9 @@ export type HomeScreenProps = {
   /** Injected in tests; the app reads the phone. */
   connectivitySource?: ConnectivitySource;
   /**
-   * How one queued punch is transmitted — **KMO-23's**, along with the wire body
-   * in docs/design-decisions.md §4.3 and the enqueue that fills the queue in the
-   * first place.
-   *
-   * Optional until then, and unreachable while it is: the banner is only on
-   * screen when the queue holds something, and nothing puts anything in it yet.
+   * How one queued punch is transmitted — `createPunchSync` in `punch-api.ts`
+   * by default, which is the wire body in docs/design-decisions.md §4.3 and
+   * the response-code branching KMO-23 builds. Injected in tests.
    */
   punchSync?: PunchSync;
 };
@@ -126,6 +123,11 @@ export function HomeScreen({
   connectivitySource,
   punchSync,
 }: HomeScreenProps) {
+  // Built once, like `punchApi`/`marksApi` below: a fresh function identity
+  // every render would be a new `flushQueue` identity for `useConnectivity`'s
+  // `onRestored` to resubscribe against on every paint.
+  const sync = useMemo(() => punchSync ?? createPunchSync(), [punchSync]);
+
   const session = useSession();
   const today = useToday(api);
   const now = useNow(clock);
@@ -214,46 +216,53 @@ export function HomeScreen({
     onPunched: setReceipt,
     onAlreadyMarked: today.reload,
     api: punchApi,
+    clock,
+    queue,
   });
 
   /**
-   * The punches this phone is still holding (KMO-22).
+   * The punches this phone is still holding (KMO-22, durable since KMO-23).
    *
    * Read here rather than inside the banner so the screen — which already owns
    * every other composition decision on it — is the one place that knows the
-   * queue exists. Empty until KMO-23 puts something in it.
+   * queue exists.
    */
   const pending = usePunchQueue(queue);
 
   /**
-   * Whether the phone thinks it can reach anything (#1).
+   * The connectivity edge that flushes the queue automatically (#4) — Art. 10's
+   * own condition, `se realice automáticamente cuando recupere la señal`, and
+   * not something `Sincronizar` merely offers to do.
    *
-   * Used for exactly one thing on this screen, and deliberately nothing else:
-   * pressing `Sincronizar` with the radio off says so immediately instead of
-   * spending a doomed round trip to arrive at the same sentence. It never
-   * decides that a punch belongs in the queue — that is a request that actually
-   * failed, per §4.6 and the header of `connectivity.ts` — and there is no
-   * setting anywhere that can put the app in this state on purpose (#8).
-   *
-   * The automatic flush KMO-23 #4 hangs off `onRestored` is not wired yet: there
-   * is nothing to transmit and nothing to transmit it with.
+   * `online: true` here rather than `connectivity.online`, deliberately: this
+   * fires from inside `useConnectivity`'s effect at the instant the OS reports
+   * the `false → true` edge, which lands before this render's own `online`
+   * closes over the new value. Reading the stale one would tell `flush` the
+   * radio is still off at the exact moment it just came back.
    */
-  const connectivity = useConnectivity({ source: connectivitySource });
+  const flushQueueOnRestore = useCallback((): void => {
+    void queue.flush({ sync, online: true });
+  }, [queue, sync]);
 
   /**
-   * `Sincronizar` — the Art. 10 accelerator, never the mechanism (§4.1).
+   * Whether the phone thinks it can reach anything (#1).
    *
-   * The guard is the KMO-22/KMO-23 seam rather than a real branch: without a
-   * `punchSync` there is no way to enqueue either, so the banner carrying this
-   * button cannot be on screen.
+   * Used for two things now: explaining a doomed `Sincronizar` press
+   * immediately rather than spending a round trip on a radio that is off, and
+   * firing the automatic flush above. It never decides that a punch belongs in
+   * the queue — that is a request that actually failed, per §4.6 and the
+   * header of `connectivity.ts` — and there is no setting anywhere that can put
+   * the app in this state on purpose (#8).
    */
-  const flushQueue = useCallback((): void => {
-    if (punchSync === undefined) {
-      return;
-    }
+  const connectivity = useConnectivity({
+    source: connectivitySource,
+    onRestored: flushQueueOnRestore,
+  });
 
-    void queue.flush({ sync: punchSync, online: connectivity.online });
-  }, [connectivity.online, punchSync, queue]);
+  /** `Sincronizar` — the Art. 10 accelerator, never the mechanism (§4.1). */
+  const flushQueue = useCallback((): void => {
+    void queue.flush({ sync, online: connectivity.online });
+  }, [connectivity.online, sync, queue]);
 
   /**
    * What the geolocation card is holding the punch for, and the way out of it
@@ -306,7 +315,13 @@ export function HomeScreen({
           gate on it here: the count is what puts it on screen. */}
       <PendingSyncBanner
         count={pending.count}
-        error={pending.lastError}
+        // `lastError` first: it means the flush stopped and everything still
+        // waiting needs that explained. `lastNotice` (KMO-23 #12) is the other
+        // case — a row left the queue with a refusal (a duplicate, or one of
+        // the two offline-window 422s) while the flush kept going for the
+        // rest, and the employee is told rather than it being dropped
+        // silently.
+        error={pending.lastError ?? pending.lastNotice}
         onSync={flushQueue}
         syncing={pending.syncing}
         testID="pending-sync-banner"

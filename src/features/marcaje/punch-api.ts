@@ -33,8 +33,10 @@ import {
   type ApiError,
   type NaiveDateTime,
 } from '@/api';
+import { es } from '@/i18n';
 
 import { geoStatuses, type GeoStatus, type LocationFix } from './geofence';
+import type { PunchSync, PunchSyncResult, QueuedPunch } from './punch-queue';
 import { punchTypes, type PunchType } from './punch-state';
 
 /** Relative to `/api/v1`, like every path in the app. */
@@ -167,6 +169,102 @@ function isDuplicate(error: unknown): error is ApiError {
 }
 
 const HTTP_CONFLICT = 409;
+
+/**
+ * The queued body, in `ams`' own spelling — `punchBody` plus the two fields
+ * §4.3 adds, always together and never on the online path above.
+ *
+ * A second literal rather than optional keys folded into `punchBody`, for the
+ * same reason that function is one literal already: this is the file where a
+ * `device_datetime` sent without its `idempotency_key`, or the reverse, would
+ * be a compliance bug rather than a typo, and the wire contract says either
+ * one without the other is itself a 422.
+ */
+function queuedPunchBody({
+  type,
+  fix,
+  geoStatus,
+  deviceDatetime,
+  idempotencyKey,
+}: QueuedPunch): Record<string, unknown> {
+  return {
+    type,
+    lat: fix?.latitude ?? null,
+    lng: fix?.longitude ?? null,
+    accuracy_m: fix?.accuracyMeters ?? null,
+    geo_status: geoStatus,
+    device_datetime: deviceDatetime,
+    idempotency_key: idempotencyKey,
+  };
+}
+
+/** The two 422 codes `ams` KOL-54 answers a queued punch with (§4.4). */
+const TOO_OLD_CODE = 'queued_punch_too_old';
+const IN_FUTURE_CODE = 'queued_punch_in_future';
+
+/**
+ * What `punch-queue.ts#flush` posts each queued row through — the wire half
+ * of §4.3's response table, mapped onto the three outcomes `punch-queue.ts`
+ * understands: resolve to drop the row, resolve with a `message` to drop it
+ * with something for the employee to read, or throw to leave it queued for
+ * the next attempt.
+ *
+ * `client.post` already treats a `200` the same as a `201` — `errorFromResponse`
+ * only runs when `!response.ok`, and both are `ok` — so the replay case (#6) is
+ * the ordinary success path below and needs no branch of its own. Nothing here
+ * parses the response body: KMO-23 has nothing to show on a successful sync,
+ * and KMO-24 owns reconciling the screen with what actually landed.
+ */
+export function createPunchSync(client: ApiClient = api): PunchSync {
+  return async (punch: QueuedPunch): Promise<PunchSyncResult> => {
+    try {
+      await client.post(MARKS_PATH, queuedPunchBody(punch));
+
+      return undefined;
+    } catch (error) {
+      if (!isApiError(error)) {
+        throw error;
+      }
+
+      if (error.status === HTTP_CONFLICT) {
+        // D-F1-b, keyed off the day the punch **was made** — the queue's
+        // `device_datetime`, not the day it happened to sync. An authored
+        // line rather than the server's, matching how the online 409 already
+        // reads: the sentence is about what the register now shows, which is
+        // this app's business to say calmly rather than the server's.
+        return { message: es.marcaje.sync.duplicate };
+      }
+
+      if (error.kind === 'validation') {
+        if (error.code === TOO_OLD_CODE || error.code === IN_FUTURE_CODE) {
+          // §4.4. Both drop and neither retries: `queued_punch_too_old` is
+          // already filed for HR inside the same request, and
+          // `queued_punch_in_future` has nothing to file — either way a
+          // retry with the same frozen `device_datetime` cannot become a
+          // different answer except by landing at an hour the employee did
+          // not work once the server's own clock passes it. The server's own
+          // sentence is shown verbatim, per §4.3.
+          return { message: error.userMessage };
+        }
+
+        // A malformed or half pair, a bad UUID, a `datetime` sent on either
+        // path — a client bug per §4.3's own table, not a punch failure.
+        // Logged for a developer to find, since nothing else will until
+        // KMO-29 wires real crash reporting; dropped rather than retried
+        // because resending the same malformed body can only fail the same
+        // way again.
+        console.error('punch-api: a queued punch was refused as invalid, dropping it', error);
+
+        return undefined;
+      }
+
+      // Network, timeout, 401, a 5xx — none of them mean the register has
+      // decided anything about this punch, so `punch-queue.ts#flush` keeps it
+      // and everything queued after it for the next attempt.
+      throw error;
+    }
+  };
+}
 
 /**
  * Thrown when the 201 is not a receipt. The screen shows it as a failed punch

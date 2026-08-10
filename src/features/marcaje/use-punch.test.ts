@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { ApiError, type NaiveDateTime } from '@/api';
 import { es } from '@/i18n';
@@ -9,7 +9,23 @@ import {
   type PunchApi,
   type PunchReceipt,
 } from './punch-api';
+import { createPunchQueue, type PunchQueue, type QueuedPunch } from './punch-queue';
+import type { PunchQueueStore } from './punch-queue-store';
 import { usePunch, type UsePunchOptions } from './use-punch';
+
+/**
+ * `expo-crypto` has no Jest mock of its own, so `Crypto.randomUUID()` would
+ * otherwise answer `undefined` under the test runner — each call hands back
+ * the next of a fixed sequence instead, which is what lets a test assert that
+ * the row's `id` and its `idempotencyKey` are two different values rather
+ * than two reads of the same `undefined`.
+ */
+const mockUuids = ['uuid-one', 'uuid-two', 'uuid-three', 'uuid-four'];
+let mockUuidIndex = 0;
+
+jest.mock('expo-crypto', () => ({
+  randomUUID: () => mockUuids[mockUuidIndex++] ?? `uuid-exhausted-${mockUuidIndex}`,
+}));
 
 function receipt(overrides: Partial<PunchReceipt> = {}): PunchReceipt {
   return {
@@ -60,9 +76,12 @@ async function settle(action: () => void) {
 
 async function punchable(options: Partial<UsePunchOptions> = {}) {
   const { api, calls } = deferredApi();
-  const { result } = await renderHook(() => usePunch({ state: 'before', api, ...options }));
+  // A fresh in-memory queue by default, never the app singleton — a test that
+  // wants to inspect what got queued passes its own.
+  const queue = options.queue ?? createPunchQueue();
+  const { result } = await renderHook(() => usePunch({ state: 'before', api, queue, ...options }));
 
-  return { result, calls };
+  return { result, calls, queue };
 }
 
 describe('the state the button reads', () => {
@@ -231,13 +250,17 @@ describe('the double-tap guard', () => {
 
   // #8's other half: a failure has to reopen the button, or the employee is
   // stuck with an unpressable control and an unrecorded shift.
+  //
+  // `server`, not `network` — since KMO-23 a `network`/`timeout` rejection is
+  // the Art. 10 exception rather than a failure; see 'a punch made with no
+  // connectivity' below for that path.
   it('reopens after a failure', async () => {
     const { result, calls } = await punchable();
 
     await act(async () => {
       result.current.punch();
     });
-    await settle(() => calls[0]?.reject(new ApiError({ kind: 'network' })));
+    await settle(() => calls[0]?.reject(new ApiError({ kind: 'server', status: 500 })));
 
     await act(async () => {
       result.current.punch();
@@ -268,7 +291,7 @@ describe('a punch that failed', () => {
     await act(async () => {
       result.current.punch();
     });
-    await settle(() => calls[0]?.reject(new ApiError({ kind: 'network' })));
+    await settle(() => calls[0]?.reject(new ApiError({ kind: 'server', status: 500 })));
 
     expect(result.current.receipt).toBeNull();
   });
@@ -373,5 +396,161 @@ describe('a punch that already exists', () => {
     await settle(() => calls[0]?.reject(duplicate()));
 
     expect(result.current.receipt).toBeNull();
+  });
+});
+
+/** A punch made with the phone's radio off, never reaching a server at all. */
+function offline(): ApiError {
+  return new ApiError({ kind: 'network' });
+}
+
+/** A store whose `append` the test settles by hand, to prove an ordering. */
+function deferredQueue(): { queue: PunchQueue; releaseAppend: () => void } {
+  let release: (() => void) | undefined;
+  const store: PunchQueueStore = {
+    load: async () => [],
+    append: () =>
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    remove: async () => {},
+  };
+
+  return { queue: createPunchQueue(store), releaseAppend: () => release?.() };
+}
+
+// KMO-23. Res. 38 Art. 10: capture-and-store is conforming, and refusing the
+// punch is the actual infraction (§4.1) — so a request that never reached a
+// server is not this hook's kind of failure.
+describe('a punch made with no connectivity (KMO-23 #1, #7)', () => {
+  it('writes the punch to the durable queue before anything on screen moves', async () => {
+    const { queue, releaseAppend } = deferredQueue();
+    const { result, calls } = await punchable({ queue });
+
+    await act(async () => {
+      result.current.punch();
+    });
+    await settle(() => calls[0]?.reject(offline()));
+
+    // The durable write has not resolved yet — nothing has advanced, and the
+    // button still reads as busy rather than as failed or done.
+    expect(result.current.status).toBe('submitting');
+    expect(result.current.state).toBe('before');
+
+    releaseAppend();
+    await waitFor(() => expect(result.current.status).toBe('queued'));
+
+    expect(result.current.state).toBe('working');
+  });
+
+  it('is its own status, not a failure', async () => {
+    const { result, calls } = await punchable();
+
+    await act(async () => {
+      result.current.punch();
+    });
+    await settle(() => calls[0]?.reject(offline()));
+
+    expect(result.current).toMatchObject({ status: 'queued', message: es.marcaje.punch.queued });
+  });
+
+  it('advances the state, because Art. 38 never blocks the punch', async () => {
+    const { result, calls } = await punchable({ state: 'before' });
+
+    await act(async () => {
+      result.current.punch();
+    });
+    await settle(() => calls[0]?.reject(offline()));
+
+    expect(result.current.state).toBe('working');
+  });
+
+  it('treats a timeout the same as an absent network', async () => {
+    const { result, calls } = await punchable();
+
+    await act(async () => {
+      result.current.punch();
+    });
+    await settle(() => calls[0]?.reject(new ApiError({ kind: 'timeout' })));
+
+    expect(result.current.status).toBe('queued');
+  });
+
+  it('carries the type, the fix and the client’s geofence verdict into the queued row', async () => {
+    const fix = { latitude: -33.4569, longitude: -70.5975, accuracyMeters: 12.4 };
+    const queue = createPunchQueue();
+    const { result, calls } = await punchable({ queue, fix, geoStatus: 'inside' });
+
+    await act(async () => {
+      result.current.punch();
+    });
+    await settle(() => calls[0]?.reject(offline()));
+
+    expect(queue.getState().entries).toEqual([
+      expect.objectContaining({ type: 'in', fix, geoStatus: 'inside' }),
+    ]);
+  });
+
+  // §4.3. Read once, at the tap, never re-read — and a fresh UUID each time,
+  // never the row's own `id`.
+  it('reads the device clock once and generates a fresh idempotency key', async () => {
+    const queue = createPunchQueue();
+    const clock = () => new Date('2026-08-07T08:03:11');
+    const { result, calls } = await punchable({ queue, clock });
+
+    await act(async () => {
+      result.current.punch();
+    });
+    await settle(() => calls[0]?.reject(offline()));
+
+    const [queued] = queue.getState().entries;
+    expect(queued?.deviceDatetime).toBe('2026-08-07 08:03:11');
+    // Two independent UUIDs — the mocked `Crypto.randomUUID()` above hands out
+    // a fresh value on every call, so the row's own `id` and the compliance-
+    // bearing `idempotencyKey` are provably not the same read reused twice.
+    expect(queued?.idempotencyKey).toBeDefined();
+    expect(queued?.idempotencyKey).not.toBe(queued?.id);
+  });
+
+  it('hands the queued punch on, once it is durably written', async () => {
+    const onQueued = jest.fn();
+    const { result, calls } = await punchable({ onQueued });
+
+    await act(async () => {
+      result.current.punch();
+    });
+    await settle(() => calls[0]?.reject(offline()));
+
+    expect(onQueued).toHaveBeenCalledTimes(1);
+    expect(onQueued.mock.calls[0]?.[0]).toMatchObject({
+      type: 'in',
+    } satisfies Partial<QueuedPunch>);
+  });
+
+  it('records no receipt — nothing has been confirmed by the register yet', async () => {
+    const { result, calls } = await punchable();
+
+    await act(async () => {
+      result.current.punch();
+    });
+    await settle(() => calls[0]?.reject(offline()));
+
+    expect(result.current.receipt).toBeNull();
+  });
+
+  it('reopens the button once the durable write has landed', async () => {
+    const { result, calls } = await punchable({ state: 'before' });
+
+    await act(async () => {
+      result.current.punch();
+    });
+    await settle(() => calls[0]?.reject(offline()));
+
+    await act(async () => {
+      result.current.punch();
+    });
+
+    expect(calls).toHaveLength(2);
+    expect(calls[1]?.request.type).toBe('out');
   });
 });

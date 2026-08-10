@@ -368,6 +368,18 @@ export const es = {
       alreadyMarked: 'Esta marca ya estaba registrada. Actualizamos tu jornada.',
 
       /**
+       * A punch made with no connectivity, the instant it is durably queued
+       * (KMO-23 #1). Deliberately not the same sentence KMO-24's offline
+       * receipt sheet uses — that is the sheet's own headline and subtitle
+       * (docs/design-decisions.md §4.5), verbatim from the design; this is the
+       * inline line under the button, the same slot `alreadyMarked` and
+       * `failed` use, and it exists so this ticket does not leave the
+       * genuinely false `failed` sentence on screen for a punch that was, in
+       * fact, captured.
+       */
+      queued: 'Marca guardada en tu teléfono. Se enviará automáticamente cuando haya conexión.',
+
+      /**
        * The punch did not go through (#8).
        *
        * The fallback only. A server that said why — in Spanish, out of `ams`
@@ -541,6 +553,15 @@ export const es = {
        * still worth pressing.
        */
       failed: 'No pudimos sincronizar tus marcas. Siguen guardadas en este teléfono.',
+
+      /**
+       * A queued punch synced to a day that already held that type (KMO-23
+       * #11, docs/design-decisions.md §4.3's `409`). Authored rather than
+       * quoted from the server, matching how the live 409 on `punch.alreadyMarked`
+       * already reads — this is the app describing what the register now
+       * shows, not the server explaining a refusal.
+       */
+      duplicate: 'Una de tus marcas pendientes ya estaba registrada. La quitamos de tu lista.',
     },
 
     /**

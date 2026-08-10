@@ -652,12 +652,15 @@ describe('the punch (KMO-17)', () => {
     await waitFor(() => expect(screen.getByText('Marcar salida')).toBeOnTheScreen());
   });
 
-  // #8. The failure is a line under a button that still says what it said.
+  // #8. The failure is a line under a button that still said what it said.
+  //
+  // `server`, not `network` — since KMO-23 a request that never reached the
+  // server queues rather than fails; see 'a punch made with no connectivity'.
   it('leaves the employee where they were when the punch fails', async () => {
     await mountLoaded({
       punchApi: {
         punch: async () => {
-          throw new ApiError({ kind: 'network' });
+          throw new ApiError({ kind: 'server', status: 500 });
         },
       },
     });
@@ -1183,16 +1186,18 @@ describe('the pending-sync banner (KMO-22)', () => {
     return found;
   }
 
-  /** A queue already holding punches, as KMO-23 will fill it. */
-  function queueHolding(count: number): PunchQueue {
+  /** A queue already holding punches, as `use-punch.ts` fills it (KMO-23). */
+  async function queueHolding(count: number): Promise<PunchQueue> {
     const queue = createPunchQueue();
 
     for (let index = 0; index < count; index += 1) {
-      queue.enqueue({
+      await queue.enqueue({
         id: `q${index}`,
         type: index % 2 === 0 ? 'in' : 'out',
         fix: null,
         geoStatus: 'unknown',
+        idempotencyKey: `idem-q${index}`,
+        deviceDatetime: '2026-08-04 08:00:00' as NaiveDateTime,
       });
     }
 
@@ -1230,20 +1235,20 @@ describe('the pending-sync banner (KMO-22)', () => {
 
   describe('with punches waiting (#2, #3)', () => {
     it('names the count and says they are not in the attendance book', async () => {
-      await mountLoaded({ queue: queueHolding(2) });
+      await mountLoaded({ queue: await queueHolding(2) });
 
       expect(screen.getByText('2 marcas esperando sincronizar')).toBeOnTheScreen();
       expect(screen.getByText('Aún no forman parte del libro de asistencia')).toBeOnTheScreen();
     });
 
     it('uses the singular for one', async () => {
-      await mountLoaded({ queue: queueHolding(1) });
+      await mountLoaded({ queue: await queueHolding(1) });
 
       expect(screen.getByText('1 marca esperando sincronizar')).toBeOnTheScreen();
     });
 
     it('sits above the location card, where the design puts it', async () => {
-      await mountLoaded({ queue: queueHolding(1) });
+      await mountLoaded({ queue: await queueHolding(1) });
 
       const order = testIDsInOrder();
 
@@ -1257,7 +1262,7 @@ describe('the pending-sync banner (KMO-22)', () => {
       // slow, or never lands, does not make it any less untransmitted.
       await mount({
         api: { fetchToday: () => new Promise<TodaySummary>(() => {}) },
-        queue: queueHolding(1),
+        queue: await queueHolding(1),
       });
 
       expect(screen.getByTestId('pending-sync-banner')).toBeOnTheScreen();
@@ -1267,7 +1272,7 @@ describe('the pending-sync banner (KMO-22)', () => {
 
   describe('Sincronizar (#4, #5)', () => {
     it('flushes the queue and takes the banner away when it empties', async () => {
-      const queue = queueHolding(2);
+      const queue = await queueHolding(2);
       const sent: string[] = [];
 
       await mountLoaded({
@@ -1286,14 +1291,14 @@ describe('the pending-sync banner (KMO-22)', () => {
     });
 
     it('reports itself busy while the flush runs', async () => {
-      const queue = queueHolding(1);
+      const queue = await queueHolding(1);
       let release: (() => void) | undefined;
 
       await mountLoaded({
         queue,
         punchSync: () =>
-          new Promise<void>((resolve) => {
-            release = resolve;
+          new Promise((resolve) => {
+            release = () => resolve(undefined);
           }),
       });
 
@@ -1311,7 +1316,7 @@ describe('the pending-sync banner (KMO-22)', () => {
 
   describe('when the flush fails (#7)', () => {
     it('keeps every punch and says why in the server’s Spanish', async () => {
-      const queue = queueHolding(2);
+      const queue = await queueHolding(2);
 
       await mountLoaded({
         queue,
@@ -1336,7 +1341,7 @@ describe('the pending-sync banner (KMO-22)', () => {
       const punchSync = jest.fn();
 
       await mountLoaded({
-        queue: queueHolding(1),
+        queue: await queueHolding(1),
         connectivity: fakeConnectivity(false),
         punchSync,
       });
@@ -1348,6 +1353,97 @@ describe('the pending-sync banner (KMO-22)', () => {
       );
       expect(punchSync).not.toHaveBeenCalled();
       expect(screen.getByText('1 marca esperando sincronizar')).toBeOnTheScreen();
+    });
+  });
+
+  describe('the durable queue, end to end (KMO-23)', () => {
+    it('queues a punch that never reached the server, and shows it waiting', async () => {
+      const queue = createPunchQueue();
+
+      await mountLoaded({
+        queue,
+        punchApi: {
+          punch: async () => {
+            throw new ApiError({ kind: 'network' });
+          },
+        },
+      });
+
+      await userEvent.press(screen.getByTestId('punch-button'));
+
+      // Never Art. 38 b)'s blocked app: the button already reads the next
+      // punch, and the queue is what says the register does not have it yet.
+      await waitFor(() => expect(screen.getByText('Marcar salida')).toBeOnTheScreen());
+      expect(screen.getByTestId('punch-queued')).toBeOnTheScreen();
+      expect(screen.getByText('1 marca esperando sincronizar')).toBeOnTheScreen();
+      expect(screen.queryByTestId('punch-failed')).not.toBeOnTheScreen();
+    });
+
+    it('flushes automatically the instant connectivity returns, with no press on Sincronizar (#4)', async () => {
+      const connectivity = fakeConnectivity(false);
+      const sent: string[] = [];
+
+      await mountLoaded({
+        queue: await queueHolding(1),
+        connectivity,
+        punchSync: async (punch) => {
+          sent.push(punch.id);
+
+          return undefined;
+        },
+      });
+
+      expect(screen.getByText('1 marca esperando sincronizar')).toBeOnTheScreen();
+
+      await act(async () => {
+        connectivity.report(true);
+      });
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('pending-sync-banner')).not.toBeOnTheScreen(),
+      );
+      expect(sent).toEqual(['q0']);
+    });
+
+    // #12. A settlement is not a stop — the row still leaves the queue — but
+    // the employee is told rather than it happening silently.
+    //
+    // The banner itself only draws while something is waiting (KMO-22 #6), so
+    // a notice from a flush that emptied the queue has nowhere to land until
+    // the banner is on screen for another reason — the realistic shape of
+    // that is a further punch queuing before the employee has looked away,
+    // which is what this drives rather than pressing Sincronizar on an
+    // already-empty queue.
+    it('carries the notice from a settled refusal onto the next punch that queues', async () => {
+      const queue = await queueHolding(1);
+
+      await mountLoaded({
+        queue,
+        punchApi: {
+          punch: async () => {
+            throw new ApiError({ kind: 'network' });
+          },
+        },
+      });
+
+      await act(async () => {
+        await queue.flush({
+          sync: async () => ({ message: 'La marca es demasiado antigua para transmitirse.' }),
+        });
+      });
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('pending-sync-banner')).not.toBeOnTheScreen(),
+      );
+
+      await userEvent.press(screen.getByTestId('punch-button'));
+
+      await waitFor(() =>
+        expect(screen.getByText('1 marca esperando sincronizar')).toBeOnTheScreen(),
+      );
+      expect(screen.getByTestId('pending-sync-error')).toHaveTextContent(
+        'La marca es demasiado antigua para transmitirse.',
+      );
     });
   });
 });

@@ -1,0 +1,97 @@
+# KMO-23 — the queued punch is still there after the process that wrote it is
+# gone.
+#
+# Covers #2: a fresh process, reading the same SQLite file a different process
+# wrote, is what "survives a force-quit" actually means on a phone — Jest's
+# in-memory store (`createMemoryPunchQueueStore`, punch-queue.test.ts) can prove
+# every arithmetic rule about the queue but cannot prove that the write reached
+# disk, because there is no disk in a Jest environment. This is the one thing
+# only a device tier can carry.
+#
+# "OS restart" and "an app update" are not separately proven here. Both are, from
+# the storage's point of view, the same event a force-quit already is — a
+# process dies and a new one reads the same file back — so what this flow shows
+# for a force-quit stands for the OS-restart case too. An app *update* is a
+# different claim (a new APK, same data directory) and needs a real version bump
+# and reinstall to test honestly; that is left open on the ticket, not attempted
+# here.
+#
+# The second half of the recipe `kmo-23-queue-punch.yaml`'s header gives in full
+# — that flow ends on `stopApp`, with the punch already queued, and this one
+# picks up from there.
+#
+# **Relaunches through the dev client, like `kmo-9-secure-token-restore.yaml`,
+# not with a bare `launchApp`.** `shared/launch.yaml`'s own header explains why:
+# a development build needs the dev client handed the Metro URL again, and
+# skipping `clearState` (which this flow does, on purpose — clearing state would
+# wipe the very queue this flow exists to find intact) means the onboarding card
+# does not reappear, so the app comes straight back up with no `Continue` to tap.
+#
+# **Connectivity is back on by the time this runs, and that is deliberate.** A
+# cold start with no connectivity does not reach Inicio at all — `session.tsx`
+# treats a `GET /api/v1/user` that never got an answer the same as a dead
+# token, and that gap is KMO-49's, not this ticket's (see
+# `kmo-22-sin-banner.yaml`'s header for the same note). Restoring connectivity
+# before this flow, while the app was not running to see the edge, is also what
+# keeps this assertion from racing #4's automatic flush — nothing here should
+# have drained the queue yet, because nothing has told a live process that the
+# signal came back. #4 itself is covered at the Jest tier
+# (`home-screen.test.tsx`, "flushes automatically…"): it is ordinary hook wiring
+# against a real `useConnectivity`, and does not need a real radio to be honest
+# evidence, unlike the disk write above.
+appId: cl.kolvi.empleados
+name: KMO-23 the queue survives a force-quit
+tags:
+  - marcaje
+  - offline
+  - requires-offline
+---
+# The stopped app's last frame lingers in the view hierarchy while the window
+# animates away — see kmo-9-secure-token-restore.yaml for the same wait and the
+# same reason: without it, the assertions below could match the *previous*
+# process's last frame rather than the new one's.
+- extendedWaitUntil:
+    notVisible: 'Inicio'
+    timeout: 15000
+    label: 'The killed process’s last frame is off the screen'
+
+- openLink: kolvi://expo-development-client/?url=${DEV_SERVER}
+
+# Since KMO-16 the tab shell offers the location rationale the first time it
+# finds no permission, and that sheet is a `Modal` — with it up, nothing behind
+# it is in the hierarchy, so an assertion on 'Inicio' would fail on a sheet it
+# never mentioned. See kmo-9-secure-token-restore.yaml for the same guard, in
+# the same order: wait for it optionally, dismiss it if it showed up, then
+# assert the shell for real.
+- extendedWaitUntil:
+    visible: 'Kolvi usa tu ubicación al marcar'
+    timeout: 60000
+    optional: true
+    label: 'The location rationale, if this run is the first without a permission'
+
+- runFlow:
+    when:
+      visible: 'Kolvi usa tu ubicación al marcar'
+    commands:
+      - tapOn:
+          id: 'location-rationale-dismiss'
+    label: 'Dismiss it, so what follows is asserted against the tab shell'
+
+# Generous, matching kmo-9-secure-token-restore.yaml's own wait for the same
+# step: nothing was cleared, so there is no bundle to recompile, but the dev
+# client still has its own bootstrap to get through first.
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 120000
+    label: 'Back on the tab shell — nothing was cleared, so the token restored the session too'
+
+- extendedWaitUntil:
+    visible: '1 marca esperando sincronizar'
+    timeout: 30000
+    label: '#2 — the row read back off SQLite by a fresh process, not the one that wrote it'
+
+- assertVisible:
+    text: 'Aún no forma parte del libro de asistencia'
+    label: 'Still not registered — a durable queue is not a synced one'
+
+- takeScreenshot: kmo-23-survived-relaunch

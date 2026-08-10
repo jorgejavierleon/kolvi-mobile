@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react-native';
 
 import { formatClockTime, formatLongDate } from '@/i18n';
 
-import { CLOCK_TICK_MS, readNow, useNow } from './now-clock';
+import { CLOCK_TICK_MS, readDeviceDateTime, readNow, useNow } from './now-clock';
 
 /** A phone whose clock the test moves by hand. */
 function fixedClock(iso: string) {
@@ -44,6 +44,19 @@ describe('readNow', () => {
     // full wall-clock value — the offline queue's `device_datetime` — is not
     // re-reading the phone a second time to get them.
     expect(readNow(fixedClock('2026-08-04T14:07:22').read).time).toBe('14:07:22');
+  });
+});
+
+describe('readDeviceDateTime (KMO-23 §4.3)', () => {
+  it('reads the phone into a single naive datetime, one call and nothing more', () => {
+    const clock = jest.fn(fixedClock('2026-08-04T14:07:22').read);
+
+    expect(readDeviceDateTime(clock)).toBe('2026-08-04 14:07:22');
+    expect(clock).toHaveBeenCalledTimes(1);
+  });
+
+  it('pads and counts months from one, like every other naive value', () => {
+    expect(readDeviceDateTime(fixedClock('2026-01-05T09:04:07').read)).toBe('2026-01-05 09:04:07');
   });
 });
 

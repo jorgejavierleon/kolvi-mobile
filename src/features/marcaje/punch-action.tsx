@@ -104,7 +104,9 @@ export function PunchAction({ state, attempt, onPunch, hold = null, testID }: Pu
         </>
       )}
 
-      {attempt.status === 'failed' || attempt.status === 'duplicate' ? (
+      {attempt.status === 'failed' ||
+      attempt.status === 'duplicate' ||
+      attempt.status === 'queued' ? (
         <Attempt attempt={attempt} />
       ) : null}
     </View>
@@ -181,10 +183,10 @@ function DayClosed({ testID }: { testID?: string }) {
 /**
  * What the last attempt has to say, under the button and never over it (#7, #8).
  *
- * A line rather than a dialog, for both of them. A modal would take the button
+ * A line rather than a dialog, for all three. A modal would take the button
  * off screen and put a dismissal between the employee and the retry — and for
- * the duplicate it would be an error interrupting someone whose punch is
- * already, correctly, in the register.
+ * the duplicate and the queued punch it would be an error interrupting
+ * someone whose punch is already, correctly, accounted for.
  *
  * There is no retry control here: the primary button *is* the retry, it is
  * directly above this line, and it kept its label because the state never moved
@@ -202,7 +204,7 @@ function Attempt({ attempt }: { attempt: Extract<PunchAttempt, { message: string
         styles.attempt,
         { backgroundColor: failed ? tones.danger.background : tones.neutral.background },
       ]}
-      testID={failed ? 'punch-failed' : 'punch-duplicate'}
+      testID={`punch-${attempt.status}`}
     >
       <Text
         style={[

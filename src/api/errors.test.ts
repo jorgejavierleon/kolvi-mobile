@@ -99,6 +99,30 @@ describe('validation errors', () => {
   });
 });
 
+describe('the machine-readable refusal code (KMO-23 #8)', () => {
+  // The offline queue's two 422 refusals are told apart by this, not by the
+  // Spanish sentence in `message` — see the header of this file.
+  it('reads code off a 422 body', () => {
+    const error = errorFromResponse(422, {
+      message: 'La marca es demasiado antigua para transmitirse automáticamente.',
+      code: 'queued_punch_too_old',
+    });
+
+    expect(error.code).toBe('queued_punch_too_old');
+  });
+
+  it('is undefined for a 422 with no code, like a plain validation failure', () => {
+    expect(errorFromResponse(422, { message: 'Los datos entregados no son válidos.' }).code).toBe(
+      undefined,
+    );
+  });
+
+  it('is undefined when the body carries no usable code', () => {
+    expect(errorFromResponse(422, { code: 404 }).code).toBe(undefined);
+    expect(errorFromResponse(422, undefined).code).toBe(undefined);
+  });
+});
+
 describe('the message an employee reads', () => {
   // #3 — the server knows the password was wrong rather than merely that the
   // request was refused, so its sentence wins over anything the app could say.

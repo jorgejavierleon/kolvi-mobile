@@ -11,34 +11,47 @@
  * local step is only there so the button changes the moment the receipt lands
  * rather than after a second round trip — a screen whose goal is ten seconds
  * from app open (G1) cannot spend one of them re-reading what it just did.
+ *
+ * Since KMO-23, "the server recorded it" has a second shape: a request that
+ * never reached the server at all — `ApiError.isConnectivityFailure` — is not
+ * a failure here, it is the Art. 10 exception. The punch is written to the
+ * durable queue before this hook advances anything (#1), the state moves the
+ * same way it does off a receipt (Art. 38: never block), and the queue —
+ * `punch-queue.ts`, flushed by `createPunchSync` — is what eventually gets it
+ * to the register.
  */
 
+import * as Crypto from 'expo-crypto';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { isApiError } from '@/api';
 import { es } from '@/i18n';
 
 import type { GeoStatus, LocationFix } from './geofence';
+import { readDeviceDateTime } from './now-clock';
 import {
   createPunchApi,
   isDuplicateMarkError,
   type PunchApi,
   type PunchReceipt,
 } from './punch-api';
+import { punchQueue as appPunchQueue, type PunchQueue, type QueuedPunch } from './punch-queue';
 import { punchTypeFor, stateAfterPunch, type PunchState } from './punch-state';
 
 /**
  * What the last attempt did.
  *
- * `duplicate` is deliberately not a kind of `failed`. The register already holds
- * the punch, which is news about the day rather than something that went wrong,
- * and the screen says so in a calm line instead of an error (#7).
+ * `duplicate` and `queued` are deliberately not kinds of `failed`. The register
+ * already holds the punch in the first case; in the second it is on its way,
+ * captured durably rather than lost — and the screen says so in a calm line
+ * instead of an error either time (#7, KMO-23 #1).
  */
 export type PunchAttempt =
   | { readonly status: 'idle' }
   | { readonly status: 'submitting' }
   | { readonly status: 'failed'; readonly message: string }
-  | { readonly status: 'duplicate'; readonly message: string };
+  | { readonly status: 'duplicate'; readonly message: string }
+  | { readonly status: 'queued'; readonly message: string };
 
 export type Punch = PunchAttempt & {
   /**
@@ -72,8 +85,19 @@ export type UsePunchOptions = {
    * register actually holds rather than what this hook inferred.
    */
   onAlreadyMarked?: () => void;
+  /**
+   * Called once the punch is durably queued (KMO-23 #1) — after the write, not
+   * before, so a caller that opens something off this callback is opening it
+   * onto a punch that is actually on disk. KMO-24 hangs the offline receipt
+   * off this; nothing in this ticket consumes it.
+   */
+  onQueued?: (punch: QueuedPunch) => void;
   /** Injected in tests; the app uses the configured client. */
   api?: PunchApi;
+  /** Injected in tests; the app uses the process-wide queue. */
+  queue?: PunchQueue;
+  /** Injected in tests; the app reads the phone. */
+  clock?: () => Date;
 };
 
 export function usePunch({
@@ -82,7 +106,10 @@ export function usePunch({
   geoStatus = 'unknown',
   onPunched,
   onAlreadyMarked,
+  onQueued,
   api,
+  queue = appPunchQueue,
+  clock,
 }: UsePunchOptions = {}): Punch {
   // Built once, like `useToday`'s: a caller passing a fresh object each render
   // would rebuild the client on every keystroke elsewhere on the screen.
@@ -128,6 +155,12 @@ export function usePunch({
     inFlight.current = true;
     setAttempt({ status: 'submitting' });
 
+    // Read once, at the moment of the tap, and carried rather than re-read if
+    // this punch ends up queued — see the header of `now-clock.ts` and
+    // docs/design-decisions.md §4.3. Computed unconditionally because there is
+    // no way to know yet whether the request will need it.
+    const deviceDatetime = readDeviceDateTime(clock);
+
     void (async () => {
       try {
         const receipt = await punchApi.punch({ type, fix, geoStatus });
@@ -150,6 +183,33 @@ export function usePunch({
           return;
         }
 
+        if (isApiError(error) && error.isConnectivityFailure) {
+          // Art. 10's exception, not #8's failure: the request never reached
+          // the server, so capture-and-store is what the regulation calls
+          // conforming. `queue.enqueue` durably writes the row before this
+          // hook advances anything — KMO-23 #1 — which is why every state
+          // change below sits after the `await` rather than before it.
+          const queued: QueuedPunch = {
+            id: Crypto.randomUUID(),
+            type,
+            fix,
+            geoStatus,
+            idempotencyKey: Crypto.randomUUID(),
+            deviceDatetime,
+          };
+
+          await queue.enqueue(queued);
+
+          // Never blocked (Art. 38): the day advances exactly as it would off
+          // a receipt, because the punch has been captured even though the
+          // register does not have it yet.
+          setRecorded(stateAfterPunch(type));
+          setAttempt({ status: 'queued', message: es.marcaje.punch.queued });
+          onQueued?.(queued);
+
+          return;
+        }
+
         // #8. Nothing about the day changes: the state is untouched, the button
         // keeps its label, and the employee is standing where they were.
         setAttempt({ status: 'failed', message: messageFor(error) });
@@ -157,7 +217,7 @@ export function usePunch({
         inFlight.current = false;
       }
     })();
-  }, [current, fix, geoStatus, onAlreadyMarked, onPunched, punchApi]);
+  }, [current, fix, geoStatus, onAlreadyMarked, onPunched, onQueued, punchApi, queue, clock]);
 
   return useMemo(
     () => ({ ...attempt, state: current, receipt, punch }),
