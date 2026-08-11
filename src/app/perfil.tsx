@@ -1,38 +1,38 @@
 import { router } from 'expo-router';
 import { StyleSheet } from 'react-native';
 
+import { useSession } from '@/features/auth/session';
 import { SignOut } from '@/features/auth/sign-out';
 import { UnlockSetting } from '@/features/auth/unlock-setting';
+import { usePunchQueue } from '@/features/marcaje/punch-queue';
+import { IdentityHeader } from '@/features/profile/identity-header';
 import { es } from '@/i18n';
 import { spacing } from '@/theme';
 import { Button } from '@/ui/button';
 import { Card } from '@/ui/card';
+import { ListRow } from '@/ui/list-row';
 import { OverlayHeader } from '@/ui/overlay-header';
 import { Screen } from '@/ui/screen';
-import { SectionScaffold } from '@/ui/section-scaffold';
 
 /**
  * Mi perfil. On the root stack rather than inside the tabs, which is what makes
  * it cover the tab bar: the design draws it as `inset:0` over whichever tab the
  * employee was on, and it opens from all four.
  *
- * KMO-25 fills in the avatar, the name and the menu — Mis datos, Notificaciones,
- * Ayuda y soporte, Cerrar sesión — each of which is its own task.
+ * The four-row menu (KMO-25 #3, #4) is Mis datos, Notificaciones and Ayuda y
+ * soporte — three bare `ListRow`s that push their own route, KMO-26/27/38's to
+ * fill in — plus `SignOut` as the card's own last row, in the danger tone the
+ * design draws it in.
  *
- * `UnlockSetting` and `SignOut` sit above the scaffold rather than inside the menu
- * KMO-25 has not built yet: KMO-10 #5 needs the biometric switch reachable from the
- * profile and KMO-12 needs Cerrar sesión, and building KMO-25's four-row card early
- * to hold them would put that task's design decisions in these ones' commits.
- *
- * Cambiar contraseña sits with them for the same reason, and is a plain Card for
- * now: KMO-13 #5 needs it reachable from here, and Mi perfil has no menu to put a
- * row into yet.
- *
- * `SignOut` takes the count of punches this phone has not synced, which is zero
- * because there is no queue yet — KMO-22 and KMO-23 build the one this reads from,
- * and passing it here is what keeps `features/auth` from importing `features/marcaje`.
+ * `UnlockSetting` and Cambiar contraseña stay outside that card, exactly where
+ * KMO-10 and KMO-13 put them: the design's four-row menu is only the items
+ * above, and folding the biometric switch or the password screen's link into it
+ * would be a menu the design does not draw.
  */
 export default function ProfileScreen() {
+  const { user } = useSession();
+  const { count: pendingPunches } = usePunchQueue();
+
   return (
     <Screen
       bottomInset
@@ -50,6 +50,34 @@ export default function ProfileScreen() {
         />
       }
     >
+      {/* Always present in practice — this route only exists behind the
+          signed-in guard in `_layout.tsx` — but `user` is nullable on the
+          session type itself, and a header with nobody to name is not a state
+          worth drawing. */}
+      {user === null ? null : <IdentityHeader user={user} />}
+
+      <Card padded={false} testID="profile-menu">
+        <ListRow
+          accessibilityLabel={es.profile.menu.myData.action}
+          onPress={() => router.push('/mis-datos')}
+          testID="profile-menu-mis-datos"
+          title={es.profile.menu.myData.action}
+        />
+        <ListRow
+          accessibilityLabel={es.profile.menu.notifications.action}
+          onPress={() => router.push('/notificaciones')}
+          testID="profile-menu-notificaciones"
+          title={es.profile.menu.notifications.action}
+        />
+        <ListRow
+          accessibilityLabel={es.profile.menu.helpSupport.action}
+          onPress={() => router.push('/ayuda-soporte')}
+          testID="profile-menu-ayuda-soporte"
+          title={es.profile.menu.helpSupport.action}
+        />
+        <SignOut pendingPunches={pendingPunches} />
+      </Card>
+
       <UnlockSetting />
 
       {/* KMO-13 #5. Composed here rather than in `features/auth` because it is
@@ -63,9 +91,6 @@ export default function ProfileScreen() {
           variant="secondary"
         />
       </Card>
-
-      <SignOut />
-      <SectionScaffold section={es.profile.title} />
     </Screen>
   );
 }

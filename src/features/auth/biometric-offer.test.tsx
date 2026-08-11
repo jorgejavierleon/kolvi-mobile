@@ -23,6 +23,8 @@ const employee: SessionUser = {
   firstName: 'Empleado',
   email: 'employee@example.com',
   rut: '21437581-8',
+  position: null,
+  premise: null,
   permissions: parsePermissions(['ClockOwn:Mark']),
 };
 

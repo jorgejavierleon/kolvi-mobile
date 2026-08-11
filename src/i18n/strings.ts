@@ -656,6 +656,32 @@ export const es = {
     open: 'Abrir mi perfil',
     /** The back chevron on the profile surface. */
     back: 'Volver',
+
+    /**
+     * The four-row menu (KMO-25 #3, #4). Cerrar sesión is `es.auth.signOut` —
+     * it existed before this menu did (KMO-12) and stays there.
+     */
+    menu: {
+      myData: {
+        action: 'Mis datos',
+        back: 'Volver a Mi perfil',
+      },
+      notifications: {
+        action: 'Notificaciones',
+        back: 'Volver a Mi perfil',
+        /**
+         * #5. KMO-38 replaces this with the real per-category toggles; until
+         * then the row still has to go somewhere, and somewhere honest about
+         * why it has nothing to show yet.
+         */
+        placeholder:
+          'Las preferencias de notificaciones estarán disponibles cuando lleguen las notificaciones push.',
+      },
+      helpSupport: {
+        action: 'Ayuda y soporte',
+        back: 'Volver a Mi perfil',
+      },
+    },
   },
 
   /**
@@ -815,6 +841,21 @@ export function tabWithPendingCount(tab: string, count: number): string {
 /** The bottom marker of a scaffolded section, e.g. `Fin de Jornada`. */
 export function sectionEnd(section: string): string {
   return `Fin de ${section}`;
+}
+
+/**
+ * `{position} · {premise}` under the name on Mi perfil (KMO-25 #2) — the
+ * design's own `{{ userRole }} · {{ shiftPlace }}`. `null` when there is
+ * nothing to say: ams KOL-61 lands the fields on every employee, not a value
+ * for every one of them, and a lone `·` with nothing on either side would be
+ * worse than no line at all. One half present draws just that half.
+ */
+export function profileIdentity(position: string | null, premise: string | null): string | null {
+  if (position !== null && premise !== null) {
+    return `${position} · ${premise}`;
+  }
+
+  return position ?? premise;
 }
 
 /**

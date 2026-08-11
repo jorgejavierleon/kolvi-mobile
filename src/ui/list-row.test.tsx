@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
-import { colors, hitTargetMin, typography } from '@/theme';
+import { colors, hitTargetMin, tones, typography } from '@/theme';
 
 import { ListRow } from './list-row';
 
@@ -111,5 +111,25 @@ describe('ListRow', () => {
       ...typography.h3,
       color: colors.textHeading,
     });
+  });
+
+  // KMO-25 #3 — Cerrar sesión, the one destructive row in the menu.
+  it('recolours the title in the danger tone', async () => {
+    await render(
+      <ListRow
+        accessibilityLabel="Cerrar sesión"
+        onPress={noop}
+        title="Cerrar sesión"
+        tone="danger"
+      />,
+    );
+
+    expect(screen.getByText('Cerrar sesión')).toHaveStyle({ color: tones.danger.foreground });
+  });
+
+  it('leaves the title in its ordinary colour by default', async () => {
+    await render(<ListRow accessibilityLabel="Entrada" onPress={noop} title="Entrada" />);
+
+    expect(screen.getByText('Entrada')).toHaveStyle({ color: colors.textHeading });
   });
 });

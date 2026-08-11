@@ -5,7 +5,7 @@ import { es, unsyncedPunchesWarning } from '@/i18n';
 import { colors, radius, spacing, tones, typography } from '@/theme';
 import { BottomSheet } from '@/ui/bottom-sheet';
 import { Button } from '@/ui/button';
-import { Card } from '@/ui/card';
+import { ListRow } from '@/ui/list-row';
 
 import { useSession } from './session';
 
@@ -34,8 +34,9 @@ export type SignOutProps = {
  * to lose an attendance record should not have to read past the ordinary wording
  * to find that out.
  *
- * A self-contained card, for the same reason `UnlockSetting` is one — Mi perfil is
- * still `SectionScaffold`, and KMO-25 #4 folds this row into the real menu.
+ * The trigger is a bare `ListRow` rather than its own card: KMO-25 folds this in
+ * as the last row of Mi perfil's four-row menu, in the danger tone the design
+ * draws it in, with no divider under it since nothing follows it in the card.
  */
 export function SignOut({ pendingPunches = 0 }: SignOutProps) {
   const { signOut } = useSession();
@@ -75,12 +76,14 @@ export function SignOut({ pendingPunches = 0 }: SignOutProps) {
   };
 
   return (
-    <Card testID="sign-out">
-      <Button
-        label={es.auth.signOut.action}
+    <>
+      <ListRow
+        accessibilityLabel={es.auth.signOut.action}
+        divider={false}
         onPress={() => setConfirming(true)}
         testID="sign-out-action"
-        variant="danger"
+        title={es.auth.signOut.action}
+        tone="danger"
       />
 
       {confirming ? (
@@ -123,7 +126,7 @@ export function SignOut({ pendingPunches = 0 }: SignOutProps) {
           </View>
         </BottomSheet>
       ) : null}
-    </Card>
+    </>
   );
 }
 

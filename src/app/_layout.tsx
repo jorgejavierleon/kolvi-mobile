@@ -78,6 +78,9 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="perfil" />
         <Stack.Screen name="cambiar-contrasena" />
+        <Stack.Screen name="mis-datos" />
+        <Stack.Screen name="notificaciones" />
+        <Stack.Screen name="ayuda-soporte" />
       </Stack.Protected>
 
       {/* Not `!signedIn`: an employee behind the lock is signed in, and the way

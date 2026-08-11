@@ -22,6 +22,10 @@ export type SessionUser = {
   readonly email: string;
   /** Unformatted, e.g. `21437581-8`. `formatRut` in `@/i18n` dots it for display. */
   readonly rut: string | null;
+  /** The employee's job title, e.g. `Operaria de Bodega`. `null` if none is assigned. */
+  readonly position: string | null;
+  /** The employee's assigned premise, e.g. `Sucursal Ñuñoa`. `null` if none is assigned. */
+  readonly premise: string | null;
   readonly permissions: PermissionSet;
 };
 
@@ -51,6 +55,8 @@ export function parseSessionUser(payload: unknown): SessionUser | null {
     firstName: optionalString(record.first_name),
     email,
     rut: optionalString(record.rut),
+    position: optionalString(record.position),
+    premise: optionalString(record.premise),
     permissions: parsePermissions(record.permissions),
   };
 }

@@ -1,0 +1,110 @@
+# KMO-25 — Mi perfil's identity header and four-row menu.
+#
+# Covers #1 (the screen opens as a full-screen overlay, back chevron and title),
+# #2 (the identity header names the signed-in employee — position and premise
+# are Jest's, on identity-header.test.tsx, since the seeded employee carries no
+# position and the exact premise name is a seeder detail this flow should not
+# pin itself to) and #4 (every row navigates: Mis datos, Notificaciones and
+# Ayuda y soporte each reach their own screen, and Cerrar sesión reaches the
+# same confirmation kmo-12-sign-out.yaml already drives to completion — this
+# flow stops at the sheet rather than repeating that run).
+#
+# #3, #5 and #6 (the single card with dividers and the danger tone, the
+# notifications placeholder sentence, the 44px hit target) are Jest's — a card's
+# dividers and a row's minHeight are not something a screenshot proves better
+# than a style assertion.
+#
+# Needs a reachable `ams`, like every flow built on shared/sign-in.yaml.
+appId: cl.kolvi.empleados
+name: KMO-25 profile screen and menu
+tags:
+  - perfil
+---
+- runFlow: shared/sign-in.yaml
+
+- tapOn: 'Abrir mi perfil'
+
+# #1. The overlay, its title, and the back chevron's own accessible name.
+- extendedWaitUntil:
+    visible: 'Mi perfil'
+    timeout: 10000
+    label: 'The profile overlay is up'
+- assertVisible: 'Volver'
+
+# #2 — the name half. Position and premise are the seeded employee's own data,
+# not this flow's to assert against.
+- assertVisible: 'Empleado Demo'
+
+- takeScreenshot: kmo-25-perfil
+
+# #4 — Mis datos.
+- tapOn:
+    id: 'profile-menu-mis-datos'
+    label: 'Mis datos'
+- extendedWaitUntil:
+    visible: 'Mis datos'
+    timeout: 10000
+    label: 'On the Mis datos screen'
+- assertVisible: 'Volver a Mi perfil'
+- tapOn:
+    id: 'overlay-back'
+    label: 'Back to Mi perfil'
+- extendedWaitUntil:
+    visible: 'Mi perfil'
+    timeout: 10000
+    label: 'Back on the profile overlay'
+
+# #4, #5 — Notificaciones and its specific placeholder.
+- tapOn:
+    id: 'profile-menu-notificaciones'
+    label: 'Notificaciones'
+- extendedWaitUntil:
+    visible: 'Notificaciones'
+    timeout: 10000
+    label: 'On the Notificaciones screen'
+- assertVisible:
+    text: 'Las preferencias de notificaciones estarán disponibles cuando lleguen las notificaciones push.'
+    label: 'The push-notifications placeholder, character for character from src/i18n'
+- tapOn:
+    id: 'overlay-back'
+    label: 'Back to Mi perfil'
+- extendedWaitUntil:
+    visible: 'Mi perfil'
+    timeout: 10000
+    label: 'Back on the profile overlay'
+
+# #4 — Ayuda y soporte.
+- tapOn:
+    id: 'profile-menu-ayuda-soporte'
+    label: 'Ayuda y soporte'
+- extendedWaitUntil:
+    visible: 'Ayuda y soporte'
+    timeout: 10000
+    label: 'On the Ayuda y soporte screen'
+- assertVisible: 'Volver a Mi perfil'
+- tapOn:
+    id: 'overlay-back'
+    label: 'Back to Mi perfil'
+- extendedWaitUntil:
+    visible: 'Mi perfil'
+    timeout: 10000
+    label: 'Back on the profile overlay'
+
+# #4 — Cerrar sesión, now the menu's own last row rather than its own card.
+# kmo-12-sign-out.yaml drives this the rest of the way; this run only proves
+# the row is still wired to the same flow from inside the new menu.
+- tapOn:
+    id: 'sign-out-action'
+    label: "Cerrar sesión, the menu's fourth row"
+- extendedWaitUntil:
+    visible: '¿Cerrar sesión?'
+    timeout: 10000
+    label: 'The confirmation sheet'
+- tapOn:
+    id: 'sign-out-cancel'
+    label: 'Cancelar — this flow does not sign out'
+- extendedWaitUntil:
+    notVisible: '¿Cerrar sesión?'
+    timeout: 10000
+    label: 'The sheet is gone'
+- assertVisible: 'Mi perfil'

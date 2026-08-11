@@ -20,6 +20,7 @@ export {
   passwordResetSent,
   pendingSyncSubtitle,
   pendingSyncSummary,
+  profileIdentity,
   sectionEnd,
   tabWithPendingCount,
   timeRange,

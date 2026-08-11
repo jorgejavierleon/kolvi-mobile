@@ -15,6 +15,8 @@ const payload = {
   rut: '21437581-8',
   email: 'employee@example.com',
   avatar: null,
+  position: 'Operaria de Bodega',
+  premise: 'Sucursal Ñuñoa',
   permissions: [
     'RequestOwn:Leave',
     'ViewOwn:Leave',
@@ -60,8 +62,29 @@ describe('parseSessionUser', () => {
       firstName: 'Empleado',
       email: 'employee@example.com',
       rut: '21437581-8',
+      position: null,
+      premise: null,
       permissions: new Set(),
     });
+  });
+
+  // ams KOL-61: an employee with neither assigned reads as null on both, not
+  // as an error — the fields are as optional as rut.
+  it('reads position and premise off the payload ams actually sends', () => {
+    const user = parseSessionUser(payload);
+
+    expect(user?.position).toBe('Operaria de Bodega');
+    expect(user?.premise).toBe('Sucursal Ñuñoa');
+  });
+
+  it.each<[string, unknown, unknown]>([
+    ['both null', null, null],
+    ['both missing', undefined, undefined],
+  ])('reports %s as no position and no premise', (_label, position, premise) => {
+    const user = parseSessionUser({ ...payload, position, premise });
+
+    expect(user?.position).toBeNull();
+    expect(user?.premise).toBeNull();
   });
 
   // #8 — the real payload, and the whole point of it: every permission the

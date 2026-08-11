@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { colors, hitTargetMin, spacing, typography } from '@/theme';
+import { colors, hitTargetMin, spacing, tones, typography } from '@/theme';
 
 export type ListRowProps = {
   /** The row's primary text — what the row *is*. */
@@ -9,6 +9,12 @@ export type ListRowProps = {
   subtitle?: string;
   /** The value at the right edge — a time, an amount, a count. */
   trailing?: string;
+  /**
+   * `danger` recolours the title into the tone Cerrar sesión draws on Mi
+   * perfil (KMO-25 #3) — the only row in the app that is a destructive action
+   * rather than something to browse.
+   */
+  tone?: 'default' | 'danger';
   onPress: () => void;
   /**
    * What a screen reader announces for the whole row. Required, not optional:
@@ -44,6 +50,7 @@ export function ListRow({
   title,
   subtitle,
   trailing,
+  tone = 'default',
   onPress,
   accessibilityLabel,
   divider = true,
@@ -64,7 +71,7 @@ export function ListRow({
       ]}
     >
       <View style={styles.text}>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={[styles.title, tone === 'danger' ? styles.titleDanger : null]}>{title}</Text>
         {subtitle === undefined ? null : <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
 
@@ -100,6 +107,9 @@ const styles = StyleSheet.create({
   title: {
     ...typography.label,
     color: colors.textHeading,
+  },
+  titleDanger: {
+    color: tones.danger.foreground,
   },
   subtitle: {
     ...typography.caption,

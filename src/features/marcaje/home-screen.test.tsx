@@ -94,6 +94,8 @@ function user(overrides: Partial<SessionUser> = {}): SessionUser {
     firstName: 'Camila',
     email: 'c.rojas@example.com',
     rut: '12345678-9',
+    position: null,
+    premise: null,
     permissions: parsePermissions(employeePermissions),
     ...overrides,
   };

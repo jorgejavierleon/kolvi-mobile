@@ -6,6 +6,7 @@ import {
   locationOutOfRange,
   pendingSyncSubtitle,
   pendingSyncSummary,
+  profileIdentity,
   sectionEnd,
   tabWithPendingCount,
   tooManyAttempts,
@@ -194,6 +195,22 @@ describe('phrases assembled around a server value', () => {
 
   it('marks the end of a scaffolded section by name', () => {
     expect(sectionEnd(es.tabs.jornada)).toBe('Fin de Jornada');
+  });
+
+  // KMO-25 #2. Verbatim from the design's `{{ userRole }} · {{ shiftPlace }}`.
+  it('joins the position and the premise on Mi perfil', () => {
+    expect(profileIdentity('Operaria de Bodega', 'Sucursal Ñuñoa')).toBe(
+      'Operaria de Bodega · Sucursal Ñuñoa',
+    );
+  });
+
+  it('draws only the half it has when the other is missing', () => {
+    expect(profileIdentity('Operaria de Bodega', null)).toBe('Operaria de Bodega');
+    expect(profileIdentity(null, 'Sucursal Ñuñoa')).toBe('Sucursal Ñuñoa');
+  });
+
+  it('has nothing to say when neither is set', () => {
+    expect(profileIdentity(null, null)).toBeNull();
   });
 
   // KMO-16 #2. Verbatim from the design's `geoSub`, down to the middle dot.
