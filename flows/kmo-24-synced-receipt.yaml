@@ -1,0 +1,106 @@
+# KMO-24 — what the same punch shows once it has synced.
+#
+# Covers #5 (the folio and hash the register allocated, in the one place this
+# tier can see them — the confirmed receipt reached from the history list), #6
+# (the employee can open the confirmed receipt for a punch that was queued) and
+# #8 (the offline provenance survives the sync — the confirmed receipt still
+# says this mark was captured offline, in the one authored line KMO-24 adds to
+# src/i18n).
+#
+# The other half — #1 through #4, #7, the offline draft itself — is
+# `kmo-24-offline-draft.yaml`'s, and this flow picks up exactly where that one
+# left off: the same running app, the same queued punch, with the radio back on.
+# Run as:
+#
+#   bin/e2e flows/shared/sign-in.yaml
+#   bin/device net off
+#   bin/e2e flows/kmo-24-offline-draft.yaml
+#   bin/device net on
+#   bin/e2e flows/kmo-24-synced-receipt.yaml
+#
+# **Does not relaunch, and must not** — like `kmo-23-queue-relaunch.yaml`, it
+# continues the process the previous flow left up rather than starting a new
+# one. Unlike that flow, this one *is* the running app's own foreground process
+# the instant `bin/device net on` runs — which usually means #4's automatic
+# flush (Art. 10's own condition) has already drained the queue by the time this
+# flow's first command reaches the device. That race is real rather than a flake
+# to paper over, so this flow does not assume either outcome: it waits for the
+# banner to be gone, pressing `Sincronizar` itself only if the automatic flush
+# has not already won.
+#
+# **Spends the day, unlike either half of KMO-23's pair.** Those never reach the
+# server — the radio stays off across both of that ticket's flows — but this one
+# presses `Sincronizar` with the radio on, and the queued entrada really does
+# land in the register. A second run needs a fresh unpunched day, the same as
+# `kmo-17-punch.yaml`.
+appId: cl.kolvi.empleados
+name: KMO-24 the confirmed receipt a synced punch shows
+tags:
+  - marcaje
+  - offline
+  - requires-offline
+  - requires-unpunched-day
+---
+# The automatic flush usually wins this race — see the header — so the banner
+# may already be gone by the first command Maestro sends. Optional in both
+# directions, the same shape `shared/sign-in.yaml` uses for the sheets that
+# may or may not be up.
+- extendedWaitUntil:
+    notVisible:
+      id: 'pending-sync-banner'
+    timeout: 5000
+    optional: true
+    label: 'The automatic flush (#4), if it got there first'
+
+# Still there only when the automatic flush has not run yet — `Sincronizar` is
+# the Art. 10 accelerator the design gives an employee for exactly this case.
+- runFlow:
+    when:
+      visible:
+        id: 'pending-sync-banner'
+    commands:
+      - tapOn:
+          id: 'pending-sync-action'
+      - extendedWaitUntil:
+          notVisible:
+            id: 'pending-sync-banner'
+          timeout: 20000
+          label: 'The round trip that actually files the punch — a real POST, this time'
+    label: 'Otherwise, press the accelerator ourselves'
+
+- tapOn: 'Ver mis últimas marcas'
+
+- extendedWaitUntil:
+    visible: 'Mis últimas marcas'
+    timeout: 30000
+    label: 'The history, with the newly-synced punch on it'
+
+# #6. The newest row is the one this pair of flows made.
+- tapOn:
+    id: 'mark-row-.*'
+    index: 0
+
+- extendedWaitUntil:
+    visible: '¡Marca registrada!'
+    timeout: 10000
+    label: '#6 — the confirmed receipt, for a punch that was queued'
+
+# #5. The register's own values, not the draft's placeholders.
+- assertVisible:
+    text: 'N° comprobante'
+    label: '#5 — the folio row'
+- assertNotVisible:
+    text: 'Pendiente de asignación'
+    label: '#5 — no longer the placeholder — a real folio is under this label'
+- assertVisible:
+    text: '[0-9a-f]{64}'
+    label: '#5 — and a real sixty-four character hash, not its own placeholder'
+
+# #8. The provenance kept rather than erased by the sync — the one line this
+# ticket authors into src/i18n, because the design has no state for a receipt
+# that is both confirmed and was once a queued mark.
+- assertVisible:
+    text: 'Esta marca se registró sin conexión y se sincronizó automáticamente\.'
+    label: '#8 — the confirmed receipt still says this mark was captured offline'
+
+- takeScreenshot: kmo-24-synced-receipt

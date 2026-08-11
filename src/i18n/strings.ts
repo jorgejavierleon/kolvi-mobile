@@ -420,6 +420,44 @@ export const es = {
       subtitle: 'Comprobante de marca',
 
       /**
+       * The design's `comprobanteHeadline` for the other branch of that same
+       * ternary — a punch still in the queue, over the offline icon on the
+       * warning tint rather than the success check (KMO-24 #1).
+       */
+      offlineHeadline: 'Marca guardada en tu teléfono',
+
+      /**
+       * What the folio and hash rows read while the punch is still in the
+       * queue (KMO-24 #2) — the design's own `comprobanteFolio`/`comprobanteHash`
+       * fallback, not an omission this catalogue invented. Neither is a
+       * fabricated value: Art. 8 has the *system* generate the checksum and the
+       * system has not seen this mark yet, so the honest row says it is
+       * pending rather than printing something that looks like a folio.
+       */
+      pendingFolio: 'Pendiente de asignación',
+      pendingHash: 'Pendiente de asignación (se calcula al sincronizar)',
+
+      /**
+       * The explanatory line on an offline receipt (KMO-24 #3), verbatim from
+       * the design's `comprobanteOffline` block. It is what makes the missing
+       * folio and hash legible as a status rather than as a bug: the register
+       * assigns both at sync, and until then this mark is not part of the
+       * libro de asistencia electrónico (§4.5).
+       */
+      offlineNote:
+        'Registrada en tu teléfono sin conexión. El folio y el hash los asigna el servidor al sincronizar — aún no forma parte del libro de asistencia electrónico.',
+
+      /**
+       * The one line this catalogue authors rather than transcribes (KMO-24
+       * #8) — the design has no state for a receipt that is both confirmed
+       * and was once queued, because the mockup does not model sync at all.
+       * Shown on a *confirmed* receipt when `capturedOffline` is true, so the
+       * provenance §4.6 requires survives the sync instead of a folio and a
+       * hash quietly erasing it.
+       */
+      capturedOffline: 'Esta marca se registró sin conexión y se sincronizó automáticamente.',
+
+      /**
        * The Art. 13 rows, in the design's order. `folio` is `N° comprobante`
        * per docs/design-decisions.md D-F2-a — a real folio, `YYYYMMDD-NNNN`,
        * which `ams` allocates per organization and day (KOL-35).

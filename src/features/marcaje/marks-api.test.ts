@@ -66,6 +66,7 @@ describe('parseMarks', () => {
       folio: '20260805-0042',
       employeeName: 'María Fernanda Soto',
       employeeRut: '214375818',
+      capturedOffline: false,
     });
   });
 

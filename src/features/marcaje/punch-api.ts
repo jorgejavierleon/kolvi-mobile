@@ -88,6 +88,38 @@ export type PunchReceipt = {
   readonly employeeName: string | null;
   /** Their RUT, undotted as `ams` holds it. `formatRut` punctuates it. */
   readonly employeeRut: string | null;
+  /**
+   * Whether this mark was captured offline and adjudicated from
+   * `device_datetime` rather than read off the server's clock at the moment it
+   * was made (§4.2). Echoed on every mark — online marks answer `false` — so
+   * the provenance survives a sync rather than being erased by it (§4.6,
+   * KMO-24 #8): a mark this app showed as `OfflineReceipt` before it synced is
+   * still identifiable as such on the confirmed receipt afterwards.
+   */
+  readonly capturedOffline: boolean;
+};
+
+/**
+ * The draft shown for a punch still sitting in the queue (KMO-24).
+ *
+ * Deliberately not a `PunchReceipt` with optional fields: `markId`, `hash` and
+ * the rest are not optional there because a confirmed receipt never has them
+ * missing, and giving them up here would let a stray read of `.hash` compile
+ * against a punch the register has never seen. This is Art. 10's exception
+ * captured on the phone — no folio, no checksum, because Art. 8 has the
+ * *system* generate one and the system has not seen this mark yet (§4.5).
+ *
+ * `employeeName`/`employeeRut` come from the signed-in session rather than the
+ * register, because the register is the one source that does not exist yet
+ * for this punch — see the header of `receipt-sheet.tsx` for why that is the
+ * only exception to "everything on the sheet comes off the 201".
+ */
+export type OfflineReceipt = {
+  readonly type: PunchType;
+  /** The device's own reading, carried unchanged from the queue (§4.3). */
+  readonly deviceDatetime: NaiveDateTime;
+  readonly employeeName: string | null;
+  readonly employeeRut: string | null;
 };
 
 export type PunchApi = {
@@ -299,7 +331,30 @@ export function parsePunchReceipt(payload: unknown): PunchReceipt {
     folio: parseOptionalText(root.folio, 'folio'),
     employeeName: parseOptionalText(root.employee_name, 'employee_name'),
     employeeRut: parseOptionalText(root.employee_rut, 'employee_rut'),
+    capturedOffline: parseCapturedOffline(root.captured_offline),
   };
+}
+
+/**
+ * `false` when absent — every mark before `ams` KOL-54 shipped, and every
+ * online mark since — and the server's own answer otherwise. A value that is
+ * *present and not a boolean* still fails, like every other field on this
+ * receipt: this is the flag Art. 41 a) and §4.6 make load-bearing, and rounding
+ * an unreadable one down to `false` would make an offline mark indistinguishable
+ * from an ordinary one on the one screen that has to tell them apart.
+ */
+function parseCapturedOffline(value: unknown): boolean {
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof value !== 'boolean') {
+    throw new PunchResponseError(
+      `\`captured_offline\` is not a boolean, received ${JSON.stringify(value)}`,
+    );
+  }
+
+  return value;
 }
 
 function parseMarkId(value: unknown): number {

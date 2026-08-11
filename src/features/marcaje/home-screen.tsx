@@ -27,8 +27,9 @@ import {
   usePunchQueue,
   type PunchQueue,
   type PunchSync,
+  type QueuedPunch,
 } from './punch-queue';
-import { ReceiptSheet } from './receipt-sheet';
+import { ReceiptSheet, type ReceiptView } from './receipt-sheet';
 import { ShiftCard, ShiftCardSkeleton } from './shift-card';
 import type { TodayApi, TodaySummary } from './today-api';
 import { useConnectivity } from './use-connectivity';
@@ -167,7 +168,8 @@ export function HomeScreen({
 
   /**
    * The comprobante the last punch produced (KMO-19), or `null` when there is
-   * none on screen.
+   * none on screen — `confirmed` off the register, or `offline` for a punch
+   * still sitting in the queue (KMO-24).
    *
    * Screen state rather than a read of `punch.receipt`, and the distinction is
    * the whole reason it exists: `punch.receipt` is the last receipt the *hook*
@@ -176,8 +178,8 @@ export function HomeScreen({
    * here is not "was there a punch" but "is the employee looking at its
    * receipt", and only this screen knows that.
    */
-  const [receipt, setReceipt] = useState<PunchReceipt | null>(null);
-  const dismissReceipt = useCallback(() => setReceipt(null), []);
+  const [receiptView, setReceiptView] = useState<ReceiptView | null>(null);
+  const dismissReceipt = useCallback(() => setReceiptView(null), []);
 
   /**
    * Whether the employee is looking at their punch history (KMO-20).
@@ -200,20 +202,54 @@ export function HomeScreen({
   const marks = useMarks({ enabled: canViewMarks && marksOpen, api: marksApi });
 
   /**
+   * The confirmed receipt straight onto the sheet above (KMO-19, and KMO-17
+   * #10) — the `PunchReceipt` `usePunch` hands back wrapped as a `ReceiptView`,
+   * which is all the sheet takes since KMO-24.
+   */
+  const onPunched = useCallback(
+    (receipt: PunchReceipt) => setReceiptView({ kind: 'confirmed', receipt }),
+    [],
+  );
+
+  /**
+   * The offline draft (KMO-24), the moment the punch is durably queued —
+   * `usePunch`'s own doc comment left this callback for this ticket. Identity
+   * comes from the signed-in session rather than the register: the register is
+   * the one source that does not exist yet for a punch it has not seen (§4.5),
+   * so it is the only exception to "the sheet reads nothing but its receipt" —
+   * decided here, once, rather than inside the sheet itself.
+   */
+  const onQueued = useCallback(
+    (punch: QueuedPunch) => {
+      setReceiptView({
+        kind: 'offline',
+        receipt: {
+          type: punch.type,
+          deviceDatetime: punch.deviceDatetime,
+          employeeName: session.user?.name ?? null,
+          employeeRut: session.user?.rut ?? null,
+        },
+      });
+    },
+    [session.user],
+  );
+
+  /**
    * The punch (KMO-17).
    *
    * The state it is handed is the server's; what it hands back is that state
    * advanced by any punch it has since recorded, which is what the clock's
    * status line and the button both read. `onAlreadyMarked` is the reconcile:
    * the register already holds the mark, so the screen asks for the day again
-   * rather than trusting the step it just inferred (#7); `onPunched` is the
-   * receipt going straight to the sheet above (KMO-19, and KMO-17 #10).
+   * rather than trusting the step it just inferred (#7); `onPunched` and
+   * `onQueued` are the two receipt shapes going straight to the sheet above.
    */
   const punch = usePunch({
     state: today.status === 'loaded' ? today.summary.punchState : null,
     fix: location.fix,
     geoStatus: location.geoStatus,
-    onPunched: setReceipt,
+    onPunched,
+    onQueued,
     onAlreadyMarked: today.reload,
     api: punchApi,
     clock,
@@ -378,28 +414,31 @@ export function HomeScreen({
       ) : null}
 
       {/* The two sheets **swap** rather than stack: a row tapped in the list
-          sets `receipt`, which closes the list under it, and dismissing the
+          sets `receiptView`, which closes the list under it, and dismissing the
           comprobante puts the employee back on the list they came from. Two RN
           `Modal`s over each other is a stack neither platform agrees about, and
-          there is nothing here that needs one. */}
+          there is nothing here that needs one. A row in the history is always
+          a confirmed receipt — an offline draft never reaches `GET /marks`. */}
       <MarksSheet
-        visible={marksOpen && receipt === null}
+        visible={marksOpen && receiptView === null}
         marks={marks}
-        onSelect={setReceipt}
+        onSelect={(receipt) => setReceiptView({ kind: 'confirmed', receipt })}
         onDismiss={dismissMarks}
         testID="marks-sheet"
       />
 
       {/* Over everything, and only ever from a receipt the server answered with
-          (KMO-19 #9, and the criterion KMO-17 left open at #10). It is outside
-          the three load states on purpose: a comprobante is about the punch
-          that was just recorded, and a `/me/today` reload happening behind it
-          must not take it off the screen the employee is reading.
+          (KMO-19 #9, and the criterion KMO-17 left open at #10) or a punch this
+          phone just queued (KMO-24). It is outside the three load states on
+          purpose: a comprobante is about the punch that was just made, and a
+          `/me/today` reload happening behind it must not take it off the
+          screen the employee is reading.
 
           Since KMO-20 it also draws a *stored* mark, unchanged: the history
           hands it the same `PunchReceipt` the 201 does, so a retrieved receipt
-          carries the folio and the hash the register recorded (#2, #3). */}
-      <ReceiptSheet receipt={receipt} onDismiss={dismissReceipt} testID="receipt-sheet" />
+          carries the folio and the hash the register recorded (#2, #3) — and,
+          since KMO-24, the same offline provenance it was made with, if any. */}
+      <ReceiptSheet view={receiptView} onDismiss={dismissReceipt} testID="receipt-sheet" />
     </Screen>
   );
 }

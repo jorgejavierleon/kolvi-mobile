@@ -151,6 +151,7 @@ describe('parsePunchReceipt', () => {
       folio: '20260805-0042',
       employeeName: 'María Fernanda Soto',
       employeeRut: '214375818',
+      capturedOffline: false,
     });
   });
 
@@ -244,6 +245,28 @@ describe('parsePunchReceipt', () => {
     // `[object Object]` on a legal receipt.
     it.each(identity)('fails on a %s that is not text', (wire) => {
       expect(() => parsePunchReceipt(payload({ [wire]: { value: 'x' } }))).toThrow(
+        PunchResponseError,
+      );
+    });
+  });
+
+  /**
+   * §4.2's provenance flag, echoed on every mark (KMO-24 #8). It is what lets a
+   * synced receipt still say it was captured offline, rather than the sync
+   * erasing the one fact §4.6 requires the register to keep.
+   */
+  describe('captured_offline (§4.2, KMO-24 #8)', () => {
+    it('reads true when the server says the mark was adjudicated from a device reading', () => {
+      expect(parsePunchReceipt(payload({ captured_offline: true })).capturedOffline).toBe(true);
+    });
+
+    // Every mark before `ams` KOL-54 shipped, and every online mark since.
+    it.each([undefined, null])('reads %p as false rather than as offline', (absent) => {
+      expect(parsePunchReceipt(payload({ captured_offline: absent })).capturedOffline).toBe(false);
+    });
+
+    it('fails on a value that is not a boolean rather than rounding it down', () => {
+      expect(() => parsePunchReceipt(payload({ captured_offline: 'true' }))).toThrow(
         PunchResponseError,
       );
     });

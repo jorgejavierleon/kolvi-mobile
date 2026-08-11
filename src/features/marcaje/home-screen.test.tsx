@@ -4,6 +4,7 @@ import { SafeAreaProvider, type Metrics } from 'react-native-safe-area-context';
 
 import { ApiError, type NaiveDate, type NaiveDateTime, type NaiveTime } from '@/api';
 import { es } from '@/i18n';
+import { tones } from '@/theme';
 
 import type { AuthApi } from '../auth/auth-api';
 import { employeePermissions, parsePermissions, type Permission } from '../auth/permissions';
@@ -150,6 +151,7 @@ function storedMark(overrides: Partial<PunchReceipt> = {}): PunchReceipt {
     folio: '20260731-0003',
     employeeName: 'Camila Rojas',
     employeeRut: '123456789',
+    capturedOffline: false,
     ...overrides,
   };
 }
@@ -186,6 +188,7 @@ function fakePunchApi(overrides: Partial<PunchReceipt> = {}): PunchApi & { calls
         folio: '20260804-0007',
         employeeName: 'María Fernanda Soto',
         employeeRut: '214375818',
+        capturedOffline: false,
         ...overrides,
       };
     },
@@ -1445,5 +1448,91 @@ describe('the pending-sync banner (KMO-22)', () => {
         'La marca es demasiado antigua para transmitirse.',
       );
     });
+  });
+});
+
+/**
+ * KMO-24: the sheet a queued punch opens, and what a synced one shows
+ * afterwards. The sheet's own rendering is `receipt-sheet.test.tsx`'s; what
+ * only this level can show is that `usePunch`'s `onQueued` — left in place by
+ * KMO-23 for this ticket — actually reaches the sheet, and with which
+ * identity.
+ */
+describe('the offline receipt (KMO-24)', () => {
+  it('opens the offline sheet the instant a punch is durably queued, not the confirmed one', async () => {
+    await mountLoaded({
+      punchApi: {
+        punch: async () => {
+          throw new ApiError({ kind: 'network' });
+        },
+      },
+    });
+
+    expect(screen.queryByText('Marca guardada en tu teléfono')).not.toBeOnTheScreen();
+
+    await userEvent.press(screen.getByTestId('punch-button'));
+
+    await waitFor(() =>
+      expect(screen.getByText('Marca guardada en tu teléfono')).toBeOnTheScreen(),
+    );
+    expect(screen.queryByText('¡Marca registrada!')).not.toBeOnTheScreen();
+    expect(screen.getByTestId('receipt-badge')).toHaveStyle({
+      backgroundColor: tones.warning.background,
+    });
+  });
+
+  // The one source that exists for a punch the register has not seen yet
+  // (§4.5) — the signed-in employee's own name and RUT, as `sessionWrapper`
+  // sets them up for every test in this file.
+  it('names the signed-in employee on the offline draft, with nothing off the register', async () => {
+    await mountLoaded({
+      punchApi: {
+        punch: async () => {
+          throw new ApiError({ kind: 'network' });
+        },
+      },
+    });
+
+    await userEvent.press(screen.getByTestId('punch-button'));
+
+    await waitFor(() => expect(screen.getByText('Camila Rojas')).toBeOnTheScreen());
+    expect(screen.getByText('12.345.678-9')).toBeOnTheScreen();
+    expect(screen.queryByText('N° comprobante')).toBeOnTheScreen();
+    expect(screen.getByText('Pendiente de asignación')).toBeOnTheScreen();
+    expect(screen.queryByTestId('receipt-copy')).not.toBeOnTheScreen();
+  });
+
+  // #6, #8. Once a queued punch syncs it is an ordinary row in `GET /marks`,
+  // and its receipt is the confirmed one — but still carries the provenance
+  // that it was made offline, which is the fact §4.6 needs kept.
+  it('shows the confirmed receipt with its offline provenance once the punch has synced', async () => {
+    await mountLoaded({
+      marksApi: fakeMarksApi([storedMark({ capturedOffline: true })]),
+    });
+
+    await userEvent.press(screen.getByTestId('marks-open'));
+    await waitFor(() => expect(screen.getByTestId('marks-list')).toBeOnTheScreen());
+    await userEvent.press(screen.getByTestId('mark-row-1502'));
+
+    await waitFor(() => expect(screen.getByText('¡Marca registrada!')).toBeOnTheScreen());
+    expect(screen.getByTestId('receipt-badge')).toHaveStyle({
+      backgroundColor: tones.success.background,
+    });
+    // The folio the register allocated, not the offline draft's placeholder.
+    expect(screen.getByText('20260731-0003')).toBeOnTheScreen();
+    expect(screen.getByTestId('receipt-captured-offline')).toHaveTextContent(
+      'Esta marca se registró sin conexión y se sincronizó automáticamente.',
+    );
+  });
+
+  it('says nothing about offline provenance for an ordinary online mark', async () => {
+    await mountLoaded();
+
+    await userEvent.press(screen.getByTestId('marks-open'));
+    await waitFor(() => expect(screen.getByTestId('marks-list')).toBeOnTheScreen());
+    await userEvent.press(screen.getByTestId('mark-row-1502'));
+
+    await waitFor(() => expect(screen.getByText('¡Marca registrada!')).toBeOnTheScreen());
+    expect(screen.queryByTestId('receipt-captured-offline')).not.toBeOnTheScreen();
   });
 });

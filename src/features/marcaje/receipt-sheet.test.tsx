@@ -5,7 +5,7 @@ import { SafeAreaProvider, type Metrics } from 'react-native-safe-area-context';
 import type { NaiveDateTime } from '@/api';
 import { colors, tones, typography } from '@/theme';
 
-import type { PunchReceipt } from './punch-api';
+import type { OfflineReceipt, PunchReceipt } from './punch-api';
 import { ReceiptSheet } from './receipt-sheet';
 
 const noop = () => {};
@@ -36,6 +36,18 @@ function receipt(overrides: Partial<PunchReceipt> = {}): PunchReceipt {
     folio: '20260805-0042',
     employeeName: 'María Fernanda Soto',
     employeeRut: '214375818',
+    capturedOffline: false,
+    ...overrides,
+  };
+}
+
+/** The draft shown for a punch still in the queue (KMO-24), before it syncs. */
+function offlineReceipt(overrides: Partial<OfflineReceipt> = {}): OfflineReceipt {
+  return {
+    type: 'in',
+    deviceDatetime: '2026-08-05 08:03:11' as NaiveDateTime,
+    employeeName: 'María Fernanda Soto',
+    employeeRut: '214375818',
     ...overrides,
   };
 }
@@ -51,7 +63,27 @@ function Sheet({
 }) {
   return (
     <ReceiptSheet
-      receipt={value}
+      view={value === null ? null : { kind: 'confirmed', receipt: value }}
+      onDismiss={onDismiss}
+      copyToClipboard={copyToClipboard}
+      testID="receipt-sheet"
+    />
+  );
+}
+
+/** Same shape as `Sheet`, for the offline draft (KMO-24). */
+function OfflineSheet({
+  value = offlineReceipt(),
+  onDismiss = noop,
+  copyToClipboard = jest.fn().mockResolvedValue(undefined),
+}: {
+  value?: OfflineReceipt | null;
+  onDismiss?: () => void;
+  copyToClipboard?: (text: string) => Promise<unknown>;
+}) {
+  return (
+    <ReceiptSheet
+      view={value === null ? null : { kind: 'offline', receipt: value }}
       onDismiss={onDismiss}
       copyToClipboard={copyToClipboard}
       testID="receipt-sheet"
@@ -336,5 +368,112 @@ describe('the comprobante sheet', () => {
 
     expect(screen.getByTestId('receipt-details')).toBeOnTheScreen();
     expect(screen.getByText('María Fernanda Soto')).toBeOnTheScreen();
+  });
+
+  /**
+   * The offline draft (KMO-24) — a punch still in the queue, with no folio
+   * and no hash because the register has not seen it yet (§4.5).
+   */
+  describe('the offline draft', () => {
+    // #1. The one glance that tells an employee which of the two receipts
+    // they are looking at.
+    it('leads with the offline headline over the offline icon on the warning tint', async () => {
+      await render(<OfflineSheet />);
+
+      expect(screen.getByText('Marca guardada en tu teléfono')).toBeOnTheScreen();
+      expect(screen.queryByText('¡Marca registrada!')).not.toBeOnTheScreen();
+      expect(screen.getByTestId('receipt-badge')).toHaveStyle({
+        backgroundColor: tones.warning.background,
+      });
+    });
+
+    // #2. Not an omitted row and not a fabricated value — the design's own
+    // placeholder copy, because the register has not allocated either yet.
+    it('shows the design’s placeholder copy on the folio and hash rows, never a fabricated value', async () => {
+      await render(<OfflineSheet />);
+
+      expect(screen.getByText('N° comprobante')).toBeOnTheScreen();
+      expect(screen.getByText('Pendiente de asignación')).toBeOnTheScreen();
+      expect(
+        screen.getByText('Pendiente de asignación (se calcula al sincronizar)'),
+      ).toBeOnTheScreen();
+    });
+
+    it('draws the hash placeholder in the warning colour', async () => {
+      await render(<OfflineSheet />);
+
+      expect(screen.getByTestId('receipt-hash')).toHaveStyle({
+        color: tones.warning.foreground,
+      });
+    });
+
+    // #3.
+    it('explains why, verbatim', async () => {
+      await render(<OfflineSheet />);
+
+      expect(screen.getByTestId('receipt-offline-note')).toHaveTextContent(
+        'Registrada en tu teléfono sin conexión. El folio y el hash los asigna el servidor al sincronizar — aún no forma parte del libro de asistencia electrónico.',
+      );
+    });
+
+    // #4.
+    it('has no Copiar action', async () => {
+      await render(<OfflineSheet />);
+
+      expect(screen.queryByTestId('receipt-copy')).not.toBeOnTheScreen();
+      expect(screen.queryByRole('button', { name: 'Copiar' })).not.toBeOnTheScreen();
+    });
+
+    // The one exception to "the sheet reads nothing but its receipt" (#9 on
+    // the confirmed half): the caller supplies the employee's own identity,
+    // because the register does not have one for this punch yet.
+    it('shows the type, date, time and identity carried on the draft itself', async () => {
+      await render(
+        <OfflineSheet
+          value={offlineReceipt({
+            type: 'out',
+            deviceDatetime: '2026-01-15 23:59:59' as NaiveDateTime,
+            employeeName: 'Camila Rojas',
+            employeeRut: '123456789',
+          })}
+        />,
+      );
+
+      expect(screen.getByText('Salida')).toBeOnTheScreen();
+      expect(screen.getByText('15/01/26')).toBeOnTheScreen();
+      expect(screen.getByText('23:59:59')).toBeOnTheScreen();
+      expect(screen.getByText('Camila Rojas')).toBeOnTheScreen();
+      expect(screen.getByText('12.345.678-9')).toBeOnTheScreen();
+    });
+
+    // #7. Present on the offline draft too, unconditionally.
+    it('still carries the legal note', async () => {
+      await render(<OfflineSheet />);
+
+      expect(screen.getByTestId('receipt-legal')).toHaveTextContent(
+        'Este registro forma parte del libro de asistencia electrónico (Resolución 38 de la Dirección del Trabajo).',
+      );
+    });
+  });
+
+  /**
+   * #8. The provenance survives the sync rather than being erased by it — a
+   * mark shown as the offline draft above is still identifiable as such once
+   * it carries a folio and a hash.
+   */
+  describe('offline provenance on a synced receipt', () => {
+    it('says the mark synced from an offline capture', async () => {
+      await render(<Sheet value={receipt({ capturedOffline: true })} />);
+
+      expect(screen.getByTestId('receipt-captured-offline')).toHaveTextContent(
+        'Esta marca se registró sin conexión y se sincronizó automáticamente.',
+      );
+    });
+
+    it('says nothing for an ordinary online mark', async () => {
+      await render(<Sheet value={receipt({ capturedOffline: false })} />);
+
+      expect(screen.queryByTestId('receipt-captured-offline')).not.toBeOnTheScreen();
+    });
   });
 });

@@ -234,6 +234,25 @@ export function CloudUploadIcon(props: IconProps) {
 }
 
 /**
+ * The comprobante's offline mark (KMO-24 #1) — an arrow saving onto the device
+ * rather than the cloud `CloudUploadIcon` draws for the pending-sync banner,
+ * because this glyph sits inside the receipt for a punch that has not tried to
+ * transmit yet: nothing is *waiting to go up*, something was *kept here*. The
+ * design draws it at 2.4 stroke rather than the usual 2, in a 28dp box against
+ * the usual 24 — both transcribed rather than rounded to this file's defaults.
+ */
+export function SavedOfflineIcon(props: IconProps) {
+  return (
+    <Glyph {...props} strokeWidth={2.4}>
+      <Path d="M12 2v6" />
+      <Path d="M16 18a4 4 0 0 0-8 0" />
+      <Path d="m8 6 4-4 4 4" />
+      <Path d="M2 22h20" />
+    </Glyph>
+  );
+}
+
+/**
  * `check` — the comprobante's success mark (KMO-19 #2).
  *
  * The design thickens this one to 3 and draws it at 30 in a 64dp success-tinted

@@ -1,0 +1,99 @@
+# KMO-24 — the offline receipt a queued punch opens.
+#
+# Covers #1 (the headline, over the offline icon rather than the success check —
+# the icon and its warning tint are a colour and a glyph, which this tier cannot
+# see; `receipt-sheet.test.tsx` is where they are asserted), #2 (the folio and
+# hash rows show the design's own placeholder copy, never a fabricated value),
+# #3 (the explanatory line, verbatim) #4 (no Copiar action) and #7 (the legal
+# note, present on this variant too).
+#
+# The other half of the ticket — #5, #6, #8, what the same punch shows once it
+# has synced — is `kmo-24-synced-receipt.yaml`'s, and cannot be this flow's: a
+# real POST needs the radio back on, and toggling it mid-flow is not something
+# Maestro does in this repo (see `flows/config.yaml`'s note on `requires-offline`).
+# Run as:
+#
+#   bin/e2e flows/shared/sign-in.yaml
+#   bin/device net off
+#   bin/e2e flows/kmo-24-offline-draft.yaml
+#   bin/device net on
+#   bin/e2e flows/kmo-24-synced-receipt.yaml
+#
+# **Does not relaunch, and must not** — like `kmo-23-queue-punch.yaml`, it picks
+# up the running app `sign-in.yaml` left on the tab shell. Ends on Inicio, with
+# the draft dismissed and the pending-sync banner up, which is exactly the state
+# `kmo-24-synced-receipt.yaml` needs once the radio is back.
+appId: cl.kolvi.empleados
+name: KMO-24 the offline receipt a queued punch opens
+tags:
+  - marcaje
+  - offline
+  - requires-offline
+---
+- assertVisible:
+    text: 'Turno de hoy'
+    label: 'The previous run left the app signed in, past the shift card'
+
+- assertNotVisible:
+    text: 'esperando sincronizar'
+    label: 'Nothing queued yet'
+
+- assertVisible:
+    text: 'Marcar entrada'
+    label: 'An unpunched day — the punch this flow makes is the one that queues'
+
+- tapOn: 'Marcar entrada'
+
+# #1. The offline headline, not the confirmed one — the one glance an employee
+# gets that says which of the two receipts this is.
+- extendedWaitUntil:
+    visible: 'Marca guardada en tu teléfono'
+    timeout: 15000
+    label: '#1 — the offline headline'
+
+- assertNotVisible:
+    text: '¡Marca registrada!'
+    label: '#1 — never the confirmed headline'
+
+# #2. The design's own placeholder copy on both rows the register has not
+# allocated yet — not an omitted row, and not a fabricated value.
+- assertVisible:
+    text: 'N° comprobante'
+    label: '#2 — the folio row is still there'
+- assertVisible:
+    text: 'Pendiente de asignación'
+    label: '#2 — with the design’s placeholder rather than an invented folio'
+- assertVisible:
+    text: 'Hash de verificación \(SHA-256\)'
+    label: '#2 — the hash row too'
+- assertVisible:
+    text: 'Pendiente de asignación \(se calcula al sincronizar\)'
+    label: '#2 — its own placeholder, distinct from the folio’s'
+
+# #3, verbatim — what makes the missing folio and hash legible as a status
+# rather than a bug.
+- assertVisible:
+    text: 'Registrada en tu teléfono sin conexión\. El folio y el hash los asigna el servidor al sincronizar — aún no forma parte del libro de asistencia electrónico\.'
+    label: '#3 — the explanatory line, character for character'
+
+# #4. No control that promises a value which is not there yet.
+- assertNotVisible:
+    text: 'Copiar'
+    label: '#4 — the offline draft has nothing to copy'
+
+# #7. Present on this variant too, unconditionally.
+- assertVisible:
+    text: 'Este registro forma parte del libro de asistencia electrónico \(Resolución 38 de la Dirección del Trabajo\)\.'
+    label: '#7 — the legal note'
+
+- takeScreenshot: kmo-24-offline-draft
+
+- tapOn:
+    id: 'receipt-done'
+
+# Sets up `kmo-24-synced-receipt.yaml`: the draft is dismissed, and the banner
+# above the location card is what says this punch is still waiting.
+- extendedWaitUntil:
+    visible: '1 marca esperando sincronizar'
+    timeout: 10000
+    label: 'Back on Inicio, with the queued punch counted above the location card'
