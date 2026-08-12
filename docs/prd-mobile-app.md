@@ -259,7 +259,7 @@ Structure mirrors the design's four tabs plus profile. Each feature lists the em
 **The screen.** Avatar/initials, full name, "{position} · {premise}", then a menu: Mis datos, Notificaciones, Ayuda y soporte, Cerrar sesión.
 
 **Scope for v1.**
-- **Mis datos** — read-only view of name, RUT (formatted), corporate email, personal email, phone, position, premise, supervisor, contract start date. Editable subset: personal email, phone, emergency contact. (`UpdateUserProfileInformation` exists via Fortify; expose a narrow API equivalent.)
+- **Mis datos** — read-only view of name, RUT (formatted), corporate email, personal email, phone, position, premise, supervisor, contract start date. **Read-only in the mobile app** — no editable subset. Editing personal email, phone or emergency contact is reserved for the web app (`UpdateUserProfileInformation` via Fortify already exists there). Reversed on 2026-08-11; see `docs/design-decisions.md` §9.
 - **Notificaciones** — per-category push toggles (punch reminders, leave decisions, documents to sign, mark corrections).
 - **Ayuda y soporte** — Spanish help content plus a support contact. Resolución 38 Art. 5 requires the platform *and its manuals* in Chilean Spanish; the in-app help is where that obligation lands for mobile.
 - **Cerrar sesión** — must revoke the device's Sanctum token server-side, not merely clear local storage. No endpoint exists today (§7.1).

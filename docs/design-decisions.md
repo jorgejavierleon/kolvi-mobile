@@ -337,6 +337,13 @@ transmission.
 | D-F6-c — Code channel | **Email only for v1.** SMS is not in scope. |
 | D-F6-d — Demo affordance | The flask button, the demo panel and `Modo demostración: código 482913` are **mockup-only scaffolding and must not reach a build.** |
 
+## 9. Mi perfil / Mis datos
+
+| # | Decision |
+|---|---|
+| F7 — Mis datos editability | **Reversed to read-only, 2026-08-11.** The PRD's §7 F7 scoped an editable subset (personal email, phone, emergency contact) so an employee without `personal_email` set could add one from the phone — it drives the Art. 12 receipt email and document verification codes (§8 D-F6-c). That editable subset is **dropped from the mobile app**. Mis datos shows the same read-only fields (name, formatted RUT, corporate email, personal email, phone, position, premise, supervisor, contract start date), omitting any field the server does not return. Editing personal email, phone or emergency contact is reserved for the web app, which already has `UpdateUserProfileInformation` via Fortify. |
+| Personal-email gap | Still open: an employee with no `personal_email` misses both the Art. 12 receipt and document verification codes. Mobile's role is now limited to **surfacing** that gap (an explicit prompt on Mis datos explaining what's missing and why), not fixing it in-app — the PRD's own fallback idea (§5, "consider surfacing 'add your personal email' as an onboarding nudge") still applies, but the nudge is text only. No link or deep link out to the web app. |
+
 ---
 
 ## Design system tokens
