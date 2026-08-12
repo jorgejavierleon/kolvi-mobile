@@ -96,6 +96,10 @@ function user(overrides: Partial<SessionUser> = {}): SessionUser {
     rut: '12345678-9',
     position: null,
     premise: null,
+    personalEmail: null,
+    phone: null,
+    supervisor: null,
+    contractStartDate: null,
     permissions: parsePermissions(employeePermissions),
     ...overrides,
   };

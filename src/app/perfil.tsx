@@ -20,7 +20,7 @@ import { Screen } from '@/ui/screen';
  * employee was on, and it opens from all four.
  *
  * The four-row menu (KMO-25 #3, #4) is Mis datos, Notificaciones and Ayuda y
- * soporte — three bare `ListRow`s that push their own route, KMO-26/27/38's to
+ * soporte — three bare `ListRow`s that push their own route, KMO-51/27/38's to
  * fill in — plus `SignOut` as the card's own last row, in the danger tone the
  * design draws it in.
  *

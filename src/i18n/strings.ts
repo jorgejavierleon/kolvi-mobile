@@ -682,6 +682,32 @@ export const es = {
         back: 'Volver a Mi perfil',
       },
     },
+
+    /**
+     * Mis datos (KMO-51). Read-only — docs/design-decisions.md §9 reversed the
+     * PRD's editable subset, so there is no form here, only the record.
+     */
+    misDatos: {
+      fields: {
+        name: 'Nombre',
+        rut: 'RUT',
+        corporateEmail: 'Correo corporativo',
+        personalEmail: 'Correo personal',
+        phone: 'Teléfono',
+        position: 'Cargo',
+        premise: 'Sucursal',
+        /** `jefatura`, not `supervisor` — the same substitution home.shift.emptyBody makes. */
+        supervisor: 'Jefatura',
+        contractStart: 'Fecha de inicio de contrato',
+      },
+      /**
+       * personal_email drives the Art. 12 receipt and document verification
+       * codes (§9) — text only, no link out, since editing it happens on the
+       * web app and this screen does not point anywhere.
+       */
+      noPersonalEmail:
+        'No tienes un correo personal registrado. Ahí se envían tu comprobante de marcaje y los códigos de verificación de documentos.',
+    },
   },
 
   /**

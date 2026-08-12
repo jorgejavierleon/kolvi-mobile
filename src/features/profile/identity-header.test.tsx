@@ -14,6 +14,10 @@ function user(overrides: Partial<SessionUser> = {}): SessionUser {
     rut: '12345678-9',
     position: 'Operaria de Bodega',
     premise: 'Sucursal Ñuñoa',
+    personalEmail: null,
+    phone: null,
+    supervisor: null,
+    contractStartDate: null,
     permissions: new Set(),
     ...overrides,
   };

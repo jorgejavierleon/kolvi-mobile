@@ -19,6 +19,10 @@ const employee: SessionUser = {
   rut: '21437581-8',
   position: null,
   premise: null,
+  personalEmail: null,
+  phone: null,
+  supervisor: null,
+  contractStartDate: null,
   permissions: parsePermissions(['ClockOwn:Mark', 'ViewOwn:Mark']),
 };
 

@@ -26,6 +26,16 @@ export type SessionUser = {
   readonly position: string | null;
   /** The employee's assigned premise, e.g. `Sucursal Ñuñoa`. `null` if none is assigned. */
   readonly premise: string | null;
+  /**
+   * Drives the Art. 12 receipt email and document verification codes
+   * (docs/design-decisions.md §9) — `null` when the employee has none on file.
+   */
+  readonly personalEmail: string | null;
+  readonly phone: string | null;
+  /** The related user's name, `ams`'s own word for it is `jefatura` in copy. `null` if unset. */
+  readonly supervisor: string | null;
+  /** A naive `YYYY-MM-DD`, never a timezone-aware value. `null` if unset. */
+  readonly contractStartDate: string | null;
   readonly permissions: PermissionSet;
 };
 
@@ -57,6 +67,10 @@ export function parseSessionUser(payload: unknown): SessionUser | null {
     rut: optionalString(record.rut),
     position: optionalString(record.position),
     premise: optionalString(record.premise),
+    personalEmail: optionalString(record.personal_email),
+    phone: optionalString(record.phone),
+    supervisor: optionalString(record.supervisor),
+    contractStartDate: optionalString(record.contract_start_date),
     permissions: parsePermissions(record.permissions),
   };
 }

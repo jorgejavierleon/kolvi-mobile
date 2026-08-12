@@ -17,6 +17,10 @@ const payload = {
   avatar: null,
   position: 'Operaria de Bodega',
   premise: 'Sucursal Ñuñoa',
+  personal_email: 'empleado.personal@example.com',
+  phone: '+56 9 1234 5678',
+  supervisor: 'Supervisor Demo',
+  contract_start_date: '2024-03-01',
   permissions: [
     'RequestOwn:Leave',
     'ViewOwn:Leave',
@@ -64,6 +68,10 @@ describe('parseSessionUser', () => {
       rut: '21437581-8',
       position: null,
       premise: null,
+      personalEmail: null,
+      phone: null,
+      supervisor: null,
+      contractStartDate: null,
       permissions: new Set(),
     });
   });
@@ -86,6 +94,37 @@ describe('parseSessionUser', () => {
     expect(user?.position).toBeNull();
     expect(user?.premise).toBeNull();
   });
+
+  // ams KOL-62: read-only Mis datos (KMO-51) needs all four.
+  it('reads personal email, phone, supervisor and contract start date off the payload ams actually sends', () => {
+    const user = parseSessionUser(payload);
+
+    expect(user?.personalEmail).toBe('empleado.personal@example.com');
+    expect(user?.phone).toBe('+56 9 1234 5678');
+    expect(user?.supervisor).toBe('Supervisor Demo');
+    expect(user?.contractStartDate).toBe('2024-03-01');
+  });
+
+  it.each<[string, unknown]>([
+    ['null', null],
+    ['missing', undefined],
+  ])(
+    'reports %s personal email, phone, supervisor and contract start date as null',
+    (_label, absent) => {
+      const user = parseSessionUser({
+        ...payload,
+        personal_email: absent,
+        phone: absent,
+        supervisor: absent,
+        contract_start_date: absent,
+      });
+
+      expect(user?.personalEmail).toBeNull();
+      expect(user?.phone).toBeNull();
+      expect(user?.supervisor).toBeNull();
+      expect(user?.contractStartDate).toBeNull();
+    },
+  );
 
   // #8 — the real payload, and the whole point of it: every permission the
   // employee role grants arrives and is readable by name.

@@ -1,17 +1,19 @@
 import { router } from 'expo-router';
 
+import { useSession } from '@/features/auth/session';
+import { ProfileDetail } from '@/features/profile/profile-detail';
 import { es } from '@/i18n';
 import { OverlayHeader } from '@/ui/overlay-header';
 import { Screen } from '@/ui/screen';
-import { SectionScaffold } from '@/ui/section-scaffold';
 
 /**
- * Mis datos, reached from Mi perfil's menu (KMO-25 #4). KMO-26 builds the
- * read-only profile detail and its editable subset; until then the row still
- * has to go somewhere, so it opens the same temporary body the tabs carried
- * before KMO-15/32/39/42 built theirs.
+ * Mis datos, reached from Mi perfil's menu (KMO-25 #4). Read-only (KMO-51) —
+ * docs/design-decisions.md §9 reversed KMO-26's editable subset, so this is
+ * the record and nothing else.
  */
 export default function MisDatosScreen() {
+  const { user } = useSession();
+
   return (
     <Screen
       bottomInset
@@ -23,7 +25,10 @@ export default function MisDatosScreen() {
         />
       }
     >
-      <SectionScaffold section={es.profile.menu.myData.action} />
+      {/* Always present in practice — this route only exists behind the
+          signed-in guard — but `user` is nullable on the session type itself,
+          same as perfil.tsx. */}
+      {user === null ? null : <ProfileDetail user={user} />}
     </Screen>
   );
 }

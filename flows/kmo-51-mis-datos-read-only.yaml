@@ -1,0 +1,67 @@
+# KMO-51 — Mis datos shows the read-only record and nothing to edit.
+#
+# Covers #1 (every field the seeded employee actually has set is on screen)
+# and #2 (a field the seed leaves null — Teléfono, Fecha de inicio de contrato
+# — is absent rather than shown blank). Correo personal is asserted by label
+# only: the seed factory gives `employee@example.com` a random personal_email
+# each run, so its value is not this flow's to pin down. Cargo is left out of
+# both lists on purpose — `position_id` is not set by the seeder for this
+# employee (same reasoning as kmo-25-profile-screen-and-menu.yaml, which
+# skips it for the identity header), so whether it prints is whatever the
+# database happens to hold rather than something this flow controls.
+#
+# #3 (the missing-personal-email prompt) is Jest's, on profile-detail.test.tsx
+# — the seeded employee always has a personal_email, and no flow in this repo
+# manufactures a user without one. #4 (no editable control anywhere) is also
+# Jest's: a screenshot or a text assertion cannot prove a negative over the
+# whole tree the way a rendered-JSON walk can.
+#
+# Needs a reachable `ams`, like every flow built on shared/sign-in.yaml.
+appId: cl.kolvi.empleados
+name: KMO-51 Mis datos read-only
+tags:
+  - perfil
+---
+- runFlow: shared/sign-in.yaml
+
+- tapOn: 'Abrir mi perfil'
+- extendedWaitUntil:
+    visible: 'Mi perfil'
+    timeout: 10000
+    label: 'The profile overlay is up'
+
+- tapOn:
+    id: 'profile-menu-mis-datos'
+    label: 'Mis datos'
+- extendedWaitUntil:
+    visible: 'Mis datos'
+    timeout: 10000
+    label: 'On the Mis datos screen'
+
+# #1 — the fields the seeded employee@example.com actually carries.
+- assertVisible: 'Nombre'
+- assertVisible: 'Empleado Demo'
+- assertVisible: 'RUT'
+- assertVisible: '21.437.581-8'
+- assertVisible: 'Correo corporativo'
+- assertVisible: 'employee@example.com'
+- assertVisible: 'Correo personal'
+- assertVisible: 'Sucursal'
+- assertVisible: 'Sucursal Centro'
+- assertVisible: 'Jefatura'
+- assertVisible: 'Supervisor Demo'
+
+# #2 — the seed leaves these two unset; a blank row would still print the
+# label, so their absence is what actually proves the field was omitted.
+- assertNotVisible: 'Teléfono'
+- assertNotVisible: 'Fecha de inicio de contrato'
+
+- takeScreenshot: kmo-51-mis-datos
+
+- tapOn:
+    id: 'overlay-back'
+    label: 'Back to Mi perfil'
+- extendedWaitUntil:
+    visible: 'Mi perfil'
+    timeout: 10000
+    label: 'Back on the profile overlay'
