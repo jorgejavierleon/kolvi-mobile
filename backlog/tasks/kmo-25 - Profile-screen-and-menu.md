@@ -1,11 +1,11 @@
 ---
 id: KMO-25
 title: Profile screen and menu
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-11 21:26'
+updated_date: '2026-08-12 00:54'
 labels:
   - mobile
   - perfil
@@ -85,7 +85,7 @@ Screenshot read by eye: kmo-25-perfil-final.png — avatar, name, position · pr
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
 Mi perfil now opens with the design's identity header — a 72dp initials avatar, the full name, and {position} · {premise} — over a single four-row card: Mis datos, Notificaciones and Ayuda y soporte push their own (placeholder, pending KMO-26/27/38) routes, and Cerrar sesión is the card's own danger-toned last row rather than a separate button, running the same KMO-12 confirmation flow unchanged.
 
-Required an unplanned backend change: ams's GET /api/v1/user had no position or premise. Shipped as ams KOL-61 on feature/kol-61-user-position-premise (committed, tests green, not merged — needs separate approval since it's another repo's master).
+Required an unplanned backend change: ams's GET /api/v1/user had no position or premise. Shipped and merged to ams master as KOL-61.
 
-Verified: npm run check green (68 suites, 1208 tests). flows/kmo-25-profile-screen-and-menu.yaml passes twice on the emulator against the live branch backend; kmo-12-sign-out.yaml re-run to confirm the SignOut row refactor didn't regress it. Screenshot read by eye against the design.
+Verified: npm run check green (68 suites, 1208 tests), and again by the pre-push hook on both repos. flows/kmo-25-profile-screen-and-menu.yaml passes twice on the emulator against the live backend; kmo-12-sign-out.yaml re-run to confirm the SignOut row refactor didn't regress it. Screenshot read by eye against the design.
 <!-- SECTION:FINAL_SUMMARY:END -->
