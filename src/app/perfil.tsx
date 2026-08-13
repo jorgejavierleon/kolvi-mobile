@@ -60,18 +60,21 @@ export default function ProfileScreen() {
         <ListRow
           accessibilityLabel={es.profile.menu.myData.action}
           onPress={() => router.push('/mis-datos')}
+          style={styles.menuRow}
           testID="profile-menu-mis-datos"
           title={es.profile.menu.myData.action}
         />
         <ListRow
           accessibilityLabel={es.profile.menu.notifications.action}
           onPress={() => router.push('/notificaciones')}
+          style={styles.menuRow}
           testID="profile-menu-notificaciones"
           title={es.profile.menu.notifications.action}
         />
         <ListRow
           accessibilityLabel={es.profile.menu.helpSupport.action}
           onPress={() => router.push('/ayuda-soporte')}
+          style={styles.menuRow}
           testID="profile-menu-ayuda-soporte"
           title={es.profile.menu.helpSupport.action}
         />
@@ -98,5 +101,13 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   stack: {
     gap: spacing[4],
+  },
+  // `profile-menu` drops Card's own padding for the full-bleed dividers
+  // between rows (see Card's own docs), which otherwise leaves each row's
+  // text flush against the card edge. This restores Card's usual inset on
+  // the row's content without touching the divider, which is a border and
+  // unaffected by padding.
+  menuRow: {
+    paddingHorizontal: spacing[4],
   },
 });

@@ -81,6 +81,7 @@ export function SignOut({ pendingPunches = 0 }: SignOutProps) {
         accessibilityLabel={es.auth.signOut.action}
         divider={false}
         onPress={() => setConfirming(true)}
+        style={styles.row}
         testID="sign-out-action"
         title={es.auth.signOut.action}
         tone="danger"
@@ -131,6 +132,13 @@ export function SignOut({ pendingPunches = 0 }: SignOutProps) {
 }
 
 const styles = StyleSheet.create({
+  // This row sits in Mi perfil's `padded={false}` card, which drops Card's
+  // own inset for the full-bleed divider between rows — restoring it here
+  // keeps the row's text off the card edge without affecting the divider,
+  // which is a border and unaffected by padding.
+  row: {
+    paddingHorizontal: spacing[4],
+  },
   body: {
     gap: spacing[3],
   },
