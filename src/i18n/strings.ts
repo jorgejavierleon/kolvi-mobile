@@ -708,6 +708,101 @@ export const es = {
       noPersonalEmail:
         'No tienes un correo personal registrado. Ahí se envían tu comprobante de marcaje y los códigos de verificación de documentos.',
     },
+
+    /**
+     * Ayuda y soporte (KMO-27). Resolución 38 Art. 5 requires the platform and
+     * its manuals in Chilean Spanish; this is where that lands for mobile.
+     *
+     * Written for someone who wants to know why their punch did not go
+     * through, not for someone reading documentation — short sentences, no
+     * jargon, no promise the app cannot keep. Every claim here is grounded in
+     * shipped behaviour or a design decision already on record, not invented
+     * for this screen: see each section's own comment.
+     */
+    helpSupport: {
+      sections: {
+        /**
+         * Colación has no punch button in v1 (D-F1-a dropped it — see
+         * src/features/marcaje/punch-state.ts, whose punchStates is only
+         * ['before', 'working', 'done']), so this describes exactly that and
+         * nothing the app does not do.
+         */
+        punching: {
+          title: 'Cómo marcar tu asistencia',
+          body: [
+            'En la pestaña Inicio verás un botón grande: toca Marcar entrada cuando llegues a tu turno y Marcar salida cuando lo termines.',
+            'La hora que queda registrada es la que asigna el servidor al recibir tu marca, nunca la hora de tu teléfono — así lo exige la ley, y es lo que hace válido tu comprobante.',
+          ],
+        },
+        /**
+         * Quotes the three geolocation cards verbatim (README's own Project
+         * status section) and the permission-denied line
+         * (es.permissions.location.denied) rather than paraphrasing them.
+         */
+        location: {
+          title: 'Qué significa el estado de tu ubicación',
+          body: [
+            'Sobre el botón de marcar verás una tarjeta con tu ubicación. "Ubicación confirmada" quiere decir que estás dentro del rango de tu sucursal y puedes marcar con normalidad.',
+            '"Fuera del rango permitido" aparece cuando el teléfono te ubica lejos de tu sucursal; puedes marcar igual con "Marcar de todas formas", pero esa marca queda pendiente de revisión.',
+            '"Sin señal de GPS" aparece cuando el teléfono no logra ubicarte; "Reintentar ubicación" vuelve a intentarlo.',
+            'Si no le das permiso de ubicación a Kolvi, igual puedes marcar — tu asistencia no puede depender de un permiso — pero la marca queda sin ubicación asociada.',
+          ],
+        },
+        /**
+         * Art. 10 capture-and-store, matching design-decisions.md §4.1/§4.5:
+         * Sincronizar is an accelerator, never the only way the queue drains.
+         */
+        noSignal: {
+          title: 'Si no tienes señal',
+          body: [
+            'Si marcas sin conexión, tu teléfono guarda la marca y la envía apenas recupere señal — no necesitas hacer nada más.',
+            'El botón Sincronizar solo apura ese envío; no es la única forma en que tu marca llega al registro.',
+          ],
+        },
+        /**
+         * Names the Art. 13 fields already on receipt-sheet.tsx (Tipo, Fecha,
+         * Hora, Trabajador, RUT, N° comprobante, Hash) rather than a new set.
+         */
+        receipt: {
+          title: 'Cómo leer tu comprobante',
+          body: [
+            'Cada vez que marcas se abre un comprobante con el tipo de marca, la fecha, la hora, tu nombre, tu RUT, un número de comprobante y un hash de verificación.',
+            'Ese comprobante también llega a tu correo personal, si lo tienes registrado en Mis datos.',
+          ],
+        },
+        /**
+         * Follows the precedent set by receipt-sheet's own hash comment: no
+         * public validation endpoint exists, so this never implies a
+         * self-serve verification tool — only that the hash is proof to keep
+         * or quote.
+         */
+        hash: {
+          title: 'Cómo verificar el hash',
+          body: [
+            'El hash es un código único que prueba que tu comprobante no fue alterado después de generarse — es la forma en que la ley exige resguardar cada marca.',
+            'Puedes copiarlo desde el comprobante y guardarlo, o compararlo con el que llegó a tu correo. Si necesitas confirmarlo con Recursos Humanos o con la Dirección del Trabajo, es ese código el que debes entregarles.',
+          ],
+        },
+        /**
+         * Expands pendingSyncSummary/pendingSyncSubtitle into what to do —
+         * nothing, it syncs automatically — rather than repeating the banner.
+         */
+        unsynced: {
+          title: 'Qué significa una marca no sincronizada',
+          body: [
+            'Una marca "esperando sincronizar" quedó guardada en tu teléfono pero aún no forma parte del libro de asistencia electrónico — todavía no llega al registro central.',
+            'No necesitas volver a marcar ni hacer nada especial: se envía sola apenas tu teléfono tenga señal. Sincronizar solo acelera ese envío.',
+          ],
+        },
+      },
+
+      /** Text-only, no link out — the same treatment misDatos.noPersonalEmail gives a gap it cannot fix in-app. */
+      contact: {
+        title: 'Contacto de soporte',
+        action: 'Escribir a soporte',
+        email: 'soporte@kolvi.cl',
+      },
+    },
   },
 
   /**
@@ -1039,4 +1134,20 @@ export function unsyncedPunchesWarning(count: number): string {
   const lost = count === 1 ? 'Se perderá' : 'Se perderán';
 
   return `Tienes ${marks} en este teléfono que aún no llegan al servidor. ${lost} al cerrar sesión y no quedarán en tu registro de asistencia. Conéctate y sincroniza antes de salir.`;
+}
+
+/**
+ * Ayuda y soporte's footer (KMO-27 #4) — the app version and build number so
+ * support can identify which build an employee is reporting from.
+ *
+ * The build number is omitted rather than shown as a placeholder when the
+ * platform did not report one, same treatment `misDatos.noPersonalEmail`'s
+ * field gives an absent value: nothing invented, nothing left blank.
+ */
+export function appVersionLabel(version: string | null, build: string | number | null): string {
+  if (version === null) {
+    return 'Versión desconocida';
+  }
+
+  return build === null ? `Versión ${version}` : `Versión ${version} (${build})`;
 }

@@ -1,0 +1,107 @@
+# KMO-27 — Ayuda y soporte's Spanish help content, at the largest OS font scale.
+#
+# Covers #1 (every section — punching, location states, no signal, the
+# comprobante, verifying the hash — is on screen, character for character from
+# src/i18n), #2 (the unsynced-punch section is on screen), #3 (the support
+# contact row is on screen — the mailto: handoff itself is Jest's, on
+# help-support.test.tsx, since the OS handing off to a mail app is a platform
+# guarantee rather than app logic to re-prove here) and #4 (the version
+# caption is on screen).
+#
+# #5 (legible at the largest OS font-scale setting) is what this flow actually
+# exists to carry: it is not runnable at the suite's default scale, so it is
+# tagged requires-font-max and excluded from config.yaml, run on its own:
+#
+#   bin/device font max && bin/e2e kmo-27 && bin/device font reset
+#
+# takeScreenshot at the end is read by eye — an assertVisible proves the text
+# is somewhere in the tree, not that it is not clipped or overlapping another
+# row, which is the actual risk at 1.3x-2x scale.
+#
+# Needs a reachable `ams`, like every flow built on shared/sign-in.yaml.
+appId: cl.kolvi.empleados
+name: KMO-27 Ayuda y soporte
+tags:
+  - perfil
+  - requires-font-max
+---
+- runFlow: shared/sign-in.yaml
+
+- tapOn: 'Abrir mi perfil'
+- extendedWaitUntil:
+    visible: 'Mi perfil'
+    timeout: 10000
+    label: 'The profile overlay is up'
+
+- tapOn:
+    id: 'profile-menu-ayuda-soporte'
+    label: 'Ayuda y soporte'
+- extendedWaitUntil:
+    visible: 'Ayuda y soporte'
+    timeout: 10000
+    label: 'On the Ayuda y soporte screen'
+
+# #1 — every section heading, scrolled to in reading order. The screen is
+# longer than one viewport even at the default scale, and considerably longer
+# at requires-font-max's — scrollUntilVisible is what makes each assertion
+# honest rather than passing on whatever the first frame happened to show.
+- assertVisible: 'Cómo marcar tu asistencia'
+
+- scrollUntilVisible:
+    element: 'Qué significa el estado de tu ubicación'
+    direction: DOWN
+    timeout: 20000
+- assertVisible: 'Qué significa el estado de tu ubicación'
+
+- scrollUntilVisible:
+    element: 'Si no tienes señal'
+    direction: DOWN
+    timeout: 20000
+- assertVisible: 'Si no tienes señal'
+
+- scrollUntilVisible:
+    element: 'Cómo leer tu comprobante'
+    direction: DOWN
+    timeout: 20000
+- assertVisible: 'Cómo leer tu comprobante'
+
+- scrollUntilVisible:
+    element: 'Cómo verificar el hash'
+    direction: DOWN
+    timeout: 20000
+- assertVisible: 'Cómo verificar el hash'
+
+# #2 — the unsynced-punch section.
+- scrollUntilVisible:
+    element: 'Qué significa una marca no sincronizada'
+    direction: DOWN
+    timeout: 20000
+- assertVisible: 'Qué significa una marca no sincronizada'
+
+# #3 — the support contact route.
+- scrollUntilVisible:
+    element: 'Escribir a soporte'
+    direction: DOWN
+    timeout: 20000
+- assertVisible: 'Escribir a soporte'
+- assertVisible: 'soporte@kolvi.cl'
+
+# #4 — the build identifier support needs to place a report.
+- scrollUntilVisible:
+    element:
+      text: 'Versión .*'
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    text: 'Versión .*'
+    label: 'The app version and build number'
+
+- takeScreenshot: kmo-27-ayuda-soporte-font-max
+
+- tapOn:
+    id: 'overlay-back'
+    label: 'Back to Mi perfil'
+- extendedWaitUntil:
+    visible: 'Mi perfil'
+    timeout: 10000
+    label: 'Back on the profile overlay'

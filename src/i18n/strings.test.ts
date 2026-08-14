@@ -1,6 +1,7 @@
 import type { ApiErrorKind } from '@/api';
 
 import {
+  appVersionLabel,
   es,
   locationConfirmed,
   locationOutOfRange,
@@ -303,5 +304,19 @@ describe('the throttle copy (KMO-50)', () => {
       expect(message).not.toMatch(/Too Many|Attempts/i);
       expect(message).toMatch(/[áéíóúñ¡¿]|intentos/i);
     }
+  });
+});
+
+describe('appVersionLabel (KMO-27 #4)', () => {
+  it('names the version and the build number', () => {
+    expect(appVersionLabel('1.0.0', 12)).toBe('Versión 1.0.0 (12)');
+  });
+
+  it('omits the parenthetical rather than showing a blank build', () => {
+    expect(appVersionLabel('1.0.0', null)).toBe('Versión 1.0.0');
+  });
+
+  it('falls back to a named unknown rather than an empty string', () => {
+    expect(appVersionLabel(null, null)).toBe('Versión desconocida');
   });
 });

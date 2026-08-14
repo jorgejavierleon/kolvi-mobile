@@ -12,6 +12,7 @@
  * - `hours.ts` — decimal hours, as a decimal and as a duration on the clock
  */
 export {
+  appVersionLabel,
   es,
   greeting,
   locationConfirmed,

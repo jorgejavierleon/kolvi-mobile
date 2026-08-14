@@ -47,6 +47,12 @@ flows:
 #
 # `kmo-17-punch-button.yaml` is in the suite and needs the same unpunched day,
 # which is the other half of why the walk is kept out of it.
+#
+# `requires-font-max` is the OS font scale, another whole-device setting like
+# `requires-gps-off` — a run left in would sit every other flow's copy at 2x
+# too, so it is arranged and reverted around its own flow:
+#
+#   bin/device font max && bin/e2e kmo-27 && bin/device font reset
 excludeTags:
   - requires-offline
   - requires-biometric
@@ -56,3 +62,4 @@ excludeTags:
   - requires-geo-at-premise
   - requires-geo-off-premise
   - requires-unpunched-day
+  - requires-font-max
