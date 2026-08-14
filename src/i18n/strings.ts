@@ -650,6 +650,45 @@ export const es = {
     loadFailed: 'No pudimos cargar tu turno de hoy.',
   },
 
+  /**
+   * Mi jornada (KMO-32). `es.headers.jornada` already carries the screen's own
+   * title; this is the segmented control and the Próximos sub-tab's own copy.
+   */
+  jornada: {
+    /** The design's own two segment labels, verbatim. */
+    segments: {
+      proximos: 'Próximos',
+      historial: 'Historial',
+    },
+
+    /**
+     * The eyebrow over today's card (KMO-32 #2), matching the design's own
+     * `HOY` above `{{shiftTime}} · {{shiftPlace}}`.
+     */
+    todayEyebrow: 'Hoy',
+
+    /**
+     * The prefix an upcoming row carries when its date is literally the day
+     * after today (`daysBetween` decides which one that is, not row order —
+     * the day after a free weekend is not "Mañana" just because it is the
+     * list's first entry).
+     */
+    tomorrow: 'Mañana',
+
+    /**
+     * An employee without ViewOwn:Workday (#8) — there is nothing on this
+     * screen for them, so the tab says so rather than showing an empty list
+     * or a request that would 403.
+     */
+    noAccess: 'No tienes acceso para ver tu jornada.',
+
+    /**
+     * The failed-load retry (#9), matching home-screen's own `es.marcaje.loadFailed`
+     * pattern: names the consequence, not the request.
+     */
+    loadFailed: 'No pudimos cargar tu jornada.',
+  },
+
   profile: {
     title: 'Mi perfil',
     /** The avatar button in every tab header. */
