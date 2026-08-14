@@ -31,6 +31,7 @@ export {
 } from './strings';
 
 export {
+  daysBetween,
   formatClockTime,
   formatLongDate,
   formatLongDateWithYear,

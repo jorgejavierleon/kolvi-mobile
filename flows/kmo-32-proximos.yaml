@@ -1,0 +1,62 @@
+# KMO-32 — Jornada's Próximos screen: the segmented control, today's shift
+# card and the upcoming list.
+#
+# Covers #1 (the segmented control shows Próximos and Historial, Próximos
+# selected by default) and #7 (tapping Historial switches segments, and
+# Próximos keeps its own content when the employee switches back — Historial
+# itself is KMO-33's own placeholder, not asserted beyond being on screen).
+#
+# The "Hoy" eyebrow is asserted unconditionally — it draws in both the
+# scheduled and the no-shift state — and at least one upcoming row is asserted
+# to exist, which is true on any day of the week the seed's Mon–Fri shift is
+# in force. What is NOT pinned here: the exact schedule text for today (#2,
+# whether today itself has a shift depends on which day this runs, which the
+# emulator does not control) and the leave/holiday annotation (#3, #4 —
+# fixture concerns Jest's shifts-api.test.ts and proximos.test.tsx pin
+# exactly, and mutating the seed to put an approved leave on a specific
+# upcoming date is a heavier lift than the criterion needs). #5 (permission
+# gating) is Jest's too, on jornada-screen.test.tsx — no seeded employee lacks
+# ViewOwn:Workday to drive a flow against. #6 (failed load + retry) is Jest's,
+# same reasoning use-today.test.ts's own failure-injection tests give.
+#
+# Needs a reachable `ams` carrying KOL-64 (GET /api/v1/me/shifts/upcoming),
+# which is not yet merged to ams master — see that ticket for how to stand up
+# the branch locally.
+appId: cl.kolvi.empleados
+name: KMO-32 Próximos
+tags:
+  - jornada
+---
+- runFlow: shared/sign-in.yaml
+
+- tapOn:
+    id: 'tab-jornada'
+    label: 'The Jornada tab'
+
+# #1 — the segmented control, Próximos selected by default. "Hoy" draws in
+# both the scheduled and the no-shift state, so waiting on it covers either
+# day this happens to run on.
+- extendedWaitUntil:
+    visible: 'Próximos'
+    timeout: 15000
+    label: 'The segmented control is up'
+- assertVisible: 'Historial'
+- extendedWaitUntil:
+    visible: 'Hoy'
+    timeout: 10000
+    label: 'Today’s card, scheduled or empty'
+
+- takeScreenshot: kmo-32-proximos
+
+# #7 — Historial switches segments and back, without losing Próximos.
+- tapOn: 'Historial'
+- extendedWaitUntil:
+    visible: 'Esta sección aún no está construida.'
+    timeout: 10000
+    label: 'The Historial placeholder is up'
+
+- tapOn: 'Próximos'
+- extendedWaitUntil:
+    visible: 'Hoy'
+    timeout: 10000
+    label: 'Back on Próximos, its own content still there'

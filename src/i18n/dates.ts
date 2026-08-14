@@ -106,6 +106,38 @@ export function weekdayIndex(value: DateLike): number {
 }
 
 /**
+ * Whole calendar days from one date to another, positive when `to` is later —
+ * the Jornada tab's own use for it is deciding whether an upcoming row is
+ * literally tomorrow (KMO-32).
+ *
+ * A Julian day number difference, in the same pure-integer family as
+ * `weekdayIndex` above, rather than subtracting two `Date`s: a `Date` diff
+ * crosses through the device's timezone, and a wall-clock date has none to
+ * cross through — the day after a free Saturday is not "tomorrow" just
+ * because a `Date` object says 24 hours passed.
+ */
+export function daysBetween(from: DateLike, to: DateLike): number {
+  return julianDayNumber(to) - julianDayNumber(from);
+}
+
+function julianDayNumber(value: DateLike): number {
+  const { year, month, day } = datePartsOf(value);
+  const a = Math.floor((14 - month) / 12);
+  const y = year + 4800 - a;
+  const m = month + 12 * a - 3;
+
+  return (
+    day +
+    Math.floor((153 * m + 2) / 5) +
+    365 * y +
+    Math.floor(y / 4) -
+    Math.floor(y / 100) +
+    Math.floor(y / 400) -
+    32045
+  );
+}
+
+/**
  * `Miércoles 5 de agosto` — the header over the home screen, above `Hola, {nombre}`.
  * No year: it names today, and a year on it would only add noise.
  */
