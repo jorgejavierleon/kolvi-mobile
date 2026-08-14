@@ -651,8 +651,9 @@ export const es = {
   },
 
   /**
-   * Mi jornada (KMO-32). `es.headers.jornada` already carries the screen's own
-   * title; this is the segmented control and the Próximos sub-tab's own copy.
+   * Mi jornada (KMO-32, KMO-33). `es.headers.jornada` already carries the
+   * screen's own title; this is the segmented control and the two sub-tabs'
+   * own copy.
    */
   jornada: {
     /** The design's own two segment labels, verbatim. */
@@ -684,9 +685,52 @@ export const es = {
 
     /**
      * The failed-load retry (#9), matching home-screen's own `es.marcaje.loadFailed`
-     * pattern: names the consequence, not the request.
+     * pattern: names the consequence, not the request. Reused by Historial's
+     * own initial load (KMO-33 #6) — both are "this tab's one request failed",
+     * not two different sentences for the same fact.
      */
     loadFailed: 'No pudimos cargar tu jornada.',
+
+    /**
+     * The Historial sub-tab (KMO-33): the day list's own tile labels, its
+     * empty and load-more copy, and the day-detail placeholder pending
+     * KMO-34.
+     */
+    historial: {
+      /** The design's own three tile labels, verbatim — also `TileRow`'s own examples. */
+      worked: 'Trabajado',
+      extra: 'Extra',
+      missing: 'Faltante',
+
+      /**
+       * A loaded range with no workdays in it (#5) — an employee paging back
+       * past their hire date, most often. Says the range is genuinely empty
+       * rather than leaving a blank card an employee would read as broken.
+       */
+      empty: 'No hay jornadas registradas en este período.',
+
+      /** The action under the list that pages back a month at a time (#3). */
+      loadOlderMonth: 'Cargar mes anterior',
+
+      /**
+       * A failed page-back (#3). Distinct from `loadFailed` above: the
+       * months already on screen are untouched, so this names only the one
+       * page that did not arrive rather than reading as the whole screen
+       * failing.
+       */
+      loadOlderMonthFailed: 'No pudimos cargar el mes anterior.',
+
+      /**
+       * Tapping a day (#7) is wired for KMO-34's day detail; until that
+       * ticket ships, this is what it opens instead of doing nothing or
+       * crashing.
+       */
+      dayDetail: {
+        title: 'Detalle de jornada',
+        body: 'El detalle de este día estará disponible pronto.',
+        close: 'Cerrar detalle de jornada',
+      },
+    },
   },
 
   profile: {

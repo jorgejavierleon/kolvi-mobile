@@ -7,32 +7,35 @@ import { colors, spacing, typography } from '@/theme';
 import { Card } from '@/ui/card';
 import { Screen } from '@/ui/screen';
 import { ScreenHeader } from '@/ui/screen-header';
-import { SectionScaffold } from '@/ui/section-scaffold';
 import { SegmentedControl } from '@/ui/segmented-control';
 
+import { Historial } from './historial';
 import { Proximos } from './proximos';
 import type { UpcomingShiftsApi } from './shifts-api';
+import type { WorkdaysApi } from './workdays-api';
 
 export type JornadaScreenProps = {
   /** Opens Mi perfil. The route supplies the navigation; this screen does none. */
   onOpenProfile: () => void;
   /** Injected in tests; the app uses the configured client. */
   api?: UpcomingShiftsApi;
+  /** Injected in tests; the app uses the configured client. */
+  workdaysApi?: WorkdaysApi;
 };
 
 type JornadaSegment = 'proximos' | 'historial';
 
 /**
- * Jornada (KMO-32). The segmented control and Próximos are real; Historial is
- * KMO-33's own placeholder until that ticket builds it, and KMO-35 the
- * pending-correction card that puts the count on this tab's badge.
+ * Jornada (KMO-32, KMO-33). The segmented control, Próximos and Historial are
+ * real; KMO-34 is the day detail Historial's rows are wired for, and KMO-35
+ * the pending-correction card that puts the count on this tab's badge.
  *
  * Gated on `ViewOwn:Workday` — unlike Marcaje's punch surface, there is
  * nothing on this whole tab for an employee who cannot view their own
  * workday, so the gate covers the segmented control too rather than just one
  * row inside it.
  */
-export function JornadaScreen({ onOpenProfile, api }: JornadaScreenProps) {
+export function JornadaScreen({ onOpenProfile, api, workdaysApi }: JornadaScreenProps) {
   const session = useSession();
   const [segment, setSegment] = useState<JornadaSegment>('proximos');
 
@@ -60,11 +63,7 @@ export function JornadaScreen({ onOpenProfile, api }: JornadaScreenProps) {
             style={styles.segments}
           />
 
-          {segment === 'proximos' ? (
-            <Proximos api={api} />
-          ) : (
-            <SectionScaffold section={es.jornada.segments.historial} />
-          )}
+          {segment === 'proximos' ? <Proximos api={api} /> : <Historial api={workdaysApi} />}
         </>
       ) : (
         <Card testID="jornada-no-access">

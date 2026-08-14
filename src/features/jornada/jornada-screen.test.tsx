@@ -16,6 +16,7 @@ import { es } from '@/i18n';
 
 import { JornadaScreen } from './jornada-screen';
 import type { UpcomingShiftsApi } from './shifts-api';
+import type { WorkdaysApi } from './workdays-api';
 
 const metrics: Metrics = {
   frame: { x: 0, y: 0, width: 412, height: 892 },
@@ -66,8 +67,16 @@ const workingApi: UpcomingShiftsApi = {
   fetchUpcomingShifts: async () => ({ date: '2026-08-13' as NaiveDate, today: null, days: [] }),
 };
 
-async function mount(sessionUser: SessionUser, api: UpcomingShiftsApi = workingApi) {
-  await render(<JornadaScreen onOpenProfile={() => {}} api={api} />, {
+const workingWorkdaysApi: WorkdaysApi = {
+  fetchWorkdays: async () => [],
+};
+
+async function mount(
+  sessionUser: SessionUser,
+  api: UpcomingShiftsApi = workingApi,
+  workdaysApi: WorkdaysApi = workingWorkdaysApi,
+) {
+  await render(<JornadaScreen onOpenProfile={() => {}} api={api} workdaysApi={workdaysApi} />, {
     wrapper: sessionWrapper(sessionUser),
   });
 }
@@ -80,12 +89,12 @@ describe('JornadaScreen', () => {
     expect(await screen.findByTestId('today-shift-card-empty')).toBeOnTheScreen();
   });
 
-  it('switches to the Historial placeholder and back', async () => {
+  it('switches to Historial and back', async () => {
     await mount(user());
     await screen.findByTestId('jornada-segments');
 
     await userEvent.press(screen.getByText(es.jornada.segments.historial));
-    expect(await screen.findByText(es.scaffold.underConstruction)).toBeOnTheScreen();
+    expect(await screen.findByTestId('historial-empty')).toBeOnTheScreen();
 
     await userEvent.press(screen.getByText(es.jornada.segments.proximos));
     expect(await screen.findByTestId('today-shift-card-empty')).toBeOnTheScreen();

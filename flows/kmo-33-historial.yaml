@@ -1,0 +1,70 @@
+# KMO-33 — Jornada's Historial screen: the workday list, paged back a month
+# at a time.
+#
+# Covers #1 (the current month's days render newest-first with a status badge
+# and the Trabajado / Extra / Faltante figures) and #8 (a visible "Cargar mes
+# anterior" action loads the next older month and appends it below what is
+# already loaded). Both are asserted against real seeded data — the demo
+# organization's WorkdaySeeder gives the seeded employee about two weeks of
+# computed attendance, which is enough to prove the list renders and that
+# paging back reaches into the month before it.
+#
+# What is NOT pinned here: #2 (the exact badge tone per status) and #4 (the
+# leave annotation) are fixture concerns `history-day-row.test.tsx` and
+# `workdays-api.test.ts` pin exactly — no seeded day is reliably on an
+# approved leave. #3 (no 5-year cap) is a backend contract test
+# (`WorkdaysApiTest`) plus a Jest test that `use-workdays` never stops
+# offering `loadOlderMonth`. #5, #6 (empty range, failed load + retry) are
+# Jest's, mirroring `use-upcoming-shifts.test.ts`'s own failure/empty tests.
+# #7 (the day-detail placeholder) is covered below.
+#
+# Needs a reachable `ams` carrying KOL-65 (GET /api/v1/me/workdays), which is
+# not yet merged to ams master — see that ticket for how to stand up the
+# branch locally.
+appId: cl.kolvi.empleados
+name: KMO-33 Historial
+tags:
+  - jornada
+---
+- runFlow: shared/sign-in.yaml
+
+- tapOn:
+    id: 'tab-jornada'
+    label: 'The Jornada tab'
+- tapOn: 'Historial'
+
+# #1 — the current month's days, newest first, each with a status badge and
+# the three figures.
+- extendedWaitUntil:
+    visible: 'Trabajado'
+    timeout: 15000
+    label: 'The seeded month has loaded'
+- assertVisible: 'Regular'
+
+- scrollUntilVisible:
+    element: 'Cargar mes anterior'
+    direction: DOWN
+    timeout: 20000
+
+- takeScreenshot: kmo-33-historial
+
+# #8 — paging back a month appends it below what is already loaded, rather
+# than replacing the screen.
+- tapOn: 'Cargar mes anterior'
+- scrollUntilVisible:
+    element: 'Cargar mes anterior'
+    direction: DOWN
+    timeout: 20000
+    label: 'The older month is appended below the seeded one, both on screen'
+
+- takeScreenshot: kmo-33-historial-older-month
+
+# #7 — tapping a day is wired for KMO-34's day detail; until that ticket
+# ships it opens an honest placeholder.
+- tapOn: 'Regular'
+- extendedWaitUntil:
+    visible: 'Detalle de jornada'
+    timeout: 10000
+    label: 'The day-detail placeholder is up'
+
+- takeScreenshot: kmo-33-day-detail-placeholder
