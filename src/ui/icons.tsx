@@ -108,6 +108,15 @@ export function ChevronLeftIcon(props: IconProps) {
   );
 }
 
+/** `chevron-down` — the disclosure affordance on a collapsible section header. */
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <Glyph {...props} strokeWidth={2.2}>
+      <Path d="m6 9 6 6 6-6" />
+    </Glyph>
+  );
+}
+
 /**
  * `user`. Not in the design, which fills the avatar with the employee's
  * initials — there is no session to read a name from until KMO-8, and inventing

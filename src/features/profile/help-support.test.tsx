@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { Linking } from 'react-native';
 
 import { es } from '@/i18n';
@@ -16,13 +16,37 @@ jest.mock('expo-application', () => ({
 const strings = es.profile.helpSupport;
 
 describe('HelpSupport', () => {
-  it('shows every section heading and its first paragraph', async () => {
+  it('shows every section heading but hides its body by default', async () => {
     await render(<HelpSupport />);
 
     for (const section of Object.values(strings.sections)) {
       expect(screen.getByText(section.title)).toBeOnTheScreen();
-      expect(screen.getByText(section.body[0] as string)).toBeOnTheScreen();
+      expect(screen.queryByText(section.body[0] as string)).not.toBeOnTheScreen();
     }
+  });
+
+  it('expands a section on press and collapses it again on a second press', async () => {
+    await render(<HelpSupport />);
+
+    const sections = Object.entries(strings.sections);
+    const [firstKey, firstSection] = sections[0] as (typeof sections)[number];
+    const [, otherSection] = sections[1] as (typeof sections)[number];
+    const toggle = screen.getByTestId(`help-support-section-${firstKey}-toggle`);
+
+    fireEvent.press(toggle);
+
+    expect(await screen.findByText(firstSection.body[0] as string)).toBeOnTheScreen();
+    expect(toggle).toHaveProp('accessibilityState', { expanded: true });
+    // A sibling section stays untouched — this is an accordion where every
+    // panel opens independently, not a single-open group.
+    expect(screen.queryByText(otherSection.body[0] as string)).not.toBeOnTheScreen();
+
+    fireEvent.press(toggle);
+
+    await waitFor(() => {
+      expect(screen.queryByText(firstSection.body[0] as string)).not.toBeOnTheScreen();
+    });
+    expect(toggle).toHaveProp('accessibilityState', { expanded: false });
   });
 
   it('shows the support contact row', async () => {
