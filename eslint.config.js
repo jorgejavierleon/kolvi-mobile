@@ -123,7 +123,7 @@ module.exports = defineConfig([
   expoConfig,
   prettierConfig,
   {
-    ignores: ['dist/*', 'backlog/*', 'docs/*', '.expo/*', 'coverage/*'],
+    ignores: ['dist/*', 'backlog/*', 'docs/*', '.expo/*', 'coverage/*', '.artifacts/*'],
   },
   {
     files: ['src/**/*.{ts,tsx}', 'app.config.ts'],
