@@ -139,19 +139,10 @@ module.exports = defineConfig([
     },
   },
   {
-    // Two exemptions, and both are narrow.
-    //
-    // Tests, because a test asserting on the copy a screen renders has to write that
-    // copy down somewhere, and it is not shipped UI.
-    //
-    // `gallery.tsx`, because it is a bench rather than a screen: its strings are
-    // stand-ins for values the server supplies (`Atrasado` and `Ausente` are workday
-    // statuses, and KMO-6 #7 is that those are never routed through the catalogue)
-    // and previews of copy other tasks will author. KMO-30 deletes the file. Listing
-    // it here rather than disabling the rule inline keeps the theme selectors
-    // applying to it through the `src/**` block above.
+    // Tests are exempt, because a test asserting on the copy a screen renders has to
+    // write that copy down somewhere, and it is not shipped UI.
     files: ['src/app/**/*.{ts,tsx}', 'src/ui/**/*.{ts,tsx}', 'src/features/**/*.{ts,tsx}'],
-    ignores: ['**/*.test.{ts,tsx}', 'src/ui/gallery.tsx'],
+    ignores: ['**/*.test.{ts,tsx}'],
     rules: {
       'no-restricted-syntax': [
         'error',

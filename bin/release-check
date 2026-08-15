@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Verifies KMO-30's acceptance criteria against a real production export: no
+# demo scaffolding, no hardcoded verification code, no debug logging survives
+# into a release bundle. Exits non-zero and names the match on failure, so
+# this is the repeatable check AC#5 asks for rather than a one-off manual grep.
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+OUT="$ARTIFACTS/release-check"
+rm -rf "$OUT"
+
+echo "exporting production android bundle..."
+# --no-bytecode: the default export compiles straight to Hermes .hbc, which
+# isn't greppable text. Everything else about the bundle (minification, dead
+# code elimination, __DEV__ inlined false) is unaffected, so this is still
+# the real production bundle's contents, just readable.
+npx expo export --platform android --output-dir "$OUT" --no-bytecode >/dev/null
+
+JS_BUNDLE="$(find "$OUT" -path '*/_expo/static/js/*' -name '*.js' | head -1)"
+[ -n "$JS_BUNDLE" ] || die "no JS bundle found under $OUT — did the export layout change?"
+
+fail=0
+check_absent() {
+  local pattern="$1" label="$2"
+  if grep -qF -- "$pattern" "$JS_BUNDLE"; then
+    echo "FAIL: found $label (pattern: $pattern) in $JS_BUNDLE" >&2
+    fail=1
+  fi
+}
+
+check_absent "482913" "the demo verification code"
+check_absent "Modo demostración" "the demo-mode signing copy"
+check_absent "demo panel" "the demo panel"
+check_absent "flask" "the flask/demo-switcher button"
+check_absent "punch-api: a queued punch was refused as invalid" "the ungated punch-api console.error"
+check_absent "kolvi://gallery" "the unauthenticated primitives-gallery deep link"
+check_absent "Primitivas" "the primitives-gallery screen"
+
+if [ "$fail" -eq 0 ]; then
+  echo "ok: no demo scaffolding, hardcoded codes or ungated debug logging in $JS_BUNDLE"
+else
+  exit 1
+fi

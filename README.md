@@ -163,6 +163,11 @@ npm run check         # everything below, in order — what CI runs
 `npx expo export --platform android` bundles the app headlessly — a useful smoke test that
 everything resolves without needing a device.
 
+`bin/release-check` exports that same production bundle and greps it for demo scaffolding —
+the mockup's flask button, demo panel and hardcoded verification code — and for debug logging
+that should have been stripped. Run it before any release build; it exits non-zero and names
+the match on failure.
+
 All of these pass on a clean checkout. Keep it that way.
 
 ### Before a push
@@ -353,7 +358,5 @@ the session on the 401 that check would produce, and there is nothing on this si
 for it. `GET /api/v1/user` does now report permissions (`ams` KOL-5), so `can()` answers from the
 real set rather than closing every gate.
 
-Two files are temporary: `src/ui/section-scaffold.tsx`, the stand-in body Jornada, Permisos and
-Documentos render until KMO-32, 39 and 42 build them, and `src/ui/gallery.tsx` (reachable at
-`kolvi://gallery`), which puts every primitive on a device so `flows/kmo-3-ui-primitives.yaml`
-has something to drive. KMO-30 deletes both.
+One file is temporary: `src/ui/section-scaffold.tsx`, the stand-in body Permisos and Documentos
+render until KMO-39 and 42 build them.

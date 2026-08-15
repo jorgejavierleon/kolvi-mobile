@@ -285,7 +285,9 @@ export function createPunchSync(client: ApiClient = api): PunchSync {
         // KMO-29 wires real crash reporting; dropped rather than retried
         // because resending the same malformed body can only fail the same
         // way again.
-        console.error('punch-api: a queued punch was refused as invalid, dropping it', error);
+        if (__DEV__) {
+          console.error('punch-api: a queued punch was refused as invalid, dropping it', error);
+        }
 
         return undefined;
       }
