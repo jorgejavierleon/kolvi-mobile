@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { es, formatShortDate } from '@/i18n';
@@ -7,9 +7,6 @@ import { Button } from '@/ui/button';
 import { Card } from '@/ui/card';
 import { Skeleton } from '@/ui/skeleton';
 
-import type { NaiveDate } from '@/api';
-
-import { DayDetailPlaceholder } from './day-detail-placeholder';
 import { HistoryDayRow } from './history-day-row';
 import type { WorkdaysApi } from './workdays-api';
 import { useWorkdays } from './use-workdays';
@@ -28,10 +25,12 @@ export type HistorialProps = {
  * failed load turned into a retry rather than a blank segment. `loadOlderMonth`
  * is its own addition and fails independently: a page-back that does not
  * arrive leaves every month already loaded exactly where it was (#6).
+ *
+ * Tapping a day pushes `/jornada/{date}` (KMO-34's day-detail screen), in
+ * place of the `DayDetailPlaceholder` sheet that route now replaces.
  */
 export function Historial({ api }: HistorialProps) {
   const workdays = useWorkdays(api);
-  const [openDay, setOpenDay] = useState<NaiveDate | null>(null);
 
   return (
     <View style={styles.container}>
@@ -58,7 +57,9 @@ export function Historial({ api }: HistorialProps) {
                 extraTime={day.extraTime}
                 missingTime={day.missingTime}
                 leaveTypeLabel={day.leaveTypeLabel}
-                onPress={() => setOpenDay(day.date)}
+                onPress={() =>
+                  router.push({ pathname: '/jornada/[date]', params: { date: day.date } })
+                }
               />
             ))
           )}
@@ -70,8 +71,6 @@ export function Historial({ api }: HistorialProps) {
           />
         </>
       ) : null}
-
-      <DayDetailPlaceholder visible={openDay !== null} onDismiss={() => setOpenDay(null)} />
     </View>
   );
 }

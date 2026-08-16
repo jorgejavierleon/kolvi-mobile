@@ -16,11 +16,11 @@
 # (`WorkdaysApiTest`) plus a Jest test that `use-workdays` never stops
 # offering `loadOlderMonth`. #5, #6 (empty range, failed load + retry) are
 # Jest's, mirroring `use-upcoming-shifts.test.ts`'s own failure/empty tests.
-# #7 (the day-detail placeholder) is covered below.
+# #7 (tapping a day is wired for KMO-34's day detail) is covered below as far
+# as this task's own scope goes — that screen's own content is
+# `flows/kmo-34-day-detail.yaml`'s.
 #
-# Needs a reachable `ams` carrying KOL-65 (GET /api/v1/me/workdays), which is
-# not yet merged to ams master — see that ticket for how to stand up the
-# branch locally.
+# Needs a reachable `ams` carrying KOL-65 (GET /api/v1/me/workdays).
 appId: cl.kolvi.empleados
 name: KMO-33 Historial
 tags:
@@ -59,12 +59,12 @@ tags:
 
 - takeScreenshot: kmo-33-historial-older-month
 
-# #7 — tapping a day is wired for KMO-34's day detail; until that ticket
-# ships it opens an honest placeholder.
+# #7 — tapping a day is wired for KMO-34's day detail: it navigates to a
+# real screen for that date, not nothing and not a crash.
 - tapOn: 'Regular'
 - extendedWaitUntil:
-    visible: 'Detalle de jornada'
+    visible: 'Volver a Historial'
     timeout: 10000
-    label: 'The day-detail placeholder is up'
+    label: 'The day-detail screen is up, for the tapped day'
 
-- takeScreenshot: kmo-33-day-detail-placeholder
+- takeScreenshot: kmo-33-day-detail

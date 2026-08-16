@@ -1,0 +1,81 @@
+# KMO-34 — Day detail with KPI tiles and attendance strip.
+#
+# Covers #1 (opens a full-screen day-detail view from Historial), #2 (the
+# four KPI tiles), #3 (the attendance strip, axis derived from the shift) and
+# #5 (tapping a punch marker opens that punch's own comprobante, fetched by
+# its own mark id). Both against real seeded data — the same "Regular" day
+# `flows/kmo-33-historial.yaml` already finds has a real shift window and two
+# marks (WorkdaySeeder), so the tiles and both strip markers have something
+# real to show.
+#
+# What is NOT pinned here: #4 (a shift crossing midnight) and #6 (a missing
+# punch) are not something the seeded data reliably produces on a given run —
+# both are `attendance-axis.test.ts` and `attendance-strip.test.tsx` fixtures.
+# #7 (the leave-day treatment) is `day-detail-screen.test.tsx`'s, for the same
+# reason KMO-33's own flow gives for #4 there — no seeded day is reliably on
+# an approved leave. #8 (failed load + retry) is `day-detail-screen.test.tsx`.
+#
+# Needs a reachable `ams` carrying KOL-68 (GET /api/v1/me/workdays/{date}).
+appId: cl.kolvi.empleados
+name: KMO-34 Day detail
+tags:
+  - jornada
+---
+- runFlow: shared/sign-in.yaml
+
+- tapOn:
+    id: 'tab-jornada'
+    label: 'The Jornada tab'
+- tapOn: 'Historial'
+
+- extendedWaitUntil:
+    visible: 'Regular'
+    timeout: 15000
+    label: 'The seeded month has loaded'
+
+# #1 — tapping a day opens the day-detail screen, not a placeholder.
+- tapOn: 'Regular'
+- extendedWaitUntil:
+    visible: 'Volver a Historial'
+    timeout: 10000
+    label: 'The day-detail screen is up'
+
+# #2 — the four KPI tiles.
+- assertVisible: 'Trabajado'
+- assertVisible: 'Tiempo extra'
+- assertVisible: 'Faltante'
+- assertVisible: 'Entrada / Salida'
+
+# #3 — the attendance strip, with both punch markers on it.
+- assertVisible: 'Asistencia del día'
+- assertVisible:
+    id: 'attendance-strip-mark-in'
+- assertVisible:
+    id: 'attendance-strip-mark-out'
+
+- takeScreenshot: kmo-34-day-detail
+
+# #5 — tapping a punch marker opens that punch's own comprobante.
+- tapOn:
+    id: 'attendance-strip-mark-in'
+- extendedWaitUntil:
+    visible: '¡Marca registrada!'
+    timeout: 10000
+    label: 'The tapped punch’s own comprobante has loaded'
+- assertVisible: 'Comprobante de marca'
+- assertVisible: 'N° comprobante'
+
+- takeScreenshot: kmo-34-punch-receipt
+
+- tapOn: 'Listo'
+- assertNotVisible: 'Comprobante de marca'
+
+# Back to Historial.
+- tapOn:
+    id: 'overlay-back'
+    label: 'Volver a Historial'
+- scrollUntilVisible:
+    element: 'Cargar mes anterior'
+    direction: DOWN
+    timeout: 20000
+    label: 'Historial is back on screen, its list intact'

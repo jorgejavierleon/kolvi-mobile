@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, userEvent } from '@testing-library/react-native';
-import { SafeAreaProvider, type Metrics } from 'react-native-safe-area-context';
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import { router } from 'expo-router';
 
 import type { NaiveDate } from '@/api';
 import { es } from '@/i18n';
@@ -7,18 +7,10 @@ import { es } from '@/i18n';
 import { Historial } from './historial';
 import type { Workday, WorkdaysApi } from './workdays-api';
 
-/** The day-detail placeholder is a `BottomSheet`, which needs a safe area to render. */
-const metrics: Metrics = {
-  frame: { x: 0, y: 0, width: 412, height: 892 },
-  insets: { top: 24, left: 0, right: 0, bottom: 48 },
-};
+jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
 function draw(api: WorkdaysApi) {
-  return render(
-    <SafeAreaProvider initialMetrics={metrics}>
-      <Historial api={api} />
-    </SafeAreaProvider>,
-  );
+  return render(<Historial api={api} />);
 }
 
 function workday(overrides: Partial<Workday> = {}): Workday {
@@ -142,22 +134,14 @@ describe('Historial', () => {
     expect(screen.getByText('Vie 14 ago')).toBeOnTheScreen();
   });
 
-  it('opens an honest placeholder when a day is tapped, pending KMO-34', async () => {
-    await draw(apiFor([workday()]));
+  it('pushes the day-detail route for the tapped day (KMO-34)', async () => {
+    await draw(apiFor([workday({ date: '2026-08-14' as NaiveDate })]));
 
     fireEvent.press(await screen.findByText('Vie 14 ago'));
 
-    expect(await screen.findByText(es.jornada.historial.dayDetail.title)).toBeOnTheScreen();
-  });
-
-  it('dismisses the day-detail placeholder', async () => {
-    await draw(apiFor([workday()]));
-
-    fireEvent.press(await screen.findByText('Vie 14 ago'));
-    expect(await screen.findByText(es.jornada.historial.dayDetail.title)).toBeOnTheScreen();
-
-    await userEvent.press(screen.getByTestId('bottom-sheet-backdrop'));
-
-    expect(screen.queryByText(es.jornada.historial.dayDetail.title)).not.toBeOnTheScreen();
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/jornada/[date]',
+      params: { date: '2026-08-14' },
+    });
   });
 });

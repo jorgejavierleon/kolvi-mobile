@@ -79,6 +79,7 @@ function RootNavigator() {
         <Stack.Screen name="perfil" />
         <Stack.Screen name="cambiar-contrasena" />
         <Stack.Screen name="mis-datos" />
+        <Stack.Screen name="jornada/[date]" />
         <Stack.Screen name="notificaciones" />
         <Stack.Screen name="ayuda-soporte" />
       </Stack.Protected>

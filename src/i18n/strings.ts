@@ -719,17 +719,24 @@ export const es = {
        * failing.
        */
       loadOlderMonthFailed: 'No pudimos cargar el mes anterior.',
+    },
 
-      /**
-       * Tapping a day (#7) is wired for KMO-34's day detail; until that
-       * ticket ships, this is what it opens instead of doing nothing or
-       * crashing.
-       */
-      dayDetail: {
-        title: 'Detalle de jornada',
-        body: 'El detalle de este día estará disponible pronto.',
-        close: 'Cerrar detalle de jornada',
-      },
+    /**
+     * The day-detail screen (KMO-34) a Historial row opens: the four KPI
+     * tiles, the attendance strip's own title, and the leave-day treatment.
+     * `worked`/`missing` reuse `historial.worked`/`historial.missing` above —
+     * the design draws the same two words in both places — but `extra` does
+     * not: the design's own day-detail tile reads `Tiempo extra`, longer than
+     * the row's `Extra`, so this is its own string rather than a shared one
+     * that happens to be right in one context and wrong in the other.
+     */
+    dayDetail: {
+      back: 'Volver a Historial',
+      extra: 'Tiempo extra',
+      entradaSalida: 'Entrada / Salida',
+      attendanceTitle: 'Asistencia del día',
+      /** The eyebrow over the leave type, in place of the tiles and the strip (#7). */
+      leave: 'Permiso',
     },
   },
 
