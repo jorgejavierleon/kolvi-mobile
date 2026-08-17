@@ -2,13 +2,14 @@ import { act, render, renderHook, screen, waitFor } from '@testing-library/react
 import type { ReactNode } from 'react';
 import { Text } from 'react-native';
 
-import { ApiError, api } from '@/api';
+import { ApiError, api, type ConnectivitySource } from '@/api';
 import { es } from '@/i18n';
 
 import type { AuthApi } from './auth-api';
 import { parsePermissions } from './permissions';
+import { OFFLINE_SESSION_LIFETIME_MS, SessionProvider, useSession } from './session';
+import { createMemorySessionCache, type CachedSession, type SessionCache } from './session-cache';
 import type { SessionUser } from './session-user';
-import { SessionProvider, useSession } from './session';
 import { createMemoryTokenStore, type TokenStore } from './token-store';
 
 const employee: SessionUser = {
@@ -37,17 +38,47 @@ function fakeAuthApi(overrides: Partial<AuthApi> = {}): AuthApi {
   };
 }
 
-type MountOptions = { authApi?: AuthApi; tokenStore?: TokenStore };
+/** A phone that reports one connectivity state until told otherwise (§4.7). */
+function fakeConnectivity(online = true): ConnectivitySource & { report(next: boolean): void } {
+  const listeners: ((next: boolean) => void)[] = [];
+
+  return {
+    getState: async () => online,
+    subscribe: (listener) => {
+      listeners.push(listener);
+
+      return () => {};
+    },
+    report: (next) => {
+      online = next;
+
+      for (const listener of listeners) {
+        listener(next);
+      }
+    },
+  };
+}
+
+type MountOptions = {
+  authApi?: AuthApi;
+  tokenStore?: TokenStore;
+  sessionCache?: SessionCache;
+  connectivitySource?: ConnectivitySource;
+};
 
 async function mount(options: MountOptions = {}) {
   const authApi = options.authApi ?? fakeAuthApi();
   const tokenStore = options.tokenStore ?? createMemoryTokenStore();
+  const sessionCache = options.sessionCache ?? createMemorySessionCache();
+  const connectivitySource = options.connectivitySource ?? fakeConnectivity();
 
   const wrapper = ({ children }: { children: ReactNode }) => (
     <SessionProvider
       authApi={authApi}
       tokenStore={tokenStore}
       deviceName={async () => 'Kolvi test'}
+      sessionCache={sessionCache}
+      connectivitySource={connectivitySource}
     >
       {children}
     </SessionProvider>
@@ -55,7 +86,7 @@ async function mount(options: MountOptions = {}) {
 
   const { result } = await renderHook(() => useSession(), { wrapper });
 
-  return { result, authApi, tokenStore };
+  return { result, authApi, tokenStore, sessionCache, connectivitySource };
 }
 
 /** Mounted and past the restore pass, which is where every test but the first starts. */
@@ -378,7 +409,7 @@ describe('a session the server ends', () => {
   // is the token or comes off `user`, so this is the whole of it until something
   // starts caching.
   it('leaves no employee data behind', async () => {
-    const { result, tokenStore } = await mountSignedIn();
+    const { result, tokenStore, sessionCache } = await mountSignedIn();
     expect(result.current.user).toEqual(employee);
 
     await withUnauthorizedServer({}, async () => {
@@ -390,6 +421,10 @@ describe('a session the server ends', () => {
     expect(result.current.permissions.size).toBe(0);
     expect(result.current.can('ClockOwn:Mark')).toBe(false);
     await expect(tokenStore.read()).resolves.toBeNull();
+    // The session cache is the second place this employee's PII could linger
+    // since KMO-49 — clearing only the token would leave the last-known name,
+    // RUT and permissions readable by the next cold start.
+    await expect(sessionCache.read()).resolves.toBeNull();
   });
 
   // #3 — opening the app fires several requests at once and they come back 401
@@ -463,9 +498,12 @@ describe('a session the server ends', () => {
     expect(result.current.ended).toEqual({ message: es.auth.sessionExpired });
   });
 
-  // The opposite case, and the one that matters in a warehouse basement: a token
-  // that could not be checked has not expired, and saying so would be the app
-  // inventing a fact. KMO-49 decides whether this should sign out at all.
+  // The opposite case, and the one that matters in a warehouse basement: a
+  // token that could not be checked has not expired, and saying so would be
+  // the app inventing a fact. This is the one connectivity-failure restore
+  // that still ends up `signedOut` rather than serving §4.7's offline
+  // fallback — there is no cache to fall back to, because nothing ever wrote
+  // this token through `signIn`.
   it('says nothing about a stored token it could not check', async () => {
     const tokenStore = createMemoryTokenStore();
     await tokenStore.write('tok_unchecked');
@@ -485,6 +523,223 @@ describe('a session the server ends', () => {
     const { result } = await mountSignedOut();
 
     expect(result.current.ended).toBeNull();
+  });
+
+  // §4.7 D2/#5 — signing in needs a connection `POST /api/v1/sanctum/token`
+  // cannot do without, and an employee who has never signed in gets that
+  // reason instead of a form that will fail the same way on submit.
+  it('explains that signing in needs a connection when there is no token and no signal', async () => {
+    const { result } = await mount({ connectivitySource: fakeConnectivity(false) });
+
+    await waitFor(() => expect(result.current.status).toBe('signedOut'));
+    expect(result.current.ended).toEqual({ message: es.auth.signInNeedsConnection });
+  });
+});
+
+describe('the offline session (§4.7)', () => {
+  function cachedSince(msAgo: number): CachedSession {
+    return { user: employee, verifiedAt: new Date(Date.now() - msAgo).toISOString() };
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  // #2 — the punch screen, not the login screen, is the whole point of the
+  // cache: an employee who has signed in before must be able to reach it with
+  // no signal at all.
+  it('restores signed in and unverified from the cache, within the 24 h bound', async () => {
+    const tokenStore = createMemoryTokenStore();
+    await tokenStore.write('tok_cached');
+    const sessionCache = createMemorySessionCache();
+    await sessionCache.write(cachedSince(60_000));
+    const authApi = fakeAuthApi({
+      fetchSessionUser: jest.fn(async () => {
+        throw new ApiError({ kind: 'network' });
+      }),
+    });
+
+    const { result } = await mount({
+      authApi,
+      tokenStore,
+      sessionCache,
+      connectivitySource: fakeConnectivity(false),
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('signedIn'));
+    expect(result.current.verified).toBe(false);
+    expect(result.current.user).toEqual(employee);
+    // #6 — the last known permission set, with no new gate to write: `can()`
+    // already reads off `user`.
+    expect(result.current.can('ClockOwn:Mark')).toBe(true);
+  });
+
+  // #6's refusal half — the last known set is the ceiling, not a blank
+  // cheque. An employee whose cached payload never carried `ClockOwn:Mark`
+  // stays gated offline exactly as they would online, off the same `can()`.
+  it('refuses a permission the cached payload never granted', async () => {
+    const tokenStore = createMemoryTokenStore();
+    await tokenStore.write('tok_cached');
+    const sessionCache = createMemorySessionCache();
+    await sessionCache.write({
+      user: { ...employee, permissions: parsePermissions(['ViewOwn:Mark']) },
+      verifiedAt: new Date(Date.now() - 60_000).toISOString(),
+    });
+    const authApi = fakeAuthApi({
+      fetchSessionUser: jest.fn(async () => {
+        throw new ApiError({ kind: 'network' });
+      }),
+    });
+
+    const { result } = await mount({
+      authApi,
+      tokenStore,
+      sessionCache,
+      connectivitySource: fakeConnectivity(false),
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('signedIn'));
+    expect(result.current.can('ClockOwn:Mark')).toBe(false);
+    expect(result.current.can('ViewOwn:Mark')).toBe(true);
+  });
+
+  // #4's cold-start half — a cache this stale bought no cushion left, so a
+  // stored token restores signed out rather than trusting a nine-day-old
+  // confirmation.
+  it('will not restore from a cache past the 24 h bound', async () => {
+    const tokenStore = createMemoryTokenStore();
+    await tokenStore.write('tok_stale');
+    const sessionCache = createMemorySessionCache();
+    await sessionCache.write(cachedSince(OFFLINE_SESSION_LIFETIME_MS + 1));
+    const authApi = fakeAuthApi({
+      fetchSessionUser: jest.fn(async () => {
+        throw new ApiError({ kind: 'network' });
+      }),
+    });
+
+    const { result } = await mount({
+      authApi,
+      tokenStore,
+      sessionCache,
+      connectivitySource: fakeConnectivity(false),
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('signedOut'));
+    expect(result.current.ended).toEqual({ message: es.auth.offlineSessionExpired });
+    await expect(tokenStore.read()).resolves.toBeNull();
+    await expect(sessionCache.read()).resolves.toBeNull();
+  });
+
+  // #3 — the strip clears the instant a real confirmation lands, which for the
+  // app is `verified` flipping back to `true`.
+  it('reconfirms and clears verified once connectivity returns', async () => {
+    const tokenStore = createMemoryTokenStore();
+    await tokenStore.write('tok_cached');
+    const sessionCache = createMemorySessionCache();
+    await sessionCache.write(cachedSince(60_000));
+    let online = false;
+    const authApi = fakeAuthApi({
+      fetchSessionUser: jest.fn(async () => {
+        if (!online) {
+          throw new ApiError({ kind: 'network' });
+        }
+
+        return employee;
+      }),
+    });
+    const connectivitySource = fakeConnectivity(false);
+
+    const { result } = await mount({ authApi, tokenStore, sessionCache, connectivitySource });
+
+    await waitFor(() => expect(result.current.status).toBe('signedIn'));
+    expect(result.current.verified).toBe(false);
+
+    online = true;
+    await act(() => {
+      connectivitySource.report(true);
+    });
+
+    await waitFor(() => expect(result.current.verified).toBe(true));
+    expect(result.current.status).toBe('signedIn');
+  });
+
+  // #9's session half — a 401 met while trying to reconfirm is the server
+  // actually refusing this token, not another unlucky retry, and ends the
+  // session the same way any other 401 does.
+  it('ends the session when a reconfirm comes back 401 instead of staying unverified', async () => {
+    const tokenStore = createMemoryTokenStore();
+    await tokenStore.write('tok_dead');
+    const sessionCache = createMemorySessionCache();
+    await sessionCache.write(cachedSince(60_000));
+    const authApi = fakeAuthApi({
+      fetchSessionUser: jest.fn(async () => {
+        throw new ApiError({ kind: 'network' });
+      }),
+    });
+    const connectivitySource = fakeConnectivity(false);
+
+    const { result } = await mount({ authApi, tokenStore, sessionCache, connectivitySource });
+    await waitFor(() => expect(result.current.verified).toBe(false));
+
+    authApi.fetchSessionUser = jest.fn(async () => {
+      throw new ApiError({ kind: 'unauthorized', status: 401 });
+    });
+    await act(() => {
+      connectivitySource.report(true);
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('signedOut'));
+    expect(result.current.ended).toEqual({ message: es.auth.sessionExpired });
+  });
+
+  // #4's running half — a session that never regains signal still ends once
+  // it has gone unverified for longer than the bound, rather than sitting
+  // open indefinitely because the app was never restarted to re-check.
+  it('ends a running session that stays unverified past the 24 h bound', async () => {
+    const tokenStore = createMemoryTokenStore();
+    await tokenStore.write('tok_cached');
+    const sessionCache = createMemorySessionCache();
+    await sessionCache.write(cachedSince(0));
+    const authApi = fakeAuthApi({
+      fetchSessionUser: jest.fn(async () => {
+        throw new ApiError({ kind: 'network' });
+      }),
+    });
+
+    const { result } = await mount({
+      authApi,
+      tokenStore,
+      sessionCache,
+      connectivitySource: fakeConnectivity(false),
+    });
+
+    await waitFor(() => expect(result.current.verified).toBe(false));
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(OFFLINE_SESSION_LIFETIME_MS + 60_000);
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('signedOut'));
+    expect(result.current.ended).toEqual({ message: es.auth.offlineSessionExpired });
+  });
+
+  // A confirmed sign-in and a confirmed restore both leave the cushion behind
+  // for the *next* cold start — the mechanism #2 depends on has to be built
+  // before it is ever needed offline.
+  it('persists the confirmed user on sign-in, for a later offline restore', async () => {
+    const sessionCache = createMemorySessionCache();
+    const { result } = await mount({ sessionCache });
+
+    await waitFor(() => expect(result.current.status).toBe('signedOut'));
+    await act(() => result.current.signIn(credentials));
+    await waitFor(() => expect(result.current.status).toBe('signedIn'));
+
+    const cached = await sessionCache.read();
+    expect(cached?.user).toEqual(employee);
   });
 });
 

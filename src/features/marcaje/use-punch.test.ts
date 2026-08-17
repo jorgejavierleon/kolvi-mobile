@@ -80,7 +80,9 @@ async function punchable(options: Partial<UsePunchOptions> = {}) {
   // A fresh in-memory queue by default, never the app singleton — a test that
   // wants to inspect what got queued passes its own.
   const queue = options.queue ?? createPunchQueue();
-  const { result } = await renderHook(() => usePunch({ state: 'before', api, queue, ...options }));
+  const { result } = await renderHook(() =>
+    usePunch({ state: 'before', userId: 1, api, queue, ...options }),
+  );
 
   return { result, calls, queue };
 }

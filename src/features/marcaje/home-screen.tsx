@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import type { ConnectivitySource } from '@/api';
 import { es, formatLongDate, greeting, weekSummary } from '@/i18n';
 import { colors, spacing, tones, typography } from '@/theme';
 import { Button } from '@/ui/button';
@@ -12,7 +13,6 @@ import { TextLink } from '@/ui/text-link';
 
 import { useSession } from '../auth/session';
 import { Clock } from './clock';
-import type { ConnectivitySource } from './connectivity';
 import type { LocationSource } from './location';
 import { LocationCard } from './location-card';
 import { LocationRationale } from './location-rationale';
@@ -160,6 +160,16 @@ export function HomeScreen({
    */
   const canViewMarks = session.can('ViewOwn:Mark');
 
+  /**
+   * Whose queue this screen reads and flushes (docs/design-decisions.md §4.7
+   * D5). This route sits behind the `signedIn` guard, so `session.user` is
+   * never really absent here — the fallback exists only so a screen mid-
+   * transition degrades to a sentinel matching nothing on the phone rather
+   * than a real employee's id, the same direction every other read of
+   * `session.user` on this screen already fails safe in.
+   */
+  const userId = session.user?.id ?? -1;
+
   const location = useLocation({
     geofence: shift?.geofence ?? null,
     enabled: canPunch,
@@ -251,19 +261,22 @@ export function HomeScreen({
     onPunched,
     onQueued,
     onAlreadyMarked: today.reload,
+    userId,
     api: punchApi,
     clock,
     queue,
   });
 
   /**
-   * The punches this phone is still holding (KMO-22, durable since KMO-23).
+   * The punches this phone is still holding (KMO-22, durable since KMO-23),
+   * filtered to this employee (§4.7 D5) — a previous sign-in's leftover rows
+   * on a shared device are never this screen's to show or count.
    *
    * Read here rather than inside the banner so the screen — which already owns
    * every other composition decision on it — is the one place that knows the
    * queue exists.
    */
-  const pending = usePunchQueue(queue);
+  const pending = usePunchQueue(queue, userId);
 
   /**
    * The connectivity edge that flushes the queue automatically (#4) — Art. 10's
@@ -277,8 +290,8 @@ export function HomeScreen({
    * radio is still off at the exact moment it just came back.
    */
   const flushQueueOnRestore = useCallback((): void => {
-    void queue.flush({ sync, online: true });
-  }, [queue, sync]);
+    void queue.flush({ sync, userId, online: true });
+  }, [queue, sync, userId]);
 
   /**
    * Whether the phone thinks it can reach anything (#1).
@@ -297,8 +310,8 @@ export function HomeScreen({
 
   /** `Sincronizar` — the Art. 10 accelerator, never the mechanism (§4.1). */
   const flushQueue = useCallback((): void => {
-    void queue.flush({ sync, online: connectivity.online });
-  }, [connectivity.online, sync, queue]);
+    void queue.flush({ sync, userId, online: connectivity.online });
+  }, [connectivity.online, sync, queue, userId]);
 
   /**
    * What the geolocation card is holding the punch for, and the way out of it

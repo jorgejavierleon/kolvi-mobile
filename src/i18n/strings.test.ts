@@ -182,12 +182,15 @@ describe('phrases assembled around a server value', () => {
 
   // KMO-12 #3. The number and the verb both have to agree, and the sentence has to
   // name what is destroyed — an attendance record, not a session.
-  it('agrees the count and the verb in the sign-out warning', () => {
+  // §4.7 D4 — signing out has never discarded a queued punch, so the copy
+  // says the marks stay on the phone rather than that they are about to be
+  // lost.
+  it('agrees the count and the verb in the sign-out notice', () => {
     expect(unsyncedPunchesWarning(1)).toContain('1 marca registrada');
-    expect(unsyncedPunchesWarning(1)).toContain('Se perderá ');
+    expect(unsyncedPunchesWarning(1)).toContain('Se quedará guardada');
     expect(unsyncedPunchesWarning(4)).toContain('4 marcas registradas');
-    expect(unsyncedPunchesWarning(4)).toContain('Se perderán ');
-    expect(unsyncedPunchesWarning(2)).toContain('registro de asistencia');
+    expect(unsyncedPunchesWarning(4)).toContain('Se quedarán guardadas');
+    expect(unsyncedPunchesWarning(2)).toContain('iniciar sesión con esta cuenta');
   });
 
   it('writes the week summary with comma decimals and a bare contracted total', () => {

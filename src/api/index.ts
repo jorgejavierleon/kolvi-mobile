@@ -25,6 +25,9 @@ export {
 export { ApiError, isApiError } from './errors';
 export type { ApiErrorKind, FieldErrors, ResponseHeaders } from './errors';
 
+export { createConnectivitySource } from './connectivity';
+export type { ConnectivitySource, NetworkModule } from './connectivity';
+
 export {
   compareNaiveDateTime,
   dateOf,

@@ -191,12 +191,12 @@ describe('confirming', () => {
 });
 
 /**
- * #3. There is no queue to read yet — KMO-22 and KMO-23 build it — so the count
- * arrives as a prop from `src/app/perfil.tsx` and these are the only place the
- * warning is exercised until then.
+ * #3. The count arrives as a prop from `src/app/perfil.tsx`, backed by the real
+ * queue since KMO-23. Since KMO-49 (§4.7 D4) signing out has never discarded a
+ * queued punch — the copy below says so, rather than the opposite it used to.
  */
 describe('with punches this phone has not synced', () => {
-  it('names how many marks are about to be lost', async () => {
+  it('names how many marks are still saved on the phone', async () => {
     await mountSignedIn({ pendingPunches: 2 });
 
     await openTheSheet();
@@ -206,22 +206,24 @@ describe('with punches this phone has not synced', () => {
   });
 
   // The point of the criterion is *explicitly*: an employee reading this has to
-  // learn that attendance records disappear, not that a session ends.
-  it('says the marks are lost and will not reach the attendance record', () => {
+  // learn the marks are kept and will send once they sign back in, not that
+  // they are about to lose an attendance record.
+  it('says the marks stay on the phone and will send once this employee signs in again', () => {
     const warning = unsyncedPunchesWarning(2);
 
     expect(warning).toMatch(/2 marcas/);
-    expect(warning).toMatch(/perderán/);
-    expect(warning).toMatch(/registro de asistencia/);
+    expect(warning).toMatch(/guardadas/);
+    expect(warning).toMatch(/iniciar sesión con esta cuenta/);
   });
 
   it('reads correctly for a single mark', () => {
     expect(unsyncedPunchesWarning(1)).toMatch(/1 marca registrada/);
-    expect(unsyncedPunchesWarning(1)).toMatch(/Se perderá /);
+    expect(unsyncedPunchesWarning(1)).toMatch(/Se quedará guardada/);
   });
 
-  // Replaced rather than appended: an employee about to lose an attendance record
-  // must not have to read past the ordinary wording to find that out.
+  // Replaced rather than appended: an employee with punches still on the phone
+  // must not have to read past the ordinary wording to learn what happens to
+  // them.
   it('replaces the ordinary body instead of sitting under it', async () => {
     await mountSignedIn({ pendingPunches: 1 });
 

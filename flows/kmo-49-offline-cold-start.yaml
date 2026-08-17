@@ -1,0 +1,84 @@
+# KMO-49 — a cold start with a stored token and no connectivity lands the
+# employee on the punch screen, unverified, rather than on the login screen.
+#
+# Covers #2 (Inicio, not `/login`) and #3 (the unverified-session strip is on
+# screen, in the exact Spanish `unverified-session-banner.tsx` shows). This is
+# the gap `kmo-22-sin-banner.yaml` and `kmo-23-queue-relaunch.yaml` both name in
+# their own headers as KMO-49's to close: before this ticket, `session.tsx`
+# treated a `GET /api/v1/user` that never got an answer the same as a dead
+# token, and no offline flow could reach Inicio at all.
+#
+# Three commands, in this order — connectivity has to flip *between* the
+# sign-in and the relaunch, and Maestro cannot pause for that:
+#
+#   bin/e2e flows/shared/sign-in.yaml
+#   bin/device net off
+#   bin/e2e flows/kmo-49-offline-cold-start.yaml
+#   bin/device net on
+#
+# `requires-offline`, like `kmo-23-queue-relaunch.yaml`: `shared/sign-in.yaml`
+# needs a reachable `ams`, so this cannot be self-contained the way most flows
+# are, and a full `npm run test:e2e` would otherwise find a live token and fail
+# on an arrangement rather than the behaviour.
+appId: cl.kolvi.empleados
+name: KMO-49 offline cold start reaches the punch screen
+tags:
+  - auth
+  - offline
+  - requires-offline
+---
+# Deliberately not shared/launch.yaml, like kmo-11-session-expiry.yaml and
+# kmo-23-queue-relaunch.yaml: clearState would wipe the token and the session
+# cache this flow exists to restore from.
+- stopApp
+
+- extendedWaitUntil:
+    notVisible: 'Inicio'
+    timeout: 15000
+    label: 'The killed process’s last frame is off the screen'
+
+- openLink: kolvi://expo-development-client/?url=${DEV_SERVER}
+
+# The tab shell offers the location rationale the first time it finds no
+# permission, and that sheet is a Modal — with it up, nothing behind it is in
+# the hierarchy. Same guard, same order, as kmo-9-secure-token-restore.yaml and
+# kmo-23-queue-relaunch.yaml: wait for it optionally, dismiss it if it showed,
+# then assert the shell for real.
+- extendedWaitUntil:
+    visible: 'Kolvi usa tu ubicación al marcar'
+    timeout: 60000
+    optional: true
+    label: 'The location rationale, if this run is the first without a permission'
+
+- runFlow:
+    when:
+      visible: 'Kolvi usa tu ubicación al marcar'
+    commands:
+      - tapOn:
+          id: 'location-rationale-dismiss'
+    label: 'Dismiss it, so what follows is asserted against the tab shell'
+
+# #2 — the whole point. No connectivity, and the employee is on Inicio, not
+# `/login`: the stored token restored a session `session.tsx` could not verify,
+# off `SessionCache`'s last confirmation (§4.7 D1).
+- extendedWaitUntil:
+    visible: 'Inicio'
+    timeout: 120000
+    label: 'The punch screen, not the login screen, with no connectivity at all'
+
+- assertNotVisible: 'Ingresar'
+- assertNotVisible: 'Correo electrónico'
+
+# #3 — the strip says the session could not be confirmed, character for
+# character from src/i18n, and it is on screen precisely because this restore
+# is the case it exists for.
+- assertVisible:
+    text: 'No pudimos confirmar tu sesión con el servidor. Algunos datos podrían estar desactualizados.'
+    label: 'The unverified-session strip, verbatim'
+
+# The punch surface itself is live, not a shell with nothing behind it —
+# `ClockOwn:Mark`'s gate reads the cached permission set the same way it reads
+# a fresh one (§4.7 D3), with no new gate written for the offline case.
+- assertVisible: 'Hola, Empleado'
+
+- takeScreenshot: kmo-49-offline-cold-start

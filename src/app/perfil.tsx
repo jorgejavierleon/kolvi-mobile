@@ -4,7 +4,7 @@ import { StyleSheet } from 'react-native';
 import { useSession } from '@/features/auth/session';
 import { SignOut } from '@/features/auth/sign-out';
 import { UnlockSetting } from '@/features/auth/unlock-setting';
-import { usePunchQueue } from '@/features/marcaje/punch-queue';
+import { punchQueue, usePunchQueue } from '@/features/marcaje/punch-queue';
 import { IdentityHeader } from '@/features/profile/identity-header';
 import { es } from '@/i18n';
 import { spacing } from '@/theme';
@@ -31,7 +31,9 @@ import { Screen } from '@/ui/screen';
  */
 export default function ProfileScreen() {
   const { user } = useSession();
-  const { count: pendingPunches } = usePunchQueue();
+  // §4.7 D5 — a shared device's leftover rows from a previous sign-in must
+  // never count toward this employee's pending-punches warning.
+  const { count: pendingPunches } = usePunchQueue(punchQueue, user?.id ?? -1);
 
   return (
     <Screen

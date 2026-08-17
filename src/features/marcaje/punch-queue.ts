@@ -21,6 +21,14 @@
  * (with or without a message) means the row is settled and comes off the
  * queue; throwing means it does not, and the row — and everything queued
  * after it — waits for the next attempt.
+ *
+ * Since KMO-49, the queue is one shared table for every employee who has ever
+ * signed in on this phone, not one per session — docs/design-decisions.md
+ * §4.7 D5. `flush` is always asked for one employee's rows, never the whole
+ * table, so a device handed to the next shift mid-queue cannot flush the
+ * first employee's punches under the second employee's token: that would put
+ * a mark in the wrong person's attendance book. The unflushed rest sit inert
+ * until that employee is signed in again.
  */
 
 import { useSyncExternalStore } from 'react';
@@ -45,9 +53,15 @@ import type { PunchType } from './punch-state';
  * compliance-bearing field. `idempotencyKey` and `deviceDatetime` are both
  * written once, at the moment the punch was made, and never touched again —
  * see the header of `now-clock.ts` and docs/design-decisions.md §4.3.
+ *
+ * `userId` is the employee whose session made the punch — §4.7 D5, and never
+ * sent on the wire itself (the token already says who is asking); it is what
+ * lets `flush` and the banner tell this employee's rows from a previous
+ * one's on a shared device.
  */
 export type QueuedPunch = {
   readonly id: string;
+  readonly userId: number;
   readonly type: PunchType;
   readonly fix: LocationFix | null;
   readonly geoStatus: GeoStatus;
@@ -99,14 +113,17 @@ export type PunchQueue = {
    */
   enqueue(punch: QueuedPunch): Promise<void>;
   /**
-   * Try to transmit everything, oldest first.
+   * Try to transmit everything **this employee's** token may flush, oldest
+   * first (§4.7 D5). A row belonging to a different `userId` — left behind by
+   * a previous sign-in on this phone — is never touched by this call, not
+   * skipped-and-retried: it waits for that employee to sign in again.
    *
    * `online` is the phone's opinion and is used for one thing: saying why,
    * immediately, instead of spending a doomed round trip on a radio that is
    * off. It is never what decides that a punch belongs in the queue — see the
    * header of `connectivity.ts`.
    */
-  flush(options: { sync: PunchSync; online?: boolean }): Promise<void>;
+  flush(options: { sync: PunchSync; userId: number; online?: boolean }): Promise<void>;
 };
 
 /**
@@ -167,14 +184,20 @@ export function createPunchQueue(
       set({ entries: [...state.entries, punch] });
     },
 
-    flush: async ({ sync, online = true }) => {
+    flush: async ({ sync, userId, online = true }) => {
       await hydrated;
+
+      // §4.7 D5 — a row left behind by a different employee's sign-in is not
+      // this flush's to touch. Filtering rather than a separate per-employee
+      // queue keeps "oldest first" true for free: the subset preserves the
+      // full table's insertion order.
+      const pending = state.entries.filter((entry) => entry.userId === userId);
 
       // A second press while the first is still going is not a second flush.
       // Two passes over the same rows would post each punch twice, and the
       // §4.3 idempotency key is the server's guard rather than an excuse to
       // send one.
-      if (state.syncing || state.entries.length === 0) {
+      if (state.syncing || pending.length === 0) {
         return;
       }
 
@@ -193,8 +216,7 @@ export function createPunchQueue(
       // after the salida that followed it, and a queue that carried on past
       // that kind of failure would report the last error rather than the one
       // that stopped it.
-      const pending = [...state.entries];
-      let settled = 0;
+      const settled = new Set<string>();
       let failure: string | null = null;
       let notice: string | null = null;
 
@@ -202,7 +224,7 @@ export function createPunchQueue(
         try {
           const result = await sync(entry);
           await store.remove(entry.id);
-          settled += 1;
+          settled.add(entry.id);
 
           if (result?.message !== undefined) {
             notice = result.message;
@@ -213,12 +235,14 @@ export function createPunchQueue(
         }
       }
 
-      // Only what settled. Rows added while the flush was in flight are still
-      // in `state.entries` and are kept — dropping by count from the head
-      // rather than replacing the array is what makes a punch made mid-sync
-      // survive it.
+      // Only what settled, by id rather than by count from the head: `pending`
+      // is this employee's subset, not a prefix of `state.entries`, so a count
+      // would drop the wrong rows the moment a second employee's are mixed in.
+      // Rows added to `state.entries` while the flush was in flight — this
+      // employee's or another's — are kept either way, since they were never
+      // in `settled`.
       set({
-        entries: state.entries.slice(settled),
+        entries: state.entries.filter((entry) => !settled.has(entry.id)),
         syncing: false,
         lastError: failure,
         lastNotice: notice,
@@ -240,13 +264,23 @@ export type PunchQueueReading = PunchQueueState & {
   readonly count: number;
 };
 
-export function usePunchQueue(queue: PunchQueue = punchQueue): PunchQueueReading {
+/**
+ * `userId` is required, not defaulted, on purpose (§4.7 D5): the table behind
+ * `queue` can hold more than one employee's rows, and a caller that forgot to
+ * filter would show one employee's pending punches to whoever is signed in
+ * next. Both readers of this hook — the banner and Cerrar sesión's pending
+ * count — are behind the `signedIn` guard, so a real employee id is always at
+ * hand.
+ */
+export function usePunchQueue(queue: PunchQueue = punchQueue, userId: number): PunchQueueReading {
   const state = useSyncExternalStore(
     (listener) => queue.subscribe(listener),
     () => queue.getState(),
   );
 
-  return { ...state, count: state.entries.length };
+  const entries = state.entries.filter((entry) => entry.userId === userId);
+
+  return { ...state, entries, count: entries.length };
 }
 
 /**

@@ -25,9 +25,11 @@ function fakeDatabase() {
     execAsync: jest.fn(async () => undefined),
     runAsync: jest.fn(async (sql: string, ...params: unknown[]) => {
       if (sql.trim().startsWith('INSERT')) {
-        const [id, type, idempotencyKey, deviceDatetime, lat, lng, accuracyM, geoStatus] = params;
+        const [id, userId, type, idempotencyKey, deviceDatetime, lat, lng, accuracyM, geoStatus] =
+          params;
         rows.push({
           id,
+          user_id: userId,
           type,
           idempotency_key: idempotencyKey,
           device_datetime: deviceDatetime,
@@ -59,6 +61,7 @@ function fakeDatabase() {
 function punch(id: string, overrides: Partial<QueuedPunch> = {}): QueuedPunch {
   return {
     id,
+    userId: 1,
     type: 'in' as PunchType,
     fix: null,
     geoStatus: 'unknown' as GeoStatus,
@@ -133,6 +136,7 @@ describe('createSqlitePunchQueueStore (KMO-23 #1, #2)', () => {
     expect(await store.load()).toEqual([
       {
         id: 'a',
+        userId: 1,
         type: 'out',
         idempotencyKey: '0f9c4e6a-3b21-4d7f-9a58-1c2e7b40d913',
         deviceDatetime: '2026-08-07 08:03:11',
@@ -171,6 +175,21 @@ describe('createSqlitePunchQueueStore (KMO-23 #1, #2)', () => {
     await store.remove('a');
 
     expect((await store.load()).map((row) => row.id)).toEqual(['b']);
+  });
+
+  // §4.7 D5 — the column both queue-to-employee readers (`punch-queue.ts`'s
+  // `flush` and `usePunchQueue`) filter on has to survive the round trip.
+  it('keeps each row’s employee id, across two different employees', async () => {
+    openDatabaseAsync.mockResolvedValue(fakeDatabase());
+
+    const store = createSqlitePunchQueueStore('test.db');
+    await store.append(punch('a', { userId: 1 }));
+    await store.append(punch('b', { userId: 2 }));
+
+    expect((await store.load()).map((row) => [row.id, row.userId])).toEqual([
+      ['a', 1],
+      ['b', 2],
+    ]);
   });
 
   it('degrades to an empty queue when the database will not answer', async () => {

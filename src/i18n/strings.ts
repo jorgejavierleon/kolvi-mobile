@@ -87,13 +87,46 @@ export const es = {
     sessionExpired: 'Tu sesión terminó. Vuelve a ingresar para continuar.',
 
     /**
+     * A session running unverified past docs/design-decisions.md §4.7 D1's 24 h
+     * bound (KMO-49 #4). Distinct from `sessionExpired`: the server never
+     * actually refused this token, so the sentence does not claim it did —
+     * this phone simply went too long without a way to ask.
+     */
+    offlineSessionExpired:
+      'No pudimos confirmar tu sesión con el servidor por más de 24 horas. Conéctate y vuelve a ingresar.',
+
+    /**
+     * A cold start with no stored token and no connectivity (§4.7 D2, KMO-49
+     * #5). `POST /api/v1/sanctum/token` is the only way to get a token, so an
+     * employee at a dead site is not looking at a broken form — they are
+     * looking at the one screen action in this app that cannot be deferred to
+     * a queue the way a punch can.
+     */
+    signInNeedsConnection: 'Necesitas conexión a internet para iniciar sesión.',
+
+    /**
+     * The tab-shell strip for a `signedIn` session with `verified: false`
+     * (§4.7 D2). Neutral, not warning: an unverified session is not yet a
+     * problem the way an unsynced punch is, and it says so calmly rather than
+     * every time a lift blocks the signal for a few seconds — it only shows
+     * at all once a cold start has actually failed to reach the server.
+     */
+    unverifiedSession:
+      'No pudimos confirmar tu sesión con el servidor. Algunos datos podrían estar desactualizados.',
+
+    /**
      * Cerrar sesión (KMO-12).
      *
-     * Signing out is destructive in a way the word does not suggest: it revokes
-     * this phone's token and drops anything the phone was still holding. So it is
-     * confirmed rather than done on one tap, and the confirmation says what
-     * happens rather than asking `¿Estás seguro?` — a question with no
-     * consequences in it is one employees learn to tap through.
+     * Signing out is not the small thing the word suggests: it revokes this
+     * phone's token, which is the only credential to this employee's account
+     * it holds. So it is confirmed rather than done on one tap, and the
+     * confirmation says what happens rather than asking `¿Estás seguro?` — a
+     * question with no consequences in it is one employees learn to tap
+     * through.
+     *
+     * What it does *not* do, since KMO-49 (§4.7 D4): destroy a queued punch.
+     * `forget()` has never touched the punch queue, only the token — the
+     * pending-punches variant below says so, rather than the opposite.
      */
     signOut: {
       /** The row on Mi perfil, and the sheet's own confirm button. */
@@ -1289,11 +1322,18 @@ export function passwordResetSent(email: string): string {
   return `Si ${email} tiene una cuenta en Kolvi, te enviamos un enlace para crear una contraseña nueva. Ábrelo en este teléfono dentro de los próximos 60 minutos. Si no lo ves, revisa la carpeta de spam o correo no deseado.`;
 }
 
+/**
+ * The sign-out sheet with punches still queued (docs/design-decisions.md §4.7
+ * D4, KMO-49 #8). Not a warning against a real loss — signing out has never
+ * touched the queue — so it says what actually happens: the punches stay on
+ * the phone and send once this employee is signed in again, bound to them
+ * alone (D5) so nobody else's sign-in can flush them in the meantime.
+ */
 export function unsyncedPunchesWarning(count: number): string {
   const marks = count === 1 ? '1 marca registrada' : `${count} marcas registradas`;
-  const lost = count === 1 ? 'Se perderá' : 'Se perderán';
+  const stays = count === 1 ? 'Se quedará guardada' : 'Se quedarán guardadas';
 
-  return `Tienes ${marks} en este teléfono que aún no llegan al servidor. ${lost} al cerrar sesión y no quedarán en tu registro de asistencia. Conéctate y sincroniza antes de salir.`;
+  return `Tienes ${marks} en este teléfono que aún no llegan al servidor. ${stays} en el teléfono y se enviarán cuando vuelvas a iniciar sesión con esta cuenta y tengas conexión.`;
 }
 
 /**

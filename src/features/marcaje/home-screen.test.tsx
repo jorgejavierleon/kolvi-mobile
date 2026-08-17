@@ -2,7 +2,13 @@ import { act, render, screen, userEvent, waitFor } from '@testing-library/react-
 import type { ReactNode } from 'react';
 import { SafeAreaProvider, type Metrics } from 'react-native-safe-area-context';
 
-import { ApiError, type NaiveDate, type NaiveDateTime, type NaiveTime } from '@/api';
+import {
+  ApiError,
+  type ConnectivitySource,
+  type NaiveDate,
+  type NaiveDateTime,
+  type NaiveTime,
+} from '@/api';
 import { es } from '@/i18n';
 import { tones } from '@/theme';
 
@@ -11,7 +17,6 @@ import { employeePermissions, parsePermissions, type Permission } from '../auth/
 import { SessionProvider } from '../auth/session';
 import type { SessionUser } from '../auth/session-user';
 import { createMemoryTokenStore } from '../auth/token-store';
-import type { ConnectivitySource } from './connectivity';
 import { HomeScreen } from './home-screen';
 import { CLOCK_TICK_MS } from './now-clock';
 import type { LocationFix } from './geofence';
@@ -1195,13 +1200,18 @@ describe('the pending-sync banner (KMO-22)', () => {
     return found;
   }
 
-  /** A queue already holding punches, as `use-punch.ts` fills it (KMO-23). */
+  /**
+   * A queue already holding punches, as `use-punch.ts` fills it (KMO-23) —
+   * `userId: 5` matches `sessionUser`'s own id (§4.7 D5), the employee this
+   * file's screens are always mounted signed in as.
+   */
   async function queueHolding(count: number): Promise<PunchQueue> {
     const queue = createPunchQueue();
 
     for (let index = 0; index < count; index += 1) {
       await queue.enqueue({
         id: `q${index}`,
+        userId: 5,
         type: index % 2 === 0 ? 'in' : 'out',
         fix: null,
         geoStatus: 'unknown',
@@ -1437,6 +1447,7 @@ describe('the pending-sync banner (KMO-22)', () => {
 
       await act(async () => {
         await queue.flush({
+          userId: 5,
           sync: async () => ({ message: 'La marca es demasiado antigua para transmitirse.' }),
         });
       });

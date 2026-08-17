@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 
-import type { ConnectivitySource } from './connectivity';
+import type { ConnectivitySource } from '@/api';
 import { useConnectivity } from './use-connectivity';
 
 /**

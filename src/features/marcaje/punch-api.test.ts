@@ -328,6 +328,7 @@ describe('a punch that already exists for today', () => {
 function queuedPunch(overrides: Partial<QueuedPunch> = {}): QueuedPunch {
   return {
     id: 'row-1',
+    userId: 1,
     type: 'in',
     fix: { latitude: -33.4569, longitude: -70.5975, accuracyMeters: 12.4 },
     geoStatus: 'inside',

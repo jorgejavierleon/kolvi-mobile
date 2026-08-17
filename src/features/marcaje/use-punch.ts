@@ -92,6 +92,14 @@ export type UsePunchOptions = {
    * off this; nothing in this ticket consumes it.
    */
   onQueued?: (punch: QueuedPunch) => void;
+  /**
+   * Whose token made this punch (docs/design-decisions.md §4.7 D5) — stamped
+   * on the `QueuedPunch` this hook builds on a connectivity failure, so a
+   * shared device's queue can never flush this row under a different
+   * employee's sign-in later. The screen that mounts this hook is always
+   * behind the `signedIn` guard, so a real id is always at hand.
+   */
+  userId: number;
   /** Injected in tests; the app uses the configured client. */
   api?: PunchApi;
   /** Injected in tests; the app uses the process-wide queue. */
@@ -107,10 +115,11 @@ export function usePunch({
   onPunched,
   onAlreadyMarked,
   onQueued,
+  userId,
   api,
   queue = appPunchQueue,
   clock,
-}: UsePunchOptions = {}): Punch {
+}: UsePunchOptions): Punch {
   // Built once, like `useToday`'s: a caller passing a fresh object each render
   // would rebuild the client on every keystroke elsewhere on the screen.
   const punchApi = useMemo(() => api ?? createPunchApi(), [api]);
@@ -191,6 +200,7 @@ export function usePunch({
           // change below sits after the `await` rather than before it.
           const queued: QueuedPunch = {
             id: Crypto.randomUUID(),
+            userId,
             type,
             fix,
             geoStatus,
@@ -217,7 +227,18 @@ export function usePunch({
         inFlight.current = false;
       }
     })();
-  }, [current, fix, geoStatus, onAlreadyMarked, onPunched, onQueued, punchApi, queue, clock]);
+  }, [
+    current,
+    fix,
+    geoStatus,
+    onAlreadyMarked,
+    onPunched,
+    onQueued,
+    punchApi,
+    queue,
+    clock,
+    userId,
+  ]);
 
   return useMemo(
     () => ({ ...attempt, state: current, receipt, punch }),

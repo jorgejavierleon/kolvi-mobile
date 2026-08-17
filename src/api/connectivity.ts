@@ -1,6 +1,9 @@
 /**
  * Whether the phone thinks it can reach anything — the only module that imports
- * `expo-network` (KMO-22).
+ * `expo-network` (KMO-22). Lives here rather than under `marcaje/`, which built
+ * it, because `session.tsx` needs the same reading since KMO-49 and a feature
+ * never imports another feature — this is the device-capability primitive the
+ * README's rule sends to `api/`, alongside `datetime.ts`, not an endpoint.
  *
  * **This flag is optimism, not authority.** What it reports is what the OS
  * believes about the radio; what decides whether a punch is queued is a request

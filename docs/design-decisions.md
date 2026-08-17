@@ -302,6 +302,70 @@ the same way, though neither is squarely on point — a queued mark is not an *a
 precisely why its provenance has to be stated rather than left to resemble an ordinary
 transmission.
 
+### 4.7 The session offline — how long a phone is trusted with nobody to ask
+
+§4.1–§4.6 settled the *punch*. They say nothing about the *session* it is made under, and
+without an answer the queue is unreachable: `session.tsx` restores by calling `GET /api/v1/user`
+and signs out on any failure, including one that never reached the server — so a cold start with
+no signal has always landed on the login screen, and the punch button the employee opened the
+app for is not on it. This is KMO-49's output, decided against KMO-21's compliance position
+rather than convenience.
+
+**This section is not itself a Res. 38 obligation** — the regulation governs the mark, not how
+long a login is trusted — but it is not written on a blank page either. An offline session is
+exactly the mechanism Art. 14 a) i) requires a guard against: `Las bases de datos deberán tener
+sistemas de seguridad que… impidan el acceso a personal no autorizado`. A phone trusted
+indefinitely with nobody to ask is unauthorised access waiting for a reason, and the four
+decisions below are what keep the Art. 10 exception from becoming that reason.
+
+**D1 — 24 hours, rolling from the last confirmed `GET /api/v1/user`.** Signing in, a cold-start
+restore that reaches the server, and the background reconfirm on connectivity return (below) all
+reset it. Indefinite trust is the Art. 14 a) i) risk above; an arbitrary short bound is merely
+convenient. 24 h is neither — it is the boundary §4.4 already accepted: past it an unsynced
+punch stops being insertable as an ordinary mark and is filed through the Art. 39 b)/40 pathway
+instead, so trusting the *session* longer than that buys no additional attendance value while
+extending exactly the exposure Art. 14 a) i) names. The two windows are different claims (one
+about a mark, one about a login) that happen to share a justification, so they share a number
+rather than each inventing its own.
+
+**D2 — what the employee is told, and when it stops.** A calm, neutral strip — not the pending-
+sync banner's warning tone, because an unverified session is not yet a problem the way an
+unsynced punch is — reading `No pudimos confirmar tu sesión con el servidor. Algunos datos
+podrían estar desactualizados.`, visible on every tab while the session is unverified and gone
+the instant a reconfirm succeeds. It appears only when a cold start could not reach the server at
+all — never for an ordinary mid-session signal drop, which the pending-sync banner already
+covers and which does not call `GET /api/v1/user` again until the next cold start or reconnect.
+That is the "crying wolf" line: a lift blocking signal for ninety seconds mid-shift is not this
+banner's business, and the difference is exactly what keeps it worth reading when it does appear.
+
+**D3 — offline permission gating: the last known set, nothing fresher available.** `session.can()`
+already gates the punch surface on `user.permissions`; caching the last confirmed `SessionUser`
+(D1's mechanism) and restoring it offline makes an unverified session gate the same way a
+verified one does, with no new gate to write. **Mid-session deactivation cannot be detected
+offline** — `ams` checks `is_active` at token issue only (KMO-11 AC#4, PRD A7/A8), which is
+already true of the *online* app today, not a hole this ticket opens. D1's bound is what limits
+how long a deactivated employee's last-known permissions keep working with nobody to ask; it is
+a mitigation on an existing gap, not a fix to it, and closing the gap itself is `ams`'s to do
+against the same `is_active` guard KMO-11 already named.
+
+**D4 — signing out with a non-empty queue never discards it.** The employee-facing copy this
+superseded said the opposite (`Se perderán al cerrar sesión`) — which was already inaccurate
+before this ticket, since `forget()` has never touched the punch queue, only the token. Made
+accurate rather than made true: a queued punch is captured-and-stored under Art. 10 regardless of
+whose token is live, discarding it on a sign-out would be the app destroying evidence of a real
+punch with no server ever having seen it, and D5 is what makes leaving it in place safe on a
+shared device. The confirmation sheet with punches pending now says they are saved on the phone
+and will send once that employee signs back in — not that signing out costs them.
+
+**D5 — a queued punch is bound to the employee who made it.** Every row the queue holds carries
+the `user_id` of the session that enqueued it, and both what the employee sees (the pending-sync
+count) and what a flush attempts are filtered to whoever is signed in now. A device an employee
+hands to the next shift, mid-queue, cannot flush the first employee's punches under the second
+employee's token — that would put a mark in the wrong person's attendance book, which is an
+adulteration this design does not get to cause on the way to fixing another one. The unflushed
+rows stay on the phone, inert and invisible to anyone but the employee who made them, until that
+employee is signed in again.
+
 ## 5. Authentication
 
 | # | Decision |

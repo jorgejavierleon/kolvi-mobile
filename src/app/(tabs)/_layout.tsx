@@ -1,6 +1,7 @@
 import { Tabs, type BottomTabBarProps } from 'expo-router/js-tabs';
 
 import { useSession } from '@/features/auth/session';
+import { UnverifiedSessionBanner } from '@/features/auth/unverified-session-banner';
 import { usePendingCorrections } from '@/features/jornada/use-pending-corrections';
 import { es, tabWithPendingCount } from '@/i18n';
 import { colors } from '@/theme';
@@ -146,14 +147,23 @@ function KolviTabBar({ state, navigation }: BottomTabBarProps) {
  */
 export default function TabsLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        // Each tab draws its own header inside its scroll area, as the design
-        // does; see `ScreenHeader`.
-        headerShown: false,
-        sceneStyle: { backgroundColor: colors.surfacePage },
-      }}
-      tabBar={(props: BottomTabBarProps) => <KolviTabBar {...props} />}
-    />
+    <>
+      {/* Above the navigator, not inside any one tab's own `Screen` — a
+          session fact is true on every tab at once (docs/design-decisions.md
+          §4.7 D2). Draws its own top inset only when it has something to
+          show, so a verified session — nearly always — gets no dead space
+          above the tab it's actually on. */}
+      <UnverifiedSessionBanner />
+
+      <Tabs
+        screenOptions={{
+          // Each tab draws its own header inside its scroll area, as the design
+          // does; see `ScreenHeader`.
+          headerShown: false,
+          sceneStyle: { backgroundColor: colors.surfacePage },
+        }}
+        tabBar={(props: BottomTabBarProps) => <KolviTabBar {...props} />}
+      />
+    </>
   );
 }

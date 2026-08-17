@@ -21,7 +21,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { createConnectivitySource, type ConnectivitySource } from './connectivity';
+import { createConnectivitySource, type ConnectivitySource } from '@/api';
 
 export type UseConnectivityOptions = {
   /** Injected in tests; the app reads the phone. */

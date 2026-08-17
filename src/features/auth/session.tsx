@@ -9,6 +9,11 @@
  * The token lives behind `TokenStore`, which is the platform keystore in the app and
  * memory in the tests. Where it sits is entirely that module's business; this one
  * decides only when it is read, written and forgotten.
+ *
+ * Since KMO-49, a fourth thing: whether the server actually said so. A cold start
+ * with a live token and no signal restores `signedIn` off `SessionCache`'s last
+ * confirmation rather than the login screen — docs/design-decisions.md §4.7 is the
+ * decision record and `verified` on `Session` is how a screen tells the two apart.
  */
 
 import {
@@ -22,7 +27,13 @@ import {
   type ReactNode,
 } from 'react';
 
-import { configureApi, isApiError, type ApiClient } from '@/api';
+import {
+  configureApi,
+  createConnectivitySource,
+  isApiError,
+  type ApiClient,
+  type ConnectivitySource,
+} from '@/api';
 import { es } from '@/i18n';
 
 import {
@@ -34,8 +45,21 @@ import {
 } from './auth-api';
 import { resolveDeviceName } from './device-name';
 import { noPermissions, type Permission, type PermissionSet } from './permissions';
+import { createSecureSessionCache, type SessionCache } from './session-cache';
 import type { SessionUser } from './session-user';
 import { createSecureTokenStore, type TokenStore } from './token-store';
+
+/**
+ * docs/design-decisions.md §4.7 D1 — how long a session runs on the last
+ * confirmed `GET /api/v1/user` before it must reconfirm or end. Shared between
+ * the cold-start restore and the background bound check below, so the two
+ * enforce the same number by construction rather than by two constants staying
+ * in sync.
+ */
+export const OFFLINE_SESSION_LIFETIME_MS = 24 * 60 * 60 * 1000;
+
+/** How often a running-but-unverified session re-checks the bound above. */
+const OFFLINE_BOUND_CHECK_INTERVAL_MS = 60_000;
 
 /**
  * `restoring` is the first frame, before the store has been asked whether there is
@@ -68,6 +92,15 @@ export type Session = {
   readonly user: SessionUser | null;
   /** Set when the server ended this session; cleared by the next sign-in. */
   readonly ended: SessionEnd | null;
+  /**
+   * Whether the server has confirmed this session, not merely the phone's own
+   * memory of it (docs/design-decisions.md §4.7). Always `true` once signed in
+   * the ordinary way; `false` only for a `signedIn` session restored from the
+   * cache on a cold start that could not reach the server, until the next
+   * confirmation succeeds or docs/design-decisions.md §4.7's 24 h bound ends it.
+   * Meaningless while `status` is not `signedIn`.
+   */
+  readonly verified: boolean;
   /** What the server says this employee may do. Empty unless signed in. */
   readonly permissions: PermissionSet;
   /**
@@ -87,6 +120,10 @@ export type SessionProviderProps = {
   tokenStore?: TokenStore;
   authApi?: AuthApi;
   deviceName?: () => Promise<string>;
+  /** Injected in tests, which use the in-memory cache rather than the keystore. */
+  sessionCache?: SessionCache;
+  /** Injected in tests; the app reads the phone (§4.7). */
+  connectivitySource?: ConnectivitySource;
 };
 
 export function SessionProvider({
@@ -94,13 +131,21 @@ export function SessionProvider({
   tokenStore,
   authApi,
   deviceName = resolveDeviceName,
+  sessionCache,
+  connectivitySource,
 }: SessionProviderProps) {
   const store = useMemo(() => tokenStore ?? createSecureTokenStore(), [tokenStore]);
   const api = useMemo(() => authApi ?? createAuthApi(), [authApi]);
+  const cache = useMemo(() => sessionCache ?? createSecureSessionCache(), [sessionCache]);
+  const connectivity = useMemo(
+    () => connectivitySource ?? createConnectivitySource(),
+    [connectivitySource],
+  );
 
   const [status, setStatus] = useState<SessionStatus>('restoring');
   const [user, setUser] = useState<SessionUser | null>(null);
   const [ended, setEnded] = useState<SessionEnd | null>(null);
+  const [verified, setVerified] = useState<boolean>(true);
 
   // The token is read by the API client on every request, from a callback that
   // must not go stale, so it lives in a ref and the state above is only what the
@@ -108,23 +153,51 @@ export function SessionProvider({
   const token = useRef<string | null>(null);
 
   /**
+   * When the current `user` was last confirmed by the server, off the device
+   * clock — a trust window (§4.7), never a legal timestamp, and never sent
+   * anywhere. A ref because the bound-check interval below reads it without
+   * wanting to restart every time it moves. `0` is never read as a real value:
+   * every path that sets `verified` to `false` sets this in the same breath,
+   * and nothing consults it otherwise — `Date.now()` itself cannot seed it
+   * here, since a render body may not call an impure function.
+   */
+  const verifiedAt = useRef<number>(0);
+
+  /**
    * End the session and leave nothing of the employee behind (#5).
    *
-   * Every field the app knows about an employee is either the token or derived
-   * from `user` — the name, the RUT, the permissions `can()` answers from — so
-   * dropping both is what makes the data unreadable rather than merely unrendered.
-   * Nothing else is cached today; anything that starts caching has to be cleared
-   * from here too.
+   * Every field the app knows about an employee is either the token, derived
+   * from `user`, or the session cache's own copy of both (§4.7) — so dropping
+   * all three is what makes the data unreadable rather than merely unrendered.
+   * Anything that starts caching beyond this has to be cleared from here too.
    */
   const forget = useCallback(
     async (end: SessionEnd | null) => {
       token.current = null;
       await store.clear();
+      await cache.clear();
       setUser(null);
       setEnded(end);
+      setVerified(true);
       setStatus('signedOut');
     },
-    [store],
+    [store, cache],
+  );
+
+  /**
+   * Record a server confirmation — the moment `verified` becomes (or stays)
+   * true. Both halves matter: the ref is what the bound check and a later
+   * offline restore measure against, and the cache is what makes that restore
+   * possible at all on a cold start with no signal.
+   */
+  const persist = useCallback(
+    async (confirmed: SessionUser): Promise<void> => {
+      const now = Date.now();
+
+      verifiedAt.current = now;
+      await cache.write({ user: confirmed, verifiedAt: new Date(now).toISOString() });
+    },
+    [cache],
   );
 
   /**
@@ -177,29 +250,93 @@ export function SessionProvider({
     let cancelled = false;
 
     const restore = async () => {
-      try {
-        const stored = await store.read();
+      const stored = await store.read();
 
-        if (stored === null || stored.length === 0) {
-          throw new Error('No stored token');
-        }
-
-        token.current = stored;
-        const restored = await api.fetchSessionUser(stored);
-
-        if (!cancelled) {
-          setUser(restored);
-          setStatus('signedIn');
-        }
-      } catch (error) {
-        // A token the server no longer accepts, or none at all. Either way the
-        // employee starts at the login screen rather than at a tab that 401s.
-        token.current = null;
-        await store.clear();
+      if (stored === null || stored.length === 0) {
+        // Nothing to restore — the ordinary "never signed in" case, which says
+        // nothing (KMO-11 #1). One exception (§4.7 D2/#5): a phone with no
+        // signal cannot sign in either, since `POST /api/v1/sanctum/token` is
+        // the only way to get a token, and an employee opening the app for the
+        // first time at a dead site deserves that reason rather than a blank
+        // form. `getState()` reads the OS, not a request — no round trip spent
+        // finding this out.
+        const offline = !(await connectivity.getState());
 
         if (!cancelled) {
           setUser(null);
-          setEnded(sessionEndFrom(error));
+          setEnded(offline ? { message: es.auth.signInNeedsConnection } : null);
+          setStatus('signedOut');
+        }
+
+        return;
+      }
+
+      token.current = stored;
+
+      try {
+        const restored = await api.fetchSessionUser(stored);
+        await persist(restored);
+
+        if (!cancelled) {
+          setUser(restored);
+          setVerified(true);
+          setStatus('signedIn');
+        }
+      } catch (error) {
+        if (isApiError(error) && !error.isConnectivityFailure) {
+          // The server actually answered, and the answer was no — a dead
+          // token, same as before this ticket.
+          token.current = null;
+          await store.clear();
+          await cache.clear();
+
+          if (!cancelled) {
+            setUser(null);
+            setEnded(sessionEndFrom(error));
+            setStatus('signedOut');
+          }
+
+          return;
+        }
+
+        // The request never reached the server. §4.7: fall back to the last
+        // confirmation this phone has, within D1's 24 h — an unverifiable
+        // token has not expired, and a basement with no signal is not a
+        // reason to send the employee back to the login screen they cannot
+        // usefully retry from either.
+        const cached = await cache.read();
+        const withinBound =
+          cached !== null &&
+          Date.now() - Date.parse(cached.verifiedAt) < OFFLINE_SESSION_LIFETIME_MS;
+
+        if (withinBound) {
+          verifiedAt.current = Date.parse(cached.verifiedAt);
+
+          if (!cancelled) {
+            setUser(cached.user);
+            setVerified(false);
+            setEnded(null);
+            setStatus('signedIn');
+          }
+
+          return;
+        }
+
+        // Ends either way, but only one of these two is a fact this app is
+        // entitled to state. A cache past its bound genuinely ran out the
+        // clock on §4.7 D1 and says so. No cache at all means this token was
+        // never confirmed online in the first place — `signIn` always writes
+        // one, so a live token with nothing behind it is a token from before
+        // this app cached anything, or a test that wrote one directly — and
+        // that token has not been told anything by anyone, so neither is this
+        // employee (KMO-11's original reasoning, unchanged for this case).
+        token.current = null;
+        await store.clear();
+        await cache.clear();
+
+        if (!cancelled) {
+          setUser(null);
+          setEnded(cached === null ? null : { message: es.auth.offlineSessionExpired });
           setStatus('signedOut');
         }
       }
@@ -210,7 +347,67 @@ export function SessionProvider({
     return () => {
       cancelled = true;
     };
-  }, [api, store]);
+  }, [api, store, cache, connectivity, persist]);
+
+  /**
+   * Keeps a running-but-unverified session honest (§4.7 D1/D2): tries to
+   * reconfirm whenever the phone might be able to reach the server, and ends
+   * the session if the bound elapses before one succeeds. Scoped to
+   * `!verified` so it does nothing — no timer, no subscription — for the
+   * overwhelming majority of sessions that never enter this state at all.
+   */
+  useEffect(() => {
+    if (status !== 'signedIn' || verified) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const reconfirm = async () => {
+      if (token.current === null) {
+        return;
+      }
+
+      try {
+        const confirmed = await api.fetchSessionUser(token.current);
+        await persist(confirmed);
+
+        if (!cancelled) {
+          setUser(confirmed);
+          setVerified(true);
+          setEnded(null);
+        }
+      } catch (error) {
+        if (isApiError(error) && !error.isConnectivityFailure && !cancelled) {
+          void forget({ message: es.auth.sessionExpired });
+        }
+        // A connectivity failure here means the retry was as unlucky as the
+        // restore that started this: stay unverified and wait for the next
+        // edge, or the bound below.
+      }
+    };
+
+    const onOnline = (online: boolean): void => {
+      if (online) {
+        void reconfirm();
+      }
+    };
+
+    void connectivity.getState().then(onOnline);
+    const unsubscribe = connectivity.subscribe(onOnline);
+
+    const boundCheck = setInterval(() => {
+      if (Date.now() - verifiedAt.current >= OFFLINE_SESSION_LIFETIME_MS) {
+        void forget({ message: es.auth.offlineSessionExpired });
+      }
+    }, OFFLINE_BOUND_CHECK_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+      clearInterval(boundCheck);
+    };
+  }, [status, verified, api, persist, forget, connectivity]);
 
   const signIn = useCallback(
     async (credentials: Credentials): Promise<SignInOutcome> => {
@@ -223,11 +420,13 @@ export function SessionProvider({
         await store.write(issued);
 
         const signedIn = await api.fetchSessionUser(issued);
+        await persist(signedIn);
 
         // A new session re-arms the expiry announcement the previous one latched.
         clientRef.current?.resetSession();
 
         setUser(signedIn);
+        setVerified(true);
         setEnded(null);
         setStatus('signedIn');
 
@@ -241,7 +440,7 @@ export function SessionProvider({
         return { ok: false, failure: authFailureFrom(error) };
       }
     },
-    [api, deviceName, forget, store],
+    [api, deviceName, forget, persist, store],
   );
 
   const permissions = user?.permissions ?? noPermissions;
@@ -251,12 +450,13 @@ export function SessionProvider({
       status,
       user,
       ended,
+      verified,
       permissions,
       can: (permission: Permission) => permissions.has(permission),
       signIn,
       signOut,
     }),
-    [ended, permissions, signIn, signOut, status, user],
+    [ended, permissions, signIn, signOut, status, user, verified],
   );
 
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
@@ -266,10 +466,12 @@ export function SessionProvider({
  * Whether a failed request is the server refusing this session, and what to say
  * about it.
  *
- * Only a 401. A stored token that could not be checked because the phone has no
- * signal has not expired, and telling an employee in a warehouse basement that
- * their session ended would be the app inventing a fact — KMO-49 decides what
- * that case should do instead of signing out.
+ * Only a 401. Every other server-answered failure still ends a *restore* here —
+ * unchanged since KMO-11 — but says nothing about why, since only a dead token
+ * means the session itself is over. A request that never reached the server at
+ * all does not call this: `restore()`'s own branch on `isConnectivityFailure`
+ * keeps it out, because a phone with no signal has not been told its session
+ * expired by anyone (§4.7).
  */
 function sessionEndFrom(error: unknown): SessionEnd | null {
   return isApiError(error) && error.kind === 'unauthorized'

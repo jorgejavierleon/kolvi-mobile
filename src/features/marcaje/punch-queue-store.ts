@@ -80,7 +80,7 @@ export function createSqlitePunchQueueStore(databaseName: string = DATABASE_NAME
         const rows = await (
           await db
         ).getAllAsync<PunchQueueRow>(
-          'SELECT id, type, idempotency_key, device_datetime, lat, lng, accuracy_m, geo_status FROM punch_queue ORDER BY seq ASC',
+          'SELECT id, user_id, type, idempotency_key, device_datetime, lat, lng, accuracy_m, geo_status FROM punch_queue ORDER BY seq ASC',
         );
 
         return rows.map(fromRow);
@@ -90,15 +90,16 @@ export function createSqlitePunchQueueStore(databaseName: string = DATABASE_NAME
     },
 
     append: async (punch) => {
-      const { id, type, idempotencyKey, deviceDatetime, fix, geoStatus } = punch;
+      const { id, userId, type, idempotencyKey, deviceDatetime, fix, geoStatus } = punch;
 
       await (
         await db
       ).runAsync(
         `INSERT INTO punch_queue
-           (id, type, idempotency_key, device_datetime, lat, lng, accuracy_m, geo_status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, user_id, type, idempotency_key, device_datetime, lat, lng, accuracy_m, geo_status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         id,
+        userId,
         type,
         idempotencyKey,
         deviceDatetime,
@@ -117,6 +118,7 @@ export function createSqlitePunchQueueStore(databaseName: string = DATABASE_NAME
 
 type PunchQueueRow = {
   id: string;
+  user_id: number;
   type: string;
   idempotency_key: string;
   device_datetime: string;
@@ -134,6 +136,7 @@ function fromRow(row: PunchQueueRow): QueuedPunch {
 
   return {
     id: row.id,
+    userId: row.user_id,
     type: row.type as PunchType,
     idempotencyKey: row.idempotency_key,
     // Cast rather than `naiveDateTime()`: this module wrote the column itself,
@@ -153,10 +156,15 @@ function fromRow(row: PunchQueueRow): QueuedPunch {
  */
 function openDatabase(databaseName: string): Promise<SQLite.SQLiteDatabase> {
   return SQLite.openDatabaseAsync(databaseName).then(async (db) => {
+    // `user_id` (§4.7 D5) is part of this `CREATE TABLE` rather than a
+    // migration bolted on after it: no pilot or production install of this
+    // app exists yet — KMO-23 shipped the table itself on the same basis —
+    // so there is no row anywhere that predates the column.
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS punch_queue (
         seq INTEGER PRIMARY KEY AUTOINCREMENT,
         id TEXT NOT NULL UNIQUE,
+        user_id INTEGER NOT NULL,
         type TEXT NOT NULL,
         idempotency_key TEXT NOT NULL,
         device_datetime TEXT NOT NULL,

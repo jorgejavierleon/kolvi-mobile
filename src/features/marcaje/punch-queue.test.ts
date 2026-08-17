@@ -15,6 +15,7 @@ import type { PunchQueueStore } from './punch-queue-store';
 function punch(id: string, overrides: Partial<QueuedPunch> = {}): QueuedPunch {
   return {
     id,
+    userId: 1,
     type: 'in',
     fix: null,
     geoStatus: 'unknown',
@@ -147,6 +148,7 @@ describe('createPunchQueue', () => {
 
       const seen: string[] = [];
       await queue.flush({
+        userId: 1,
         sync: async (entry) => {
           seen.push(entry.id);
 
@@ -164,7 +166,7 @@ describe('createPunchQueue', () => {
       const queue = createPunchQueue(store);
       await queue.enqueue(punch('a'));
 
-      await queue.flush({ sync: async () => undefined });
+      await queue.flush({ userId: 1, sync: async () => undefined });
 
       expect(store.removed).toEqual(['a']);
     });
@@ -175,6 +177,7 @@ describe('createPunchQueue', () => {
 
       let release: (() => void) | undefined;
       const flushed = queue.flush({
+        userId: 1,
         sync: () =>
           new Promise<PunchSyncResult>((resolve) => {
             release = () => resolve(undefined);
@@ -204,9 +207,9 @@ describe('createPunchQueue', () => {
           }),
       );
 
-      const first = queue.flush({ sync });
+      const first = queue.flush({ userId: 1, sync });
       await Promise.resolve();
-      await queue.flush({ sync });
+      await queue.flush({ userId: 1, sync });
 
       expect(sync).toHaveBeenCalledTimes(1);
 
@@ -218,7 +221,7 @@ describe('createPunchQueue', () => {
       const queue = createPunchQueue();
       const sync: PunchSync = jest.fn(async () => undefined);
 
-      await queue.flush({ sync });
+      await queue.flush({ userId: 1, sync });
 
       expect(sync).not.toHaveBeenCalled();
       expect(queue.getState().lastError).toBeNull();
@@ -231,6 +234,7 @@ describe('createPunchQueue', () => {
         await queue.enqueue(punch('b'));
 
         await queue.flush({
+          userId: 1,
           sync: () =>
             Promise.reject(
               new ApiError({ kind: 'server', status: 500, serverMessage: 'El servidor falló.' }),
@@ -246,7 +250,10 @@ describe('createPunchQueue', () => {
         const queue = createPunchQueue();
         await queue.enqueue(punch('a'));
 
-        await queue.flush({ sync: () => Promise.reject(new Error('undefined is not a function')) });
+        await queue.flush({
+          userId: 1,
+          sync: () => Promise.reject(new Error('undefined is not a function')),
+        });
 
         // Not `Sin conexión`: a client bug over a working radio would send the
         // employee looking at their signal for a problem that is not there.
@@ -257,7 +264,10 @@ describe('createPunchQueue', () => {
         const queue = createPunchQueue();
         await queue.enqueue(punch('a'));
 
-        await queue.flush({ sync: () => Promise.reject(new ApiError({ kind: 'network' })) });
+        await queue.flush({
+          userId: 1,
+          sync: () => Promise.reject(new ApiError({ kind: 'network' })),
+        });
 
         expect(queue.getState().lastError).toBe(es.errors.network);
       });
@@ -270,6 +280,7 @@ describe('createPunchQueue', () => {
 
         const seen: string[] = [];
         await queue.flush({
+          userId: 1,
           sync: async (entry) => {
             seen.push(entry.id);
 
@@ -293,6 +304,7 @@ describe('createPunchQueue', () => {
 
         let release: (() => void) | undefined;
         const flushed = queue.flush({
+          userId: 1,
           sync: () =>
             new Promise<PunchSyncResult>((resolve) => {
               release = () => resolve(undefined);
@@ -310,10 +322,13 @@ describe('createPunchQueue', () => {
         const queue = createPunchQueue();
         await queue.enqueue(punch('a'));
 
-        await queue.flush({ sync: () => Promise.reject(new ApiError({ kind: 'network' })) });
+        await queue.flush({
+          userId: 1,
+          sync: () => Promise.reject(new ApiError({ kind: 'network' })),
+        });
         expect(queue.getState().lastError).not.toBeNull();
 
-        await queue.flush({ sync: async () => undefined });
+        await queue.flush({ userId: 1, sync: async () => undefined });
         expect(queue.getState().lastError).toBeNull();
       });
     });
@@ -330,6 +345,7 @@ describe('createPunchQueue', () => {
 
         const seen: string[] = [];
         await queue.flush({
+          userId: 1,
           sync: async (entry) => {
             seen.push(entry.id);
 
@@ -348,7 +364,10 @@ describe('createPunchQueue', () => {
         const queue = createPunchQueue(store);
         await queue.enqueue(punch('a'));
 
-        await queue.flush({ sync: async () => ({ message: 'La marca es demasiado antigua.' }) });
+        await queue.flush({
+          userId: 1,
+          sync: async () => ({ message: 'La marca es demasiado antigua.' }),
+        });
 
         expect(store.removed).toEqual(['a']);
       });
@@ -359,6 +378,7 @@ describe('createPunchQueue', () => {
         await queue.enqueue(punch('b'));
 
         await queue.flush({
+          userId: 1,
           sync: async (entry) =>
             entry.id === 'a'
               ? { message: 'primera' }
@@ -366,7 +386,7 @@ describe('createPunchQueue', () => {
         });
         expect(queue.getState().lastNotice).toBe('primera');
 
-        await queue.flush({ sync: async () => undefined });
+        await queue.flush({ userId: 1, sync: async () => undefined });
         expect(queue.getState().lastNotice).toBeNull();
       });
     });
@@ -377,7 +397,7 @@ describe('createPunchQueue', () => {
         await queue.enqueue(punch('a'));
         const sync: PunchSync = jest.fn(async () => undefined);
 
-        await queue.flush({ sync, online: false });
+        await queue.flush({ userId: 1, sync, online: false });
 
         expect(sync).not.toHaveBeenCalled();
         expect(queue.getState().lastError).toBe(es.errors.network);
@@ -389,7 +409,7 @@ describe('createPunchQueue', () => {
         // told (#6) — there is no banner to put the sentence on.
         const queue = createPunchQueue();
 
-        await queue.flush({ sync: jest.fn(async () => undefined), online: false });
+        await queue.flush({ userId: 1, sync: jest.fn(async () => undefined), online: false });
 
         expect(queue.getState().lastError).toBeNull();
       });
@@ -401,7 +421,7 @@ describe('usePunchQueue', () => {
   it('counts what is waiting', async () => {
     const queue = createPunchQueue();
 
-    const { result } = await renderHook(() => usePunchQueue(queue));
+    const { result } = await renderHook(() => usePunchQueue(queue, 1));
 
     expect(result.current.count).toBe(0);
 
@@ -417,13 +437,102 @@ describe('usePunchQueue', () => {
     const queue = createPunchQueue();
     await queue.enqueue(punch('a'));
 
-    const { result } = await renderHook(() => usePunchQueue(queue));
+    const { result } = await renderHook(() => usePunchQueue(queue, 1));
     expect(result.current.count).toBe(1);
 
     await act(async () => {
-      await queue.flush({ sync: async () => undefined });
+      await queue.flush({ userId: 1, sync: async () => undefined });
     });
 
     expect(result.current.count).toBe(0);
+  });
+
+  // §4.7 D5 — a shared device holding a second employee's leftover rows must
+  // not show them to whoever is signed in now.
+  it('shows only the signed-in employee’s rows', async () => {
+    const queue = createPunchQueue();
+    await queue.enqueue(punch('a', { userId: 1 }));
+    await queue.enqueue(punch('b', { userId: 2 }));
+
+    const { result } = await renderHook(() => usePunchQueue(queue, 1));
+
+    expect(result.current.count).toBe(1);
+    expect(result.current.entries.map((entry) => entry.id)).toEqual(['a']);
+  });
+});
+
+describe('queue-to-employee binding (§4.7 D5, KMO-49 #7)', () => {
+  it('never flushes a punch queued under a different employee', async () => {
+    const queue = createPunchQueue();
+    await queue.enqueue(punch('a', { userId: 1 }));
+    await queue.enqueue(punch('b', { userId: 2 }));
+
+    const sync = jest.fn(async () => undefined);
+    // Employee 2 signs in and the automatic flush fires under their token —
+    // employee 1's row, still on this phone from an earlier sign-in, must
+    // never be posted under it.
+    await queue.flush({ userId: 2, sync });
+
+    expect(sync).toHaveBeenCalledTimes(1);
+    expect(sync).toHaveBeenCalledWith(expect.objectContaining({ id: 'b' }));
+    expect(queue.getState().entries.map((entry) => entry.id)).toEqual(['a']);
+  });
+
+  it('flushes the first employee’s row once they sign in again, leaving the second untouched', async () => {
+    const queue = createPunchQueue();
+    await queue.enqueue(punch('a', { userId: 1 }));
+    await queue.enqueue(punch('b', { userId: 2 }));
+
+    const sync = jest.fn(async () => undefined);
+    await queue.flush({ userId: 1, sync });
+
+    expect(sync).toHaveBeenCalledTimes(1);
+    expect(sync).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }));
+    expect(queue.getState().entries.map((entry) => entry.id)).toEqual(['b']);
+  });
+
+  it('preserves each employee’s own order when their rows are interleaved', async () => {
+    const queue = createPunchQueue();
+    await queue.enqueue(punch('a1', { userId: 1, type: 'in' }));
+    await queue.enqueue(punch('b1', { userId: 2, type: 'in' }));
+    await queue.enqueue(punch('a2', { userId: 1, type: 'out' }));
+
+    const seen: string[] = [];
+    await queue.flush({
+      userId: 1,
+      sync: async (entry) => {
+        seen.push(entry.id);
+
+        return undefined;
+      },
+    });
+
+    expect(seen).toEqual(['a1', 'a2']);
+    expect(queue.getState().entries.map((entry) => entry.id)).toEqual(['b1']);
+  });
+
+  // #9 — the queue's own half. `createPunchSync` rethrows a 401 like every
+  // other server-answered-nothing-yet failure (punch-api.ts), which is what
+  // this proves keeps the row rather than dropping it; the session actually
+  // ending is `client.ts`'s app-wide latch, generic to any 401 and already
+  // covered by session.test.tsx's "a session the server ends" suite. What is
+  // new here is the row surviving to be flushed again once that same
+  // employee — the same `userId` — is signed back in.
+  it('keeps a punch a 401 refused, and flushes it once the same employee signs in again', async () => {
+    const queue = createPunchQueue();
+    await queue.enqueue(punch('a', { userId: 1 }));
+
+    await queue.flush({
+      userId: 1,
+      sync: () => Promise.reject(new ApiError({ kind: 'unauthorized', status: 401 })),
+    });
+
+    expect(queue.getState().entries.map((entry) => entry.id)).toEqual(['a']);
+
+    const sync = jest.fn(async () => undefined);
+    await queue.flush({ userId: 1, sync });
+
+    expect(sync).toHaveBeenCalledTimes(1);
+    expect(queue.getState().entries).toEqual([]);
   });
 });

@@ -26,13 +26,16 @@ export type SignOutProps = {
  * Cerrar sesión, and the confirmation standing in front of it (#2, #3).
  *
  * The confirmation is not politeness. Signing out revokes this phone's token and
- * drops everything the phone was still holding, including punches that exist
- * nowhere else — so the tap that does it has to be the second one, and the sheet
- * has to say what the first one would have cost.
+ * is what stands between an employee and a device someone else is about to hold
+ * — so the tap that does it has to be the second one, and the sheet has to say
+ * what the first one costs.
  *
- * With punches queued the body is replaced rather than added to: an employee about
- * to lose an attendance record should not have to read past the ordinary wording
- * to find that out.
+ * With punches queued the body is replaced rather than added to: an employee
+ * about to sign out with punches still on the phone should not have to read
+ * past the ordinary wording to learn what happens to them. What happens is
+ * they stay (docs/design-decisions.md §4.7 D4) — signing out has never
+ * touched the queue, only the token, and KMO-49 makes that true of the copy
+ * as well as the code.
  *
  * The trigger is a bare `ListRow` rather than its own card: KMO-25 folds this in
  * as the last row of Mi perfil's four-row menu, in the danger tone the design
@@ -152,12 +155,15 @@ const styles = StyleSheet.create({
   },
   warning: {
     borderRadius: radius.md,
-    backgroundColor: tones.danger.background,
+    // Warning, not danger (§4.7 D4): the punches are not being lost, only
+    // delayed until this employee is signed in again — the same tone the
+    // pending-sync banner already uses for "still waiting".
+    backgroundColor: tones.warning.background,
     padding: spacing[4],
   },
   warningMessage: {
     ...typography.bodyLg,
-    color: tones.danger.foreground,
+    color: tones.warning.foreground,
   },
   footer: {
     gap: spacing[3],
