@@ -1,3 +1,10 @@
+### KMO-35 — Pending-correction card and approve/decline
+
+- [ ] Open Jornada — the coral badge on the tab and the seeded pending-correction cards show, from both Próximos and Historial.
+- [ ] Run `bin/e2e kmo-35` against a backend carrying ams KOL-69.
+- [ ] Tap Aprobar on a card — it disappears and the badge count drops by one.
+- [ ] Tap Rechazar on another card — same result.
+
 ### KMO-27 — Ayuda y soporte help content
 
 - [ ] Read the six help sections end to end — accurate, no typos, no awkward Chilean Spanish.

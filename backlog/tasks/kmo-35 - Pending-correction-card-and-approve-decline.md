@@ -1,11 +1,11 @@
 ---
 id: KMO-35
 title: Pending-correction card and approve/decline
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-30 20:59'
-updated_date: '2026-08-17 13:52'
+updated_date: '2026-08-17 19:19'
 labels:
   - mobile
   - jornada
@@ -63,4 +63,14 @@ Tier: Jest for all of the above (logic + isolated rendering) — no criterion he
 
 <!-- SECTION:NOTES:BEGIN -->
 KOL-69 built first in ams (separate worktree) since /api/v1 had no mark-modification endpoints yet — see that ticket for the backend evidence. Mobile side: npm run typecheck/lint/format:check green; npm test 93/93 suites, 1413/1413 tests green (full local suite, small enough to run in full — not the ams situation). AC 1-6 proven by: jornada-screen.test.tsx (card visible from both sub-tabs, gated on ReviewOwn:MarkModification), pending-correction-card.test.tsx (fields shown, expiry disables actions), use-pending-corrections.test.ts (approve/decline remove the card on success, keep it with an inline error on failure), corrections-api.test.ts (wire shape). AC 7-8's badge half (src/app/(tabs)/_layout.tsx) has no automated coverage by this app's own convention (badge rendering itself is tab-bar.test.tsx's job, and app/ composition isn't unit tested) — verifying on the emulator before checking those.
+
+flows/kmo-35-pending-correction.yaml written but not yet run: the emulator's live backend (main ams checkout, on your feature/kol-47-rest-day-compensation branch) does not carry KOL-69 yet, so there is nothing real to exercise it against. AC 7 (tab-bar badge) and the E2E pass on AC 1-6 remain open pending KOL-69 review/merge.
+
+KOL-69 merged to ams master (commit 83e1c31). AC 7 (tab-bar badge) and AC 8's badge half stay unchecked — real-device proof needs the emulator's own backend to have KOL-69, and that's now a QA_CHECKLIST.md entry (KMO-35) rather than verified here. Everything else: npm run check green (typecheck, lint, format, 1413/1413 tests).
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Added the pending-correction card, approve/decline and the tab-bar badge (src/features/jornada/{corrections-api,use-pending-corrections,pending-correction-card,pending-corrections}.ts(x), wired into jornada-screen.tsx and src/app/(tabs)/_layout.tsx), against ams KOL-69's new /api/v1/me/mark-modifications endpoints. Verified with Jest (6/8 AC); the badge composition and a real device pass are queued in docs/QA_CHECKLIST.md, with flows/kmo-35-pending-correction.yaml ready for bin/e2e kmo-35 once run.
+<!-- SECTION:FINAL_SUMMARY:END -->
