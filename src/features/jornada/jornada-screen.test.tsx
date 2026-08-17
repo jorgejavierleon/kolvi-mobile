@@ -2,7 +2,7 @@ import { render, screen, userEvent } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { SafeAreaProvider, type Metrics } from 'react-native-safe-area-context';
 
-import type { NaiveDate } from '@/api';
+import type { NaiveDate, NaiveDateTime } from '@/api';
 import type { AuthApi } from '@/features/auth/auth-api';
 import {
   employeePermissions,
@@ -14,6 +14,7 @@ import type { SessionUser } from '@/features/auth/session-user';
 import { createMemoryTokenStore } from '@/features/auth/token-store';
 import { es } from '@/i18n';
 
+import type { PendingCorrection, PendingCorrectionsApi } from './corrections-api';
 import { JornadaScreen } from './jornada-screen';
 import type { UpcomingShiftsApi } from './shifts-api';
 import type { WorkdaysApi } from './workdays-api';
@@ -71,14 +72,29 @@ const workingWorkdaysApi: WorkdaysApi = {
   fetchWorkdays: async () => [],
 };
 
+const workingCorrectionsApi: PendingCorrectionsApi = {
+  fetchPendingCorrections: async () => [],
+  approve: async () => {},
+  decline: async () => {},
+};
+
 async function mount(
   sessionUser: SessionUser,
   api: UpcomingShiftsApi = workingApi,
   workdaysApi: WorkdaysApi = workingWorkdaysApi,
+  correctionsApi: PendingCorrectionsApi = workingCorrectionsApi,
 ) {
-  await render(<JornadaScreen onOpenProfile={() => {}} api={api} workdaysApi={workdaysApi} />, {
-    wrapper: sessionWrapper(sessionUser),
-  });
+  await render(
+    <JornadaScreen
+      onOpenProfile={() => {}}
+      api={api}
+      workdaysApi={workdaysApi}
+      correctionsApi={correctionsApi}
+    />,
+    {
+      wrapper: sessionWrapper(sessionUser),
+    },
+  );
 }
 
 describe('JornadaScreen', () => {
@@ -102,9 +118,17 @@ describe('JornadaScreen', () => {
 
   it('opens the profile from the avatar', async () => {
     const opened = jest.fn();
-    await render(<JornadaScreen onOpenProfile={opened} api={workingApi} />, {
-      wrapper: sessionWrapper(user()),
-    });
+    await render(
+      <JornadaScreen
+        onOpenProfile={opened}
+        api={workingApi}
+        workdaysApi={workingWorkdaysApi}
+        correctionsApi={workingCorrectionsApi}
+      />,
+      {
+        wrapper: sessionWrapper(user()),
+      },
+    );
 
     await userEvent.press(screen.getByTestId('profile-button'));
 
@@ -122,6 +146,58 @@ describe('JornadaScreen', () => {
       expect(await screen.findByTestId('jornada-no-access')).toBeOnTheScreen();
       expect(screen.getByText(es.jornada.noAccess)).toBeOnTheScreen();
       expect(screen.queryByTestId('jornada-segments')).toBeNull();
+    });
+  });
+
+  describe('pending corrections (KMO-35)', () => {
+    const pending: PendingCorrection = {
+      id: 1,
+      workdayId: 10,
+      markTypeLabel: 'Entrada',
+      originalTime: '08:00',
+      proposedTime: '08:32',
+      reason: 'Olvido de marcar',
+      requestedBy: 'Ana Pérez',
+      expiresAt: '2026-08-19 08:00:00' as NaiveDateTime,
+    };
+
+    const correctionsApi: PendingCorrectionsApi = {
+      fetchPendingCorrections: async () => [pending],
+      approve: async () => {},
+      decline: async () => {},
+    };
+
+    it('shows the card on Próximos', async () => {
+      await mount(user(), workingApi, workingWorkdaysApi, correctionsApi);
+
+      expect(await screen.findByTestId('pending-correction-1')).toBeOnTheScreen();
+    });
+
+    it('keeps the card on screen after switching to Historial', async () => {
+      await mount(user(), workingApi, workingWorkdaysApi, correctionsApi);
+      await screen.findByTestId('pending-correction-1');
+
+      await userEvent.press(screen.getByText(es.jornada.segments.historial));
+
+      expect(screen.getByTestId('pending-correction-1')).toBeOnTheScreen();
+    });
+
+    it('does not fetch corrections without ReviewOwn:MarkModification', async () => {
+      const noReviewAccess = employeePermissions.filter(
+        (permission): permission is Permission => permission !== 'ReviewOwn:MarkModification',
+      );
+      const fetchPendingCorrections = jest.fn(async () => [pending]);
+
+      await mount(
+        user({ permissions: parsePermissions(noReviewAccess) }),
+        workingApi,
+        workingWorkdaysApi,
+        { ...correctionsApi, fetchPendingCorrections },
+      );
+      await screen.findByTestId('jornada-segments');
+
+      expect(fetchPendingCorrections).not.toHaveBeenCalled();
+      expect(screen.queryByTestId('pending-correction-1')).toBeNull();
     });
   });
 });

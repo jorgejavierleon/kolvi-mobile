@@ -738,6 +738,37 @@ export const es = {
       /** The eyebrow over the leave type, in place of the tiles and the strip (#7). */
       leave: 'Permiso',
     },
+
+    /**
+     * The pending-correction card (KMO-35): visible from either sub-tab,
+     * above the segmented content — the design's own placement, not one row
+     * of Historial. `expiryLabel` below is the countdown; everything else
+     * here is static card copy.
+     */
+    corrections: {
+      title: 'Corrección de marca propuesta',
+      currentTime: 'Marca actual',
+      proposedTime: 'Propuesta',
+      approve: 'Aprobar',
+      decline: 'Rechazar',
+      /** A punch that does not exist yet — the correction adds one rather than changing one. */
+      noCurrentTime: 'Sin marca previa',
+      /**
+       * The rare race between this screen's own load and the server's 10-min
+       * sweep that consolidates an unopposed request (docs/design-decisions.md
+       * §6): the window closed between the list arriving and the employee
+       * tapping. Its own sentence, not `loadFailed` — nothing about the
+       * *load* failed.
+       */
+      expired: 'Esta corrección ya venció y no se puede accionar.',
+      /**
+       * A tap that reached the server and was refused for a reason other than
+       * expiry — the ownership guard, most plausibly a second device acting on
+       * the same request first. Generic on purpose: `ApiError.kind` does not
+       * distinguish the two on a 403, and neither is actionable by retrying.
+       */
+      reviewFailed: 'No pudimos procesar tu respuesta. Inténtalo de nuevo.',
+    },
   },
 
   profile: {
@@ -1052,6 +1083,45 @@ export function tabWithPendingCount(tab: string, count: number): string {
 /** The bottom marker of a scaffolded section, e.g. `Fin de Jornada`. */
 export function sectionEnd(section: string): string {
   return `Fin de ${section}`;
+}
+
+/**
+ * The pending-correction card's countdown — the design's own `Vence en 2
+ * días` — from whole calendar days until `expiresAt`, per `daysBetween`.
+ *
+ * Negative and zero both read as `Vence hoy`: a countdown that went negative
+ * is the same fact an employee needs to act on today, and drawing a
+ * "vencido hace -1 días" would be arithmetic leaking into copy.
+ */
+export function correctionExpiryLabel(daysRemaining: number): string {
+  if (daysRemaining <= 0) {
+    return 'Vence hoy';
+  }
+
+  if (daysRemaining === 1) {
+    return 'Vence mañana';
+  }
+
+  return `Vence en ${daysRemaining} días`;
+}
+
+/**
+ * `{reason} · {requester}` under the current/proposed pair — the design's
+ * own `{{ c.reason }} · {{ c.requestedBy }}`, and the same one-half-present
+ * shape as `profileIdentity` above. Either half can be absent (the server
+ * sends `null` for a reason it does not recognise, or a system-filed
+ * correction with no named requester); `null` when both are, so the card
+ * draws nothing rather than a bare separator.
+ */
+export function correctionSubtitle(
+  reason: string | null,
+  requestedBy: string | null,
+): string | null {
+  if (reason !== null && requestedBy !== null) {
+    return `${reason} · ${requestedBy}`;
+  }
+
+  return reason ?? requestedBy;
 }
 
 /**

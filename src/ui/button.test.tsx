@@ -96,6 +96,18 @@ describe('Button', () => {
       expect(screen.getByText(es.actions.sync)).toHaveStyle({ color: colors.white });
     });
 
+    // KMO-35. `Aprobar` on the pending-correction card: filled, unlike the
+    // `danger` outline `Rechazar` sits next to.
+    it('fills successSolid with the success foreground', async () => {
+      await render(<Button label="Aprobar" onPress={noop} variant="successSolid" />);
+
+      expect(screen.getByRole('button')).toHaveStyle({
+        backgroundColor: tones.success.foreground,
+        borderWidth: 0,
+      });
+      expect(screen.getByText('Aprobar')).toHaveStyle({ color: colors.white });
+    });
+
     it('takes its corner from the radius token, never a bare number', async () => {
       await render(<Button label="Listo" onPress={noop} />);
 

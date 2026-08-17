@@ -2,6 +2,8 @@ import type { ApiErrorKind } from '@/api';
 
 import {
   appVersionLabel,
+  correctionExpiryLabel,
+  correctionSubtitle,
   es,
   locationConfirmed,
   locationOutOfRange,
@@ -203,6 +205,25 @@ describe('phrases assembled around a server value', () => {
     expect(profileIdentity('Operaria de Bodega', 'Sucursal Ñuñoa')).toBe(
       'Operaria de Bodega · Sucursal Ñuñoa',
     );
+  });
+
+  it('counts down the pending-correction expiry in whole days', () => {
+    expect(correctionExpiryLabel(2)).toBe('Vence en 2 días');
+    expect(correctionExpiryLabel(1)).toBe('Vence mañana');
+    expect(correctionExpiryLabel(0)).toBe('Vence hoy');
+    expect(correctionExpiryLabel(-1)).toBe('Vence hoy');
+  });
+
+  it('joins the correction reason and requester, verbatim from the design', () => {
+    expect(correctionSubtitle('Olvido de marcar', 'Ana Pérez')).toBe(
+      'Olvido de marcar · Ana Pérez',
+    );
+  });
+
+  it('draws only the half of the correction subtitle it has', () => {
+    expect(correctionSubtitle('Olvido de marcar', null)).toBe('Olvido de marcar');
+    expect(correctionSubtitle(null, 'Ana Pérez')).toBe('Ana Pérez');
+    expect(correctionSubtitle(null, null)).toBeNull();
   });
 
   it('draws only the half it has when the other is missing', () => {

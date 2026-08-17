@@ -39,9 +39,14 @@ import {
  * filled rather than outlined because an outline in `tones.warning.foreground`
  * on a `tones.warning.background` card is a border against its own tint —
  * legible only if you already know it is there.
+ *
+ * `successSolid` is the sixth: `Aprobar` on the pending-correction card
+ * (KMO-35). The design fills it rather than outlining it — unlike `danger`'s
+ * `Rechazar` beside it, which stays an outline because declining is the
+ * lesser-commitment half of the pair, not because success has no filled form.
  */
 export type ButtonVariant =
-  'primary' | 'accent' | 'secondary' | 'warning' | 'warningSolid' | 'danger';
+  'primary' | 'accent' | 'secondary' | 'warning' | 'warningSolid' | 'successSolid' | 'danger';
 
 /**
  * The corner. `rounded` is `radius.md`, which is every button the design draws
@@ -105,6 +110,7 @@ const variants: Record<ButtonVariant, VariantStyle> = {
   // The tone's own foreground, filled. On the banner it draws the action out of
   // the tint it is sitting on, which the outline above cannot do.
   warningSolid: { background: tones.warning.foreground, foreground: colors.white },
+  successSolid: { background: tones.success.foreground, foreground: colors.white },
   danger: {
     background: 'transparent',
     foreground: tones.danger.foreground,

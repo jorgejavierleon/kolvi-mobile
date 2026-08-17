@@ -13,6 +13,8 @@
  */
 export {
   appVersionLabel,
+  correctionExpiryLabel,
+  correctionSubtitle,
   es,
   greeting,
   locationConfirmed,

@@ -9,7 +9,9 @@ import { Screen } from '@/ui/screen';
 import { ScreenHeader } from '@/ui/screen-header';
 import { SegmentedControl } from '@/ui/segmented-control';
 
+import type { PendingCorrectionsApi } from './corrections-api';
 import { Historial } from './historial';
+import { PendingCorrections } from './pending-corrections';
 import { Proximos } from './proximos';
 import type { UpcomingShiftsApi } from './shifts-api';
 import type { WorkdaysApi } from './workdays-api';
@@ -21,25 +23,39 @@ export type JornadaScreenProps = {
   api?: UpcomingShiftsApi;
   /** Injected in tests; the app uses the configured client. */
   workdaysApi?: WorkdaysApi;
+  /** Injected in tests; the app uses the configured client. */
+  correctionsApi?: PendingCorrectionsApi;
 };
 
 type JornadaSegment = 'proximos' | 'historial';
 
 /**
- * Jornada (KMO-32, KMO-33). The segmented control, Próximos and Historial are
- * real; KMO-34 is the day detail Historial's rows are wired for, and KMO-35
- * the pending-correction card that puts the count on this tab's badge.
+ * Jornada (KMO-32, KMO-33, KMO-35). The segmented control, Próximos and
+ * Historial are real; KMO-34 is the day detail Historial's rows are wired
+ * for. The pending-correction cards sit above the segmented control, visible
+ * from either sub-tab per the design, and put the count on this tab's badge
+ * (`src/app/(tabs)/_layout.tsx`).
  *
  * Gated on `ViewOwn:Workday` — unlike Marcaje's punch surface, there is
  * nothing on this whole tab for an employee who cannot view their own
  * workday, so the gate covers the segmented control too rather than just one
- * row inside it.
+ * row inside it. The correction cards have their own, narrower gate: an
+ * employee can view their own workday without holding
+ * `ReviewOwn:MarkModification` (the review permission is the ceiling one
+ * source of truth, per `src/features/auth/permissions.ts`), and there is
+ * nothing to review for one who does not.
  */
-export function JornadaScreen({ onOpenProfile, api, workdaysApi }: JornadaScreenProps) {
+export function JornadaScreen({
+  onOpenProfile,
+  api,
+  workdaysApi,
+  correctionsApi,
+}: JornadaScreenProps) {
   const session = useSession();
   const [segment, setSegment] = useState<JornadaSegment>('proximos');
 
   const canView = session.can('ViewOwn:Workday');
+  const canReview = session.can('ReviewOwn:MarkModification');
 
   return (
     <Screen>
@@ -51,6 +67,8 @@ export function JornadaScreen({ onOpenProfile, api, workdaysApi }: JornadaScreen
 
       {canView ? (
         <>
+          {canReview ? <PendingCorrections api={correctionsApi} /> : null}
+
           <SegmentedControl
             segments={[
               { value: 'proximos', label: es.jornada.segments.proximos },

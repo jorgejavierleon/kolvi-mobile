@@ -108,6 +108,16 @@ export function ChevronLeftIcon(props: IconProps) {
   );
 }
 
+/** `arrow-right` — the current-to-proposed transition on a pending-correction card. */
+export function ArrowRightIcon(props: IconProps) {
+  return (
+    <Glyph {...props}>
+      <Path d="M5 12h14" />
+      <Path d="m12 5 7 7-7 7" />
+    </Glyph>
+  );
+}
+
 /** `chevron-down` — the disclosure affordance on a collapsible section header. */
 export function ChevronDownIcon(props: IconProps) {
   return (

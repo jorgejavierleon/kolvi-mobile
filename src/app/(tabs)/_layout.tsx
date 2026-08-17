@@ -1,5 +1,7 @@
 import { Tabs, type BottomTabBarProps } from 'expo-router/js-tabs';
 
+import { useSession } from '@/features/auth/session';
+import { usePendingCorrections } from '@/features/jornada/use-pending-corrections';
 import { es, tabWithPendingCount } from '@/i18n';
 import { colors } from '@/theme';
 import { CalendarCheckIcon, ClockIcon, FileTextIcon, HomeIcon, type IconProps } from '@/ui/icons';
@@ -50,21 +52,40 @@ const tabs = [
 }[];
 
 /**
- * Mark corrections awaiting the employee's approval, and documents awaiting
- * their signature. Both are zero until there is an API to ask: KMO-35 wires the
- * corrections count and KMO-42 the signatures count. Seeding them with numbers
- * to make the badges visible would be exactly the sample data KMO-30 exists to
- * keep out of a build, so the badge behaviour is covered by `tab-bar.test.tsx`
- * instead.
+ * A correction fetch this tab bar does not need to make: an employee without
+ * `ReviewOwn:MarkModification` has nothing to review, so `usePendingCorrections`
+ * still runs (rules of hooks — the bar is always mounted) but against this
+ * no-op client rather than asking a server it would get a 403 back from.
  */
-const pendingCounts = {
-  none: 0,
-  corrections: 0,
-  signatures: 0,
-} as const;
+const noCorrectionsApi = {
+  fetchPendingCorrections: async () => [],
+  approve: async () => {},
+  decline: async () => {},
+};
 
 function KolviTabBar({ state, navigation }: BottomTabBarProps) {
   const active = state.routes[state.index];
+
+  const session = useSession();
+  const canReviewCorrections = session.can('ReviewOwn:MarkModification');
+  const corrections = usePendingCorrections(canReviewCorrections ? undefined : noCorrectionsApi);
+
+  /**
+   * Mark corrections awaiting the employee's approval, and documents awaiting
+   * their signature. Corrections come from the same request `JornadaScreen`'s
+   * own pending-correction cards make (KMO-35) — this app has no shared
+   * fetch cache, so the bar and the screen each hold their own subscription,
+   * the same reasoning `use-upcoming-shifts.ts` gives for two screens' loads
+   * being independent. Signatures stay zero until KMO-42 wires it; seeding it
+   * with a number to make the badge visible would be exactly the sample data
+   * KMO-30 exists to keep out of a build, so that badge's own behaviour is
+   * covered by `tab-bar.test.tsx` instead.
+   */
+  const pendingCounts = {
+    none: 0,
+    corrections: corrections.status === 'loaded' ? corrections.corrections.length : 0,
+    signatures: 0,
+  } as const;
 
   const items = tabs.flatMap<TabBarItem>(({ key, route: name, label, icon, pending }) => {
     // A tab whose route is missing is a wiring mistake, not a runtime state.
