@@ -4,10 +4,11 @@ title: Crash reporting and punch funnel telemetry
 status: To Do
 assignee: []
 created_date: '2026-07-30 20:59'
+updated_date: '2026-08-17 19:46'
 labels:
   - mobile
   - release
-milestone: m-0
+milestone: m-5
 dependencies:
   - KMO-17
 documentation:

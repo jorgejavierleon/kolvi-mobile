@@ -4,11 +4,12 @@ title: Accessibility and field-conditions pass
 status: To Do
 assignee: []
 created_date: '2026-07-30 20:59'
+updated_date: '2026-08-17 19:46'
 labels:
   - mobile
   - a11y
   - release
-milestone: m-0
+milestone: m-5
 dependencies:
   - KMO-19
   - KMO-25

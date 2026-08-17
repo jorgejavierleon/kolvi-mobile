@@ -4,11 +4,12 @@ title: Notification preferences screen
 status: To Do
 assignee: []
 created_date: '2026-07-30 20:59'
+updated_date: '2026-08-17 19:41'
 labels:
   - mobile
   - notifications
   - perfil
-milestone: m-1
+milestone: m-4
 dependencies:
   - KMO-4
   - KMO-9
