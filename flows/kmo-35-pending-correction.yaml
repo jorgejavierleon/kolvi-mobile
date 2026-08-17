@@ -1,0 +1,62 @@
+# KMO-35 — the pending-correction card and its tab-bar badge.
+#
+# Covers the card being visible from the Jornada tab's Próximos segment with
+# the design's own copy (`Corrección de marca propuesta`, Aprobar/Rechazar),
+# and the coral badge on the Jornada tab item carrying a count while a
+# correction is pending. Approving one and watching both the card and the
+# badge count drop is the one thing only a device can show: Jest proves
+# `usePendingCorrections` drops a reviewed row from its own list
+# (`use-pending-corrections.test.ts`), but not that the tab bar — a sibling
+# subscription with no shared cache — reflects it.
+#
+# What is NOT pinned here: the exact original/proposed times and the reason
+# label are `pending-correction-card.test.tsx`'s fixture concerns — the
+# seeded modification's times move with when `ams`'s WorkdaySeeder last ran.
+# The expired-and-disabled state is `pending-correction-card.test.tsx`'s own
+# controlled-clock test; seeded data's real age at run time is not something
+# this flow controls.
+#
+# Needs a reachable `ams` carrying KOL-69 (GET /api/v1/me/mark-modifications,
+# POST .../approve, POST .../decline) and WorkdaySeeder's demo organization,
+# which seeds three pending corrections for the seeded employee.
+appId: cl.kolvi.empleados
+name: KMO-35 pending correction
+tags:
+  - jornada
+---
+- runFlow: shared/sign-in.yaml
+
+- assertVisible:
+    id: 'tab-jornada-badge'
+    label: 'The coral badge shows the seeded pending count'
+
+- tapOn:
+    id: 'tab-jornada'
+    label: 'The Jornada tab'
+
+- extendedWaitUntil:
+    visible: 'Corrección de marca propuesta'
+    timeout: 15000
+    label: 'The seeded pending corrections have loaded'
+- assertVisible: 'Aprobar'
+- assertVisible: 'Rechazar'
+
+- takeScreenshot: kmo-35-pending-correction
+
+# Visible from Historial too, not only Próximos.
+- tapOn: 'Historial'
+- assertVisible: 'Corrección de marca propuesta'
+
+- tapOn: 'Próximos'
+
+# Approving the first card removes it from the list — WorkdaySeeder seeds
+# three, so "Aprobar" staying visible below is the other two, not a failure
+# to remove anything. The screenshot is the record a reviewer checks against
+# the badge count above having dropped by one.
+- tapOn: 'Aprobar'
+- extendedWaitUntil:
+    visible: 'Corrección de marca propuesta'
+    timeout: 15000
+    label: 'Back on the list, one card fewer'
+
+- takeScreenshot: kmo-35-after-approve
